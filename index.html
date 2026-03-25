@@ -9,12 +9,9 @@
 
     body {
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     canvas {
@@ -24,9 +21,18 @@
       z-index: 0;
     }
 
-    .ui {
+    .page {
       position: relative;
       z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 80px;
+      gap: 60px;
+    }
+
+    /* ── Hero section ── */
+    .hero {
       text-align: center;
     }
 
@@ -40,8 +46,8 @@
 
     @keyframes wobble {
       0%, 100% { transform: scale(1) rotate(0deg); }
-      25% { transform: scale(1.05) rotate(1deg); }
-      75% { transform: scale(0.97) rotate(-1deg); }
+      25%  { transform: scale(1.05) rotate(1deg); }
+      75%  { transform: scale(0.97) rotate(-1deg); }
     }
 
     button {
@@ -57,14 +63,8 @@
       text-shadow: 0 0 10px white;
     }
 
-    button:hover {
-      transform: scale(1.08);
-      box-shadow: 0 0 30px rgba(255,255,255,0.5);
-    }
-
-    button:active {
-      transform: scale(0.95);
-    }
+    button:hover  { transform: scale(1.08); box-shadow: 0 0 30px rgba(255,255,255,0.5); }
+    button:active { transform: scale(0.95); }
 
     #count {
       margin-top: 20px;
@@ -72,17 +72,261 @@
       color: white;
       text-shadow: 0 0 15px rgba(255,255,255,0.9);
     }
+
+    /* ── Markets section ── */
+    .markets {
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .markets h2 {
+      color: white;
+      font-size: 1.6em;
+      margin-bottom: 20px;
+      text-align: center;
+      text-shadow: 0 0 16px rgba(255,180,255,0.8);
+      letter-spacing: 0.05em;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .chart-card {
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 24px rgba(180,100,255,0.2);
+    }
+
+    .chart-card-label {
+      padding: 12px 16px 4px;
+      color: rgba(255,255,255,0.85);
+      font-size: 0.85em;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* TradingView widget container */
+    .tradingview-widget-container {
+      width: 100%;
+    }
+
+    .tradingview-widget-container__widget {
+      width: 100%;
+    }
+
+    /* ── Ticker tape ── */
+    .tape-card {
+      width: 100%;
+      max-width: 1200px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 24px rgba(100,180,255,0.2);
+    }
   </style>
 </head>
 <body>
   <canvas id="bg"></canvas>
-  <div class="ui">
-    <h1>Hello, World!</h1>
-    <button onclick="increment()">Click me</button>
-    <p id="count">Clicks: 0</p>
-  </div>
+
+  <div class="page">
+
+    <!-- Hero -->
+    <div class="hero">
+      <h1>Hello, World!</h1>
+      <button onclick="increment()">Click me</button>
+      <p id="count">Clicks: 0</p>
+    </div>
+
+    <!-- Ticker tape -->
+    <div class="tape-card">
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+        {
+          "symbols": [
+            {"proName": "SP:SPX",       "title": "S&P 500"},
+            {"proName": "NASDAQ:IXIC",  "title": "NASDAQ"},
+            {"proName": "DJ:DJI",       "title": "Dow Jones"},
+            {"proName": "XETR:DAX",     "title": "DAX"},
+            {"proName": "LSE:UKX",      "title": "FTSE 100"},
+            {"proName": "TSX:OSPTSX",   "title": "TSX"},
+            {"proName": "TVC:NIKKEI",   "title": "Nikkei 225"}
+          ],
+          "showSymbolLogo": true,
+          "isTransparent": true,
+          "displayMode": "adaptive",
+          "colorTheme": "dark",
+          "locale": "en"
+        }
+        </script>
+      </div>
+    </div>
+
+    <!-- Charts grid -->
+    <div class="markets">
+      <h2>Markets — 3 Month Charts</h2>
+      <div class="charts-grid">
+
+        <!-- S&P 500 -->
+        <div class="chart-card">
+          <div class="chart-card-label">S&amp;P 500 · SP:SPX</div>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {
+              "symbol": "SP:SPX",
+              "width": "100%",
+              "height": 220,
+              "locale": "en",
+              "dateRange": "3M",
+              "colorTheme": "dark",
+              "trendLineColor": "rgba(100,220,255,1)",
+              "underLineColor": "rgba(100,220,255,0.15)",
+              "underLineBottomColor": "rgba(100,220,255,0)",
+              "isTransparent": true,
+              "autosize": false,
+              "largeChartUrl": ""
+            }
+            </script>
+          </div>
+        </div>
+
+        <!-- NASDAQ -->
+        <div class="chart-card">
+          <div class="chart-card-label">NASDAQ · IXIC</div>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {
+              "symbol": "NASDAQ:IXIC",
+              "width": "100%",
+              "height": 220,
+              "locale": "en",
+              "dateRange": "3M",
+              "colorTheme": "dark",
+              "trendLineColor": "rgba(180,100,255,1)",
+              "underLineColor": "rgba(180,100,255,0.15)",
+              "underLineBottomColor": "rgba(180,100,255,0)",
+              "isTransparent": true,
+              "autosize": false,
+              "largeChartUrl": ""
+            }
+            </script>
+          </div>
+        </div>
+
+        <!-- Dow Jones -->
+        <div class="chart-card">
+          <div class="chart-card-label">Dow Jones · DJI</div>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {
+              "symbol": "DJ:DJI",
+              "width": "100%",
+              "height": 220,
+              "locale": "en",
+              "dateRange": "3M",
+              "colorTheme": "dark",
+              "trendLineColor": "rgba(255,180,80,1)",
+              "underLineColor": "rgba(255,180,80,0.15)",
+              "underLineBottomColor": "rgba(255,180,80,0)",
+              "isTransparent": true,
+              "autosize": false,
+              "largeChartUrl": ""
+            }
+            </script>
+          </div>
+        </div>
+
+        <!-- DAX -->
+        <div class="chart-card">
+          <div class="chart-card-label">DAX · XETR</div>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {
+              "symbol": "XETR:DAX",
+              "width": "100%",
+              "height": 220,
+              "locale": "en",
+              "dateRange": "3M",
+              "colorTheme": "dark",
+              "trendLineColor": "rgba(100,255,160,1)",
+              "underLineColor": "rgba(100,255,160,0.15)",
+              "underLineBottomColor": "rgba(100,255,160,0)",
+              "isTransparent": true,
+              "autosize": false,
+              "largeChartUrl": ""
+            }
+            </script>
+          </div>
+        </div>
+
+        <!-- FTSE 100 -->
+        <div class="chart-card">
+          <div class="chart-card-label">FTSE 100 · LSE</div>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {
+              "symbol": "LSE:UKX",
+              "width": "100%",
+              "height": 220,
+              "locale": "en",
+              "dateRange": "3M",
+              "colorTheme": "dark",
+              "trendLineColor": "rgba(255,100,130,1)",
+              "underLineColor": "rgba(255,100,130,0.15)",
+              "underLineBottomColor": "rgba(255,100,130,0)",
+              "isTransparent": true,
+              "autosize": false,
+              "largeChartUrl": ""
+            }
+            </script>
+          </div>
+        </div>
+
+        <!-- Nikkei 225 -->
+        <div class="chart-card">
+          <div class="chart-card-label">Nikkei 225 · TVC</div>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {
+              "symbol": "TVC:NI225",
+              "width": "100%",
+              "height": 220,
+              "locale": "en",
+              "dateRange": "3M",
+              "colorTheme": "dark",
+              "trendLineColor": "rgba(255,220,80,1)",
+              "underLineColor": "rgba(255,220,80,0.15)",
+              "underLineBottomColor": "rgba(255,220,80,0)",
+              "isTransparent": true,
+              "autosize": false,
+              "largeChartUrl": ""
+            }
+            </script>
+          </div>
+        </div>
+
+      </div><!-- /charts-grid -->
+    </div><!-- /markets -->
+
+  </div><!-- /page -->
 
   <script>
+    // Click counter
     let clicks = 0;
     function increment() {
       clicks++;
@@ -101,51 +345,41 @@
     resize();
     window.addEventListener('resize', resize);
 
-    function hsl(h, s, l) {
-      return `hsl(${h % 360},${s}%,${l}%)`;
-    }
-
     function draw() {
       const W = canvas.width, H = canvas.height;
       const cx = W / 2, cy = H / 2;
 
-      // Fill dark base
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, W, H);
 
-      // Draw layered plasma waves
       const imageData = ctx.createImageData(W, H);
       const data = imageData.data;
 
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
           const nx = x / W, ny = y / H;
-
           const v1 = Math.sin(nx * 10 + t);
           const v2 = Math.sin(ny * 10 + t * 1.3);
           const v3 = Math.sin((nx + ny) * 8 + t * 0.7);
           const v4 = Math.sin(Math.sqrt((nx - 0.5) ** 2 + (ny - 0.5) ** 2) * 20 - t * 1.5);
-
           const v = (v1 + v2 + v3 + v4) / 4;
 
-          // Map to rainbow hue
           const hue = ((v + 1) / 2 * 360 + t * 40) % 360;
           const sat = 90 + Math.sin(t + v * 5) * 10;
           const light = 45 + Math.sin(t * 0.7 + v * 3) * 15;
 
-          // Convert HSL to RGB inline
           const h = hue / 60;
           const s = sat / 100, l = light / 100;
           const c = (1 - Math.abs(2 * l - 1)) * s;
           const xc = c * (1 - Math.abs(h % 2 - 1));
           const m = l - c / 2;
           let r, g, b;
-          if (h < 1)      { r = c; g = xc; b = 0; }
-          else if (h < 2) { r = xc; g = c; b = 0; }
-          else if (h < 3) { r = 0; g = c; b = xc; }
-          else if (h < 4) { r = 0; g = xc; b = c; }
-          else if (h < 5) { r = xc; g = 0; b = c; }
-          else            { r = c; g = 0; b = xc; }
+          if (h < 1)      { r = c;  g = xc; b = 0; }
+          else if (h < 2) { r = xc; g = c;  b = 0; }
+          else if (h < 3) { r = 0;  g = c;  b = xc; }
+          else if (h < 4) { r = 0;  g = xc; b = c; }
+          else if (h < 5) { r = xc; g = 0;  b = c; }
+          else            { r = c;  g = 0;  b = xc; }
 
           const idx = (y * W + x) * 4;
           data[idx]     = (r + m) * 255;
@@ -157,17 +391,16 @@
 
       ctx.putImageData(imageData, 0, 0);
 
-      // Overlay swirling radial rings
       for (let i = 0; i < 6; i++) {
         const phase = t * (0.5 + i * 0.15) + i * Math.PI / 3;
-        const radius = (100 + i * 60 + Math.sin(t * 0.8 + i) * 40);
+        const radius = 100 + i * 60 + Math.sin(t * 0.8 + i) * 40;
         const ox = cx + Math.cos(phase * 0.4) * 80;
         const oy = cy + Math.sin(phase * 0.3) * 60;
         const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, radius);
         const hue = (t * 60 + i * 60) % 360;
-        grad.addColorStop(0, `hsla(${hue},100%,70%,0.15)`);
-        grad.addColorStop(0.5, `hsla(${(hue + 120) % 360},100%,60%,0.08)`);
-        grad.addColorStop(1, `hsla(${(hue + 240) % 360},100%,50%,0)`);
+        grad.addColorStop(0,   `hsla(${hue},100%,70%,0.15)`);
+        grad.addColorStop(0.5, `hsla(${(hue+120)%360},100%,60%,0.08)`);
+        grad.addColorStop(1,   `hsla(${(hue+240)%360},100%,50%,0)`);
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(ox, oy, radius, 0, Math.PI * 2);
