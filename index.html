@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello World</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #f0f0f0;
+    }
+    h1 {
+      margin-bottom: 24px;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background: #4a90e2;
+      color: white;
+    }
+    button:hover {
+      background: #357abd;
+    }
+    #count {
+      margin-top: 16px;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hello, World!</h1>
+  <button onclick="increment()">Click me</button>
+  <p id="count">Clicks: 0</p>
+
+  <script>
+    let clicks = 0;
+    function increment() {
+      clicks++;
+      document.getElementById('count').textContent = 'Clicks: ' + clicks;
+    }
+  </script>
+</body>
+</html>
