@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hello World</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
       font-family: sans-serif;
       display: flex;
@@ -12,34 +14,73 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
-      margin: 0;
-      background: #f0f0f0;
+      overflow: hidden;
     }
+
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    .ui {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+
     h1 {
+      font-size: 3em;
       margin-bottom: 24px;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 18px;
-      cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      background: #4a90e2;
       color: white;
+      text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(255,100,255,0.6);
+      animation: wobble 3s ease-in-out infinite;
     }
-    button:hover {
-      background: #357abd;
+
+    @keyframes wobble {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.05) rotate(1deg); }
+      75% { transform: scale(0.97) rotate(-1deg); }
     }
-    #count {
-      margin-top: 16px;
+
+    button {
+      padding: 14px 28px;
       font-size: 20px;
+      cursor: pointer;
+      border: 3px solid rgba(255,255,255,0.7);
+      border-radius: 50px;
+      background: rgba(0,0,0,0.3);
+      color: white;
+      backdrop-filter: blur(6px);
+      transition: transform 0.1s, box-shadow 0.3s;
+      text-shadow: 0 0 10px white;
+    }
+
+    button:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 30px rgba(255,255,255,0.5);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    #count {
+      margin-top: 20px;
+      font-size: 22px;
+      color: white;
+      text-shadow: 0 0 15px rgba(255,255,255,0.9);
     }
   </style>
 </head>
 <body>
-  <h1>Hello, World!</h1>
-  <button onclick="increment()">Click me</button>
-  <p id="count">Clicks: 0</p>
+  <canvas id="bg"></canvas>
+  <div class="ui">
+    <h1>Hello, World!</h1>
+    <button onclick="increment()">Click me</button>
+    <p id="count">Clicks: 0</p>
+  </div>
 
   <script>
     let clicks = 0;
@@ -47,6 +88,97 @@
       clicks++;
       document.getElementById('count').textContent = 'Clicks: ' + clicks;
     }
+
+    // Psychedelic canvas background
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+    let t = 0;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function hsl(h, s, l) {
+      return `hsl(${h % 360},${s}%,${l}%)`;
+    }
+
+    function draw() {
+      const W = canvas.width, H = canvas.height;
+      const cx = W / 2, cy = H / 2;
+
+      // Fill dark base
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+
+      // Draw layered plasma waves
+      const imageData = ctx.createImageData(W, H);
+      const data = imageData.data;
+
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const nx = x / W, ny = y / H;
+
+          const v1 = Math.sin(nx * 10 + t);
+          const v2 = Math.sin(ny * 10 + t * 1.3);
+          const v3 = Math.sin((nx + ny) * 8 + t * 0.7);
+          const v4 = Math.sin(Math.sqrt((nx - 0.5) ** 2 + (ny - 0.5) ** 2) * 20 - t * 1.5);
+
+          const v = (v1 + v2 + v3 + v4) / 4;
+
+          // Map to rainbow hue
+          const hue = ((v + 1) / 2 * 360 + t * 40) % 360;
+          const sat = 90 + Math.sin(t + v * 5) * 10;
+          const light = 45 + Math.sin(t * 0.7 + v * 3) * 15;
+
+          // Convert HSL to RGB inline
+          const h = hue / 60;
+          const s = sat / 100, l = light / 100;
+          const c = (1 - Math.abs(2 * l - 1)) * s;
+          const xc = c * (1 - Math.abs(h % 2 - 1));
+          const m = l - c / 2;
+          let r, g, b;
+          if (h < 1)      { r = c; g = xc; b = 0; }
+          else if (h < 2) { r = xc; g = c; b = 0; }
+          else if (h < 3) { r = 0; g = c; b = xc; }
+          else if (h < 4) { r = 0; g = xc; b = c; }
+          else if (h < 5) { r = xc; g = 0; b = c; }
+          else            { r = c; g = 0; b = xc; }
+
+          const idx = (y * W + x) * 4;
+          data[idx]     = (r + m) * 255;
+          data[idx + 1] = (g + m) * 255;
+          data[idx + 2] = (b + m) * 255;
+          data[idx + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+
+      // Overlay swirling radial rings
+      for (let i = 0; i < 6; i++) {
+        const phase = t * (0.5 + i * 0.15) + i * Math.PI / 3;
+        const radius = (100 + i * 60 + Math.sin(t * 0.8 + i) * 40);
+        const ox = cx + Math.cos(phase * 0.4) * 80;
+        const oy = cy + Math.sin(phase * 0.3) * 60;
+        const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, radius);
+        const hue = (t * 60 + i * 60) % 360;
+        grad.addColorStop(0, `hsla(${hue},100%,70%,0.15)`);
+        grad.addColorStop(0.5, `hsla(${(hue + 120) % 360},100%,60%,0.08)`);
+        grad.addColorStop(1, `hsla(${(hue + 240) % 360},100%,50%,0)`);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(ox, oy, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      t += 0.012;
+      requestAnimationFrame(draw);
+    }
+
+    draw();
   </script>
 </body>
 </html>
