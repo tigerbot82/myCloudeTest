@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello World</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f4f8;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #357abd;
+    }
+    #count {
+      font-size: 48px;
+      font-weight: bold;
+      color: #4a90e2;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hello World</h1>
+  <div id="count">0</div>
+  <button onclick="document.getElementById('count').textContent = +document.getElementById('count').textContent + 1">
+    Click me!
+  </button>
+</body>
+</html>
