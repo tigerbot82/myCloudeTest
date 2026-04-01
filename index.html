@@ -163,6 +163,43 @@
       border-radius: 10px;
     }
 
+    /* ── Filter pills ── */
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .filter-btn {
+      padding: 5px 14px;
+      font-size: 0.78em;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.55);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .filter-btn:hover { background: rgba(255,255,255,0.12); color: white; }
+
+    .filter-btn.active {
+      background: rgba(200,120,255,0.3);
+      border-color: rgba(200,120,255,0.7);
+      color: white;
+      box-shadow: 0 0 10px rgba(200,120,255,0.3);
+    }
+
+    .chart-subtitle {
+      text-align: center;
+      font-size: 0.78em;
+      color: rgba(255,255,255,0.3);
+      margin-top: 8px;
+    }
+
     /* ── Clear button ── */
     .clear-btn {
       align-self: flex-end;
@@ -227,9 +264,18 @@
   <!-- Bar chart -->
   <div class="panel">
     <h2>Time by Category</h2>
+    <div class="filter-row" id="filter-row">
+      <button class="filter-btn active" data-filter="today"    onclick="setFilter('today')">Today</button>
+      <button class="filter-btn"        data-filter="week"     onclick="setFilter('week')">This Week</button>
+      <button class="filter-btn"        data-filter="month"    onclick="setFilter('month')">This Month</button>
+      <button class="filter-btn"        data-filter="prevmonth" onclick="setFilter('prevmonth')">Prev Month</button>
+      <button class="filter-btn"        data-filter="year"     onclick="setFilter('year')">This Year</button>
+      <button class="filter-btn"        data-filter="all"      onclick="setFilter('all')">All Time</button>
+    </div>
     <div class="chart-wrap">
       <canvas id="chart" height="220"></canvas>
     </div>
+    <div class="chart-subtitle" id="chart-subtitle"></div>
   </div>
 </div>
 
@@ -264,6 +310,62 @@ function saveEntries(entries) {
 // ─────────────────────────────────────────────
 let entries = loadEntries();
 let tickInterval = null;
+let chartFilter = 'today';
+
+// ─────────────────────────────────────────────
+//  Filter helpers
+// ─────────────────────────────────────────────
+function getFilterRange(filter) {
+  const now = new Date();
+  const sod = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()); // start of day
+
+  switch (filter) {
+    case 'today': {
+      const start = sod(now);
+      const end   = new Date(start.getTime() + 86400000);
+      return { start, end, label: 'Today · ' + now.toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' }) };
+    }
+    case 'week': {
+      const dow   = now.getDay(); // 0=Sun
+      const start = sod(new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow));
+      const end   = new Date(start.getTime() + 7 * 86400000);
+      return { start, end, label: 'This Week · ' + start.toLocaleDateString([], { month:'short', day:'numeric' }) + ' – ' + new Date(end - 1).toLocaleDateString([], { month:'short', day:'numeric' }) };
+    }
+    case 'month': {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end   = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      return { start, end, label: 'This Month · ' + now.toLocaleDateString([], { month:'long', year:'numeric' }) };
+    }
+    case 'prevmonth': {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end   = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { start, end, label: 'Previous Month · ' + start.toLocaleDateString([], { month:'long', year:'numeric' }) };
+    }
+    case 'year': {
+      const start = new Date(now.getFullYear(), 0, 1);
+      const end   = new Date(now.getFullYear() + 1, 0, 1);
+      return { start, end, label: 'This Year · ' + now.getFullYear() };
+    }
+    default: // 'all'
+      return { start: new Date(0), end: new Date(8640000000000000), label: 'All Time' };
+  }
+}
+
+function filteredEntries() {
+  const { start, end } = getFilterRange(chartFilter);
+  return entries.filter(e => {
+    const s = new Date(e.start);
+    return s >= start && s < end;
+  });
+}
+
+function setFilter(f) {
+  chartFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.filter === f)
+  );
+  renderChart();
+}
 
 function activeEntry() {
   return entries.find(e => e.end === null) || null;
@@ -412,10 +514,13 @@ function renderChart() {
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  // Aggregate totals
+  // Aggregate totals for current filter
+  const { label: filterLabel } = getFilterRange(chartFilter);
+  document.getElementById('chart-subtitle').textContent = filterLabel;
+
   const totals = {};
   Object.keys(CATS).forEach(k => totals[k] = 0);
-  entries.forEach(e => { totals[e.category] += elapsedMs(e); });
+  filteredEntries().forEach(e => { totals[e.category] += elapsedMs(e); });
 
   const keys = Object.keys(CATS);
   const maxMs = Math.max(...keys.map(k => totals[k]), 1);
