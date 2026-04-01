@@ -86,12 +86,46 @@
       background: var(--bg);
     }
 
-    .cat-btn[data-cat="focused"]   { --bg: rgba(80,160,255,0.3);  --glow: rgba(80,160,255,0.6); }
-    .cat-btn[data-cat="directs"]   { --bg: rgba(160,80,255,0.3);  --glow: rgba(160,80,255,0.6); }
-    .cat-btn[data-cat="peers"]     { --bg: rgba(255,140,60,0.3);  --glow: rgba(255,140,60,0.6); }
-    .cat-btn[data-cat="email"]     { --bg: rgba(80,220,160,0.3);  --glow: rgba(80,220,160,0.6); }
-    .cat-btn[data-cat="personal"]  { --bg: rgba(255,80,140,0.3);  --glow: rgba(255,80,140,0.6); }
-    .cat-btn[data-cat="finish"]    { --bg: rgba(255,220,60,0.25); --glow: rgba(255,220,60,0.5); color: #ffe87a; }
+    .cat-btn[data-cat="focused"]     { --bg: rgba(80,160,255,0.3);  --glow: rgba(80,160,255,0.6); }
+    .cat-btn[data-cat="directs"]     { --bg: rgba(160,80,255,0.3);  --glow: rgba(160,80,255,0.6); }
+    .cat-btn[data-cat="peers"]       { --bg: rgba(255,140,60,0.3);  --glow: rgba(255,140,60,0.6); }
+    .cat-btn[data-cat="email"]       { --bg: rgba(80,220,160,0.3);  --glow: rgba(80,220,160,0.6); }
+    .cat-btn[data-cat="personal"]    { --bg: rgba(255,80,140,0.3);  --glow: rgba(255,80,140,0.6); }
+    .cat-btn[data-cat="operational"] { --bg: rgba(255,200,80,0.3);  --glow: rgba(255,200,80,0.6); }
+    .cat-btn[data-cat="customer"]    { --bg: rgba(80,220,255,0.3);  --glow: rgba(80,220,255,0.6); }
+    .cat-btn[data-cat="stop"]        { --bg: rgba(255,80,80,0.2);   --glow: rgba(255,80,80,0.5); color: #ff9999; }
+
+    /* ── Warning state on active display ── */
+    #active-display.warn  { animation: pulse-warn 1.2s ease-in-out infinite; }
+    @keyframes pulse-warn {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.55; }
+    }
+
+    /* ── Toast notification ── */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(20,0,30,0.92);
+      border: 1px solid rgba(255,140,0,0.5);
+      color: #ffcc66;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 0.9em;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(255,140,0,0.3);
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 100;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
 
     /* ── Active timer ── */
     #active-display {
@@ -218,6 +252,7 @@
 <body>
 
 <canvas id="bg"></canvas>
+<div id="toast"></div>
 
 <div class="page">
   <h1>Time Tracker</h1>
@@ -226,12 +261,14 @@
   <div class="panel">
     <h2>What are you working on?</h2>
     <div class="btn-grid">
-      <button class="cat-btn" data-cat="focused"  onclick="startCategory('focused')">🎯 Focused Work</button>
-      <button class="cat-btn" data-cat="directs"  onclick="startCategory('directs')">👥 1:1 with Directs</button>
-      <button class="cat-btn" data-cat="peers"    onclick="startCategory('peers')">🤝 1:1 with Peers</button>
-      <button class="cat-btn" data-cat="email"    onclick="startCategory('email')">📧 Email Processing</button>
-      <button class="cat-btn" data-cat="personal" onclick="startCategory('personal')">🌿 Personal</button>
-      <button class="cat-btn" data-cat="finish"   onclick="finishDay()">✅ Finish Day</button>
+      <button class="cat-btn" data-cat="focused"     onclick="startCategory('focused')">🎯 Focused Work</button>
+      <button class="cat-btn" data-cat="directs"     onclick="startCategory('directs')">👥 1:1 with Directs</button>
+      <button class="cat-btn" data-cat="peers"       onclick="startCategory('peers')">🤝 1:1 with Peers</button>
+      <button class="cat-btn" data-cat="operational" onclick="startCategory('operational')">⚙️ Operational Mtgs</button>
+      <button class="cat-btn" data-cat="customer"    onclick="startCategory('customer')">🤝 Customer Related</button>
+      <button class="cat-btn" data-cat="email"       onclick="startCategory('email')">📧 Email Processing</button>
+      <button class="cat-btn" data-cat="personal"    onclick="startCategory('personal')">🌿 Personal</button>
+      <button class="cat-btn" data-cat="stop"        onclick="stopTracking()">⏹ Stop Tracking</button>
     </div>
     <div style="margin-top:16px">
       <div id="active-display">No active session</div>
@@ -284,12 +321,17 @@
 //  Category config
 // ─────────────────────────────────────────────
 const CATS = {
-  focused:  { label: 'Focused Work',      color: 'rgba(80,160,255,0.85)' },
-  directs:  { label: '1:1 with Directs',  color: 'rgba(160,80,255,0.85)' },
-  peers:    { label: '1:1 with Peers',    color: 'rgba(255,140,60,0.85)' },
-  email:    { label: 'Email Processing',  color: 'rgba(80,220,160,0.85)' },
-  personal: { label: 'Personal',          color: 'rgba(255,80,140,0.85)' },
+  focused:     { label: 'Focused Work',       color: 'rgba(80,160,255,0.85)' },
+  directs:     { label: '1:1 with Directs',   color: 'rgba(160,80,255,0.85)' },
+  peers:       { label: '1:1 with Peers',     color: 'rgba(255,140,60,0.85)' },
+  operational: { label: 'Operational Mtgs',   color: 'rgba(255,200,80,0.85)' },
+  customer:    { label: 'Customer Related',   color: 'rgba(80,220,255,0.85)' },
+  email:       { label: 'Email Processing',   color: 'rgba(80,220,160,0.85)' },
+  personal:    { label: 'Personal',           color: 'rgba(255,80,140,0.85)' },
 };
+
+const AUTO_STOP_MS = 2 * 60 * 60 * 1000;   // 2 hours
+const WARN_MS      = 1.75 * 60 * 60 * 1000; // 1h 45m — start warning
 
 // ─────────────────────────────────────────────
 //  Data layer (localStorage)
@@ -388,15 +430,26 @@ function startCategory(cat) {
   render();
 }
 
-function finishDay() {
+function stopTracking(auto = false) {
   const active = activeEntry();
   if (active) {
     const now = new Date().toISOString();
     active.end = now;
     active.duration = new Date(now) - new Date(active.start);
+    if (auto) active.autoStopped = true;
     saveEntries(entries);
   }
+  if (auto) showToast('⏱ Auto-stopped after 2 hours of ' + (active ? CATS[active.category].label : 'tracking'));
   render();
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 5000);
 }
 
 function clearData() {
@@ -452,6 +505,11 @@ function render() {
   clearInterval(tickInterval);
   if (activeEntry()) {
     tickInterval = setInterval(() => {
+      const a = activeEntry();
+      if (a && (Date.now() - new Date(a.start)) >= AUTO_STOP_MS) {
+        stopTracking(true);
+        return;
+      }
       renderActiveDisplay();
       renderTable();
       renderChart();
@@ -474,8 +532,12 @@ function renderActiveDisplay() {
     return;
   }
   const cfg = CATS[active.category];
-  const elapsed = fmtDuration(Date.now() - new Date(active.start));
-  el.innerHTML = `<strong style="color:${cfg.color}">${cfg.label}</strong> &nbsp;·&nbsp; <span class="timer">${elapsed}</span>`;
+  const elapsedMs = Date.now() - new Date(active.start);
+  const elapsed = fmtDuration(elapsedMs);
+  const isWarning = elapsedMs >= WARN_MS;
+  const remaining = isWarning ? ' &nbsp;·&nbsp; <span style="color:#ffaa44">⚠ auto-stop in ' + fmtDuration(AUTO_STOP_MS - elapsedMs) + '</span>' : '';
+  el.classList.toggle('warn', isWarning);
+  el.innerHTML = `<strong style="color:${cfg.color}">${cfg.label}</strong> &nbsp;·&nbsp; <span class="timer">${elapsed}</span>${remaining}`;
 }
 
 function renderTable() {
@@ -497,7 +559,7 @@ function renderTable() {
       <td><span class="dot" style="background:${cfg.color}"></span>${cfg.label}</td>
       <td>${fmtDate(e.start)}${fmtTime(e.start)}</td>
       <td>${isActive ? '<em style="opacity:.4">ongoing</em>' : fmtDate(e.end) + fmtTime(e.end)}</td>
-      <td>${dur}</td>
+      <td>${dur}${e.autoStopped ? ' <span title="Auto-stopped after 2h" style="font-size:0.75em;color:#ffaa44;margin-left:4px">⏱ auto</span>' : ''}</td>
     </tr>`;
   }).join('');
 }
