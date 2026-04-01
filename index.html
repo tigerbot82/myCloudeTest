@@ -340,6 +340,79 @@
 
     #no-user-msg { text-align: center; color: rgba(255,255,255,0.35); padding: 28px; font-size: 0.95em; }
     #tracker-wrap { display: flex; flex-direction: column; gap: 28px; }
+
+    /* ── Category manager ── */
+    .panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .panel-header h2 { margin-bottom:0; }
+
+    .manage-tog-btn {
+      font-family: inherit; font-size:0.72em; letter-spacing:0.1em;
+      padding:5px 12px; border-radius:2px; cursor:pointer;
+      border:1px solid rgba(14,184,255,0.3); background:rgba(14,184,255,0.06);
+      color:rgba(14,184,255,0.6); transition:all 0.15s;
+    }
+    .manage-tog-btn:hover { border-color:rgba(14,184,255,0.7); color:#0eb8ff; }
+
+    .cat-row {
+      display:grid;
+      grid-template-columns: 36px 1fr auto auto auto;
+      align-items:center; gap:8px;
+      padding:8px 4px; border-bottom:1px solid rgba(14,184,255,0.07);
+    }
+    .cat-icon-btn {
+      font-size:1.2em; cursor:pointer; background:none; border:none;
+      padding:3px; border-radius:4px; transition:background 0.15s;
+    }
+    .cat-icon-btn:hover { background:rgba(14,184,255,0.1); }
+    .cat-row-name { font-size:0.88em; color:rgba(14,184,255,0.8); }
+    .cat-rename-inp {
+      font-family:inherit; font-size:0.85em;
+      background:rgba(14,184,255,0.07); border:1px solid rgba(14,184,255,0.3);
+      border-radius:2px; padding:4px 8px; color:#0eb8ff; outline:none; width:100%;
+    }
+    .cat-rename-inp:focus { border-color:rgba(14,184,255,0.7); }
+    .cat-row-swatches { display:flex; gap:4px; flex-wrap:wrap; }
+    .cswatch {
+      display:inline-block; width:14px; height:14px; border-radius:50%;
+      cursor:pointer; border:2px solid transparent; transition:transform 0.1s;
+    }
+    .cswatch:hover { transform:scale(1.3); }
+    .cswatch.sel { border-color:white; }
+
+    .in-use-badge { font-size:0.68em; color:rgba(14,184,255,0.5); white-space:nowrap; letter-spacing:0.05em; }
+
+    .cat-row-acts { display:flex; gap:4px; }
+    .cact {
+      font-family:inherit; font-size:0.78em; padding:3px 8px; border-radius:2px;
+      border:1px solid rgba(14,184,255,0.2); background:rgba(14,184,255,0.05);
+      color:rgba(14,184,255,0.6); cursor:pointer; transition:all 0.15s;
+    }
+    .cact:hover { border-color:rgba(14,184,255,0.6); color:#0eb8ff; }
+    .cact.ok { border-color:rgba(80,220,160,0.4); color:rgba(80,220,160,0.8); }
+    .cact.ok:hover { border-color:rgba(80,220,160,0.8); color:rgb(80,220,160); }
+    .cact.dim { opacity:0.3; cursor:not-allowed; }
+    .cact.dim:hover { border-color:rgba(14,184,255,0.2); color:rgba(14,184,255,0.6); }
+
+    .icon-picker-panel {
+      display:flex; flex-wrap:wrap; gap:4px;
+      padding:10px; background:rgba(8,4,28,0.95);
+      border:1px solid rgba(14,184,255,0.2); border-radius:4px;
+    }
+    .icon-opt {
+      font-size:1.3em; padding:4px; background:none; border:none; cursor:pointer;
+      border-radius:4px; transition:background 0.1s;
+    }
+    .icon-opt:hover { background:rgba(14,184,255,0.15); }
+    .icon-opt.sel { background:rgba(14,184,255,0.25); outline:1px solid rgba(14,184,255,0.5); }
+
+    .add-cat-btn {
+      font-family:inherit; font-size:0.78em; letter-spacing:0.08em;
+      padding:6px 14px; border-radius:2px; cursor:pointer;
+      border:1px dashed rgba(14,184,255,0.25); background:transparent;
+      color:rgba(14,184,255,0.45); transition:all 0.15s;
+    }
+    .add-cat-btn:hover { border-color:rgba(14,184,255,0.6); color:#0eb8ff; }
+    .add-cat-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   </style>
 
   <!-- Firebase SDK (compat — no build step needed) -->
@@ -380,18 +453,34 @@
 
   <!-- Buttons -->
   <div class="panel">
-    <h2>What are you working on?</h2>
-    <div class="btn-grid">
-      <button class="cat-btn" data-cat="focused"     onclick="startCategory('focused')">🎯 Focused Work</button>
-      <button class="cat-btn" data-cat="directs"     onclick="startCategory('directs')">👥 1:1 with Directs</button>
-      <button class="cat-btn" data-cat="peers"       onclick="startCategory('peers')">🤝 1:1 with Peers</button>
-      <button class="cat-btn" data-cat="operational" onclick="startCategory('operational')">⚙️ Operational Mtgs</button>
-      <button class="cat-btn" data-cat="customer"    onclick="startCategory('customer')">🤝 Customer Related</button>
-      <button class="cat-btn" data-cat="email"       onclick="startCategory('email')">📧 Email Processing</button>
-      <button class="cat-btn" data-cat="personal"    onclick="startCategory('personal')">🌿 Personal</button>
-      <button class="cat-btn" data-cat="stop"        onclick="stopTracking()">⏹ Stop Tracking</button>
+    <div class="panel-header">
+      <h2>What are you working on?</h2>
+      <button class="manage-tog-btn" id="manage-tog-btn" onclick="toggleCatManager()">⚙ manage</button>
     </div>
-    <div style="margin-top:16px">
+
+    <!-- Normal mode: category buttons (rendered dynamically) -->
+    <div class="btn-grid" id="cat-btn-grid"></div>
+
+    <!-- Manage mode -->
+    <div id="cat-manager" style="display:none;">
+      <div id="cat-manager-rows"></div>
+      <div style="margin-top:14px;">
+        <button class="add-cat-btn" onclick="showAddCatForm()">+ add category</button>
+        <div id="add-cat-form" style="display:none; margin-top:10px;">
+          <div class="add-cat-row">
+            <button class="cat-icon-btn" id="new-cat-icon-prev" onclick="toggleNewCatIconPicker()">⭐</button>
+            <input id="new-cat-name" class="cat-rename-inp" type="text" placeholder="Category name…" maxlength="30"
+                   onkeydown="if(event.key==='Enter')confirmAddCat();if(event.key==='Escape')hideAddCatForm();">
+            <button class="cact ok" onclick="confirmAddCat()">add</button>
+            <button class="cact" onclick="hideAddCatForm()">cancel</button>
+          </div>
+          <div style="margin-top:8px; display:flex; gap:5px; flex-wrap:wrap;" id="new-cat-swatches"></div>
+          <div class="icon-picker-panel" id="new-cat-icon-picker" style="display:none; margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
       <div id="active-display">No active session</div>
     </div>
   </div>
@@ -455,20 +544,33 @@ firebase.initializeApp({
 const db        = firebase.firestore();
 const analytics = firebase.analytics();
 const usersCol  = db.collection('users');
-const entriesCol = db.collection('entries');
+const entriesCol    = db.collection('entries');
+const categoriesCol = db.collection('categories');
 
 // ─────────────────────────────────────────────
-//  Category config
+//  Category config — dynamic (loaded from Firestore)
 // ─────────────────────────────────────────────
-const CATS = {
-  focused:     { label: 'Focused Work',       color: 'rgba(80,160,255,0.85)' },
-  directs:     { label: '1:1 with Directs',   color: 'rgba(160,80,255,0.85)' },
-  peers:       { label: '1:1 with Peers',     color: 'rgba(255,140,60,0.85)' },
-  operational: { label: 'Operational Mtgs',   color: 'rgba(255,200,80,0.85)' },
-  customer:    { label: 'Customer Related',   color: 'rgba(80,220,255,0.85)' },
-  email:       { label: 'Email Processing',   color: 'rgba(80,220,160,0.85)' },
-  personal:    { label: 'Personal',           color: 'rgba(255,80,140,0.85)' },
-};
+const DEFAULT_CATS = [
+  { id:'focused',     label:'Focused Work',     icon:'🎯', color:'rgba(80,160,255,0.85)',  order:0 },
+  { id:'directs',     label:'1:1 with Directs', icon:'👥', color:'rgba(160,80,255,0.85)',  order:1 },
+  { id:'peers',       label:'1:1 with Peers',   icon:'🤝', color:'rgba(255,140,60,0.85)',  order:2 },
+  { id:'operational', label:'Operational Mtgs', icon:'⚙️', color:'rgba(255,200,80,0.85)', order:3 },
+  { id:'customer',    label:'Customer Related', icon:'💼', color:'rgba(80,220,255,0.85)',  order:4 },
+  { id:'email',       label:'Email Processing', icon:'📧', color:'rgba(80,220,160,0.85)', order:5 },
+  { id:'personal',    label:'Personal',         icon:'🌿', color:'rgba(255,80,140,0.85)', order:6 },
+];
+
+const ICON_OPTIONS = ['🎯','👥','🤝','⚙️','📧','🌿','💼','📊','🔬','💡','🚀','📝','💻','🎤','📞','🏢','📋','⭐','🔧','📌','🧠','💰','🎓','🔔','📅','⚡','🌐','🎨','🔍','🧩','🏆','🎲'];
+const COLOR_OPTIONS = [
+  'rgba(80,160,255,0.85)','rgba(160,80,255,0.85)','rgba(255,140,60,0.85)',
+  'rgba(255,200,80,0.85)','rgba(80,220,255,0.85)','rgba(80,220,160,0.85)',
+  'rgba(255,80,140,0.85)','rgba(255,80,80,0.85)', 'rgba(180,180,180,0.7)',
+];
+
+let categories = [];
+function getCat(id) {
+  return categories.find(c => c.id === id) || { label: id, color: 'rgba(150,150,150,0.7)', icon: '❓' };
+}
 
 const AUTO_STOP_MS = 2 * 60 * 60 * 1000;   // 2 hours
 const WARN_MS      = 1.75 * 60 * 60 * 1000; // 1h 45m — start warning
@@ -476,12 +578,16 @@ const WARN_MS      = 1.75 * 60 * 60 * 1000; // 1h 45m — start warning
 // ─────────────────────────────────────────────
 //  State
 // ─────────────────────────────────────────────
-let entries       = [];
-let users         = [];
-let currentUserId = localStorage.getItem('tt_uid') || null;
-let unsubEntries  = null;
-let tickInterval  = null;
-let chartFilter   = 'today';
+let entries        = [];
+let users          = [];
+let currentUserId  = localStorage.getItem('tt_uid') || null;
+let unsubEntries   = null;
+let tickInterval   = null;
+let chartFilter    = 'today';
+let catManagerOpen = false;
+let renamingCatId  = null;
+let newCatIcon     = '⭐';
+let newCatColor    = COLOR_OPTIONS[0];
 
 // ─────────────────────────────────────────────
 //  Filter helpers
@@ -630,7 +736,7 @@ async function stopTracking(auto = false) {
   await entriesCol.doc(active.id).update({
     end: now, duration: new Date(now) - new Date(active.start), autoStopped: auto
   });
-  if (auto) showToast('⏱ Auto-stopped after 2 hours of ' + CATS[active.category].label);
+  if (auto) showToast('⏱ Auto-stopped after 2 hours of ' + getCat(active.category).label);
 }
 
 let toastTimer = null;
@@ -663,6 +769,182 @@ async function confirmAddUser() {
   if (!name) return;
   hideAddUser();
   await addUser(name);
+}
+
+// ─────────────────────────────────────────────
+//  Category management
+// ─────────────────────────────────────────────
+async function loadCategories() {
+  const snap = await categoriesCol.get();
+  if (snap.empty) {
+    const batch = db.batch();
+    DEFAULT_CATS.forEach(c => batch.set(categoriesCol.doc(c.id),
+      { label:c.label, icon:c.icon, color:c.color, order:c.order, createdAt:new Date().toISOString() }));
+    await batch.commit();
+  }
+  categoriesCol.orderBy('order').onSnapshot(snap => {
+    categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCatButtons();
+    if (catManagerOpen) renderCatManager();
+  });
+}
+
+async function addCategory(label, icon, color) {
+  const order = categories.length;
+  await categoriesCol.add({ label, icon, color, order, createdAt: new Date().toISOString() });
+}
+
+async function deleteCategoryById(catId) {
+  const snap = await entriesCol.where('category', '==', catId).limit(1).get();
+  if (!snap.empty) { showToast('⚠ Cannot delete — category has time entries'); return; }
+  await categoriesCol.doc(catId).delete();
+}
+
+async function renameCategory(catId, newLabel) {
+  if (!newLabel.trim()) return;
+  await categoriesCol.doc(catId).update({ label: newLabel.trim() });
+}
+
+async function updateCatIcon(catId, icon) {
+  await categoriesCol.doc(catId).update({ icon });
+  closeAllIconPickers();
+}
+
+async function updateCatColor(catId, color) {
+  await categoriesCol.doc(catId).update({ color });
+}
+
+// ── Manager UI ──
+function toggleCatManager() {
+  catManagerOpen = !catManagerOpen;
+  document.getElementById('cat-btn-grid').style.display  = catManagerOpen ? 'none'  : 'grid';
+  document.getElementById('cat-manager').style.display   = catManagerOpen ? 'block' : 'none';
+  document.getElementById('manage-tog-btn').textContent  = catManagerOpen ? '✕ done' : '⚙ manage';
+  if (catManagerOpen) { renamingCatId = null; renderCatManager(); }
+}
+
+function renderCatButtons() {
+  const grid = document.getElementById('cat-btn-grid');
+  if (!grid) return;
+  const active = activeEntry();
+  grid.innerHTML = categories.map(c => {
+    const isActive = active && active.category === c.id;
+    const bg   = c.color.replace('0.85','0.3');
+    const glow = c.color.replace('0.85','0.6');
+    return `<button class="cat-btn${isActive?' active':''}" data-cat="${c.id}"
+      style="--bg:${bg};--glow:${glow}" onclick="startCategory('${c.id}')"
+      ${!currentUserId?'disabled':''}>
+      ${c.icon} ${c.label}
+    </button>`;
+  }).join('') +
+  `<button class="cat-btn" data-cat="stop" onclick="stopTracking()" ${!currentUserId?'disabled':''}>⏹ Stop Tracking</button>`;
+}
+
+function renderCatManager() {
+  const el = document.getElementById('cat-manager-rows');
+  if (!el) return;
+  const usedIds = new Set(entries.map(e => e.category));
+  el.innerHTML = categories.map((c, idx) => {
+    const inUse    = usedIds.has(c.id);
+    const renaming = renamingCatId === c.id;
+    const swatches = COLOR_OPTIONS.map(col =>
+      `<span class="cswatch${c.color===col?' sel':''}" style="background:${col}"
+             onclick="updateCatColor('${c.id}','${col}')"></span>`).join('');
+    return `
+    <div class="cat-row">
+      <span class="cat-icon-btn" onclick="toggleIconPicker('${c.id}')" title="Change icon">${c.icon}</span>
+      ${renaming
+        ? `<input class="cat-rename-inp" id="ren-${c.id}" value="${c.label}"
+             onkeydown="if(event.key==='Enter')saveRename('${c.id}');if(event.key==='Escape')cancelRename();">`
+        : `<span class="cat-row-name">${c.label}</span>`}
+      <div class="cat-row-swatches">${swatches}</div>
+      ${inUse ? '<span class="in-use-badge" title="Has entries">● in use</span>' : '<span></span>'}
+      <div class="cat-row-acts">
+        ${renaming
+          ? `<button class="cact ok" onclick="saveRename('${c.id}')">✓</button>
+             <button class="cact" onclick="cancelRename()">✕</button>`
+          : `<button class="cact" onclick="startRename('${c.id}')" title="Rename">✏</button>
+             <button class="cact${inUse?' dim':''}" onclick="deleteCategoryById('${c.id}')" title="${inUse?'In use':'Delete'}">🗑</button>`}
+      </div>
+    </div>
+    <div class="icon-picker-panel" id="ip-${c.id}" style="display:none">
+      ${ICON_OPTIONS.map(em => `<button class="icon-opt${c.icon===em?' sel':''}"
+        onclick="updateCatIcon('${c.id}','${em}')">${em}</button>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function toggleIconPicker(catId) {
+  const el = document.getElementById('ip-' + catId);
+  const wasOpen = el.style.display !== 'none';
+  closeAllIconPickers();
+  if (!wasOpen) el.style.display = 'flex';
+}
+
+function closeAllIconPickers() {
+  document.querySelectorAll('.icon-picker-panel').forEach(p => p.style.display = 'none');
+}
+
+function startRename(catId) {
+  renamingCatId = catId;
+  renderCatManager();
+  setTimeout(() => { const inp = document.getElementById('ren-' + catId); if (inp) { inp.focus(); inp.select(); } }, 30);
+}
+
+function cancelRename() { renamingCatId = null; renderCatManager(); }
+
+async function saveRename(catId) {
+  const inp = document.getElementById('ren-' + catId);
+  if (!inp) return;
+  await renameCategory(catId, inp.value);
+  renamingCatId = null;
+}
+
+// ── Add category form ──
+function showAddCatForm() {
+  newCatIcon = '⭐'; newCatColor = COLOR_OPTIONS[0];
+  document.getElementById('add-cat-form').style.display = 'block';
+  document.getElementById('new-cat-icon-prev').textContent = newCatIcon;
+  renderNewCatSwatches();
+  document.getElementById('new-cat-name').focus();
+}
+
+function hideAddCatForm() {
+  document.getElementById('add-cat-form').style.display = 'none';
+  document.getElementById('new-cat-icon-picker').style.display = 'none';
+  document.getElementById('new-cat-name').value = '';
+}
+
+function renderNewCatSwatches() {
+  document.getElementById('new-cat-swatches').innerHTML = COLOR_OPTIONS.map(col =>
+    `<span class="cswatch${newCatColor===col?' sel':''}" style="background:${col}"
+           onclick="pickNewCatColor('${col}')"></span>`).join('');
+  document.getElementById('new-cat-icon-picker').innerHTML = ICON_OPTIONS.map(em =>
+    `<button class="icon-opt${newCatIcon===em?' sel':''}" onclick="pickNewCatIcon('${em}')">${em}</button>`).join('');
+}
+
+function pickNewCatColor(col) {
+  newCatColor = col;
+  renderNewCatSwatches();
+}
+
+function pickNewCatIcon(em) {
+  newCatIcon = em;
+  document.getElementById('new-cat-icon-prev').textContent = em;
+  document.getElementById('new-cat-icon-picker').style.display = 'none';
+  renderNewCatSwatches();
+}
+
+function toggleNewCatIconPicker() {
+  const el = document.getElementById('new-cat-icon-picker');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+async function confirmAddCat() {
+  const name = document.getElementById('new-cat-name').value.trim();
+  if (!name) return;
+  hideAddCatForm();
+  await addCategory(name, newCatIcon, newCatColor);
 }
 
 // ─────────────────────────────────────────────
@@ -738,11 +1020,7 @@ function renderUserSelector() {
 }
 
 function renderButtonStates() {
-  const active = activeEntry();
-  document.querySelectorAll('.cat-btn[data-cat]').forEach(btn => {
-    btn.disabled = !currentUserId;
-    btn.classList.toggle('active', !!active && btn.dataset.cat === active.category);
-  });
+  if (!catManagerOpen) renderCatButtons();
 }
 
 function renderActiveDisplay() {
@@ -752,7 +1030,7 @@ function renderActiveDisplay() {
     el.innerHTML = 'No active session';
     return;
   }
-  const cfg = CATS[active.category];
+  const cfg = getCat(active.category);
   const elapsedMs = Date.now() - new Date(active.start);
   const elapsed = fmtDuration(elapsedMs);
   const isWarning = elapsedMs >= WARN_MS;
@@ -771,7 +1049,7 @@ function renderTable() {
   // Show newest first
   const sorted = [...entries].reverse();
   tbody.innerHTML = sorted.map(e => {
-    const cfg = CATS[e.category];
+    const cfg = getCat(e.category);
     const isActive = e.end === null;
     const dur = isActive
       ? `<span style="color:${cfg.color}">${fmtDuration(Date.now() - new Date(e.start))} ●</span>`
@@ -802,11 +1080,11 @@ function renderChart() {
   document.getElementById('chart-subtitle').textContent = filterLabel;
 
   const totals = {};
-  Object.keys(CATS).forEach(k => totals[k] = 0);
-  filteredEntries().forEach(e => { totals[e.category] += elapsedMs(e); });
+  categories.forEach(c => totals[c.id] = 0);
+  filteredEntries().forEach(e => { if (totals[e.category] !== undefined) totals[e.category] += elapsedMs(e); });
 
-  const keys = Object.keys(CATS);
-  const maxMs = Math.max(...keys.map(k => totals[k]), 1);
+  const keys = categories.map(c => c.id);
+  const maxMs = Math.max(...keys.map(k => totals[k] || 0), 1);
 
   const padL = 54, padR = 16, padT = 16, padB = 36;
   const chartW = W - padL - padR;
@@ -833,7 +1111,7 @@ function renderChart() {
 
   // Bars
   keys.forEach((key, i) => {
-    const cfg = CATS[key];
+    const cfg = getCat(key);
     const val = totals[key];
     const barH = val === 0 ? 2 : Math.max(2, (val / maxMs) * chartH);
     const x = padL + barGap + i * (barW + barGap);
@@ -942,6 +1220,7 @@ drawBg();
 //  Init
 // ─────────────────────────────────────────────
 loadUsers();
+loadCategories();
 </script>
 </body>
 </html>
