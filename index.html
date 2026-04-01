@@ -247,7 +247,62 @@
       transition: background 0.2s;
     }
     .clear-btn:hover { background: rgba(255,60,60,0.28); }
+
+    /* ── User selector ── */
+    .user-list { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-height: 36px; }
+
+    .user-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 16px; border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.65);
+      cursor: pointer; font-size: 0.9em;
+      transition: all 0.15s; user-select: none;
+    }
+    .user-pill:hover { background: rgba(255,255,255,0.14); color: white; }
+    .user-pill.active {
+      background: rgba(80,160,255,0.3); border-color: rgba(80,160,255,0.7);
+      color: white; box-shadow: 0 0 12px rgba(80,160,255,0.3);
+    }
+    .user-pill .del-u { font-size: 0.8em; opacity: 0; transition: opacity 0.15s; }
+    .user-pill:hover .del-u { opacity: 0.45; }
+    .user-pill:hover .del-u:hover { opacity: 1; color: #ff8080; }
+
+    .add-user-btn {
+      padding: 7px 14px; border-radius: 24px;
+      border: 1px dashed rgba(255,255,255,0.25);
+      background: transparent; color: rgba(255,255,255,0.4);
+      cursor: pointer; font-size: 0.85em; transition: all 0.15s;
+    }
+    .add-user-btn:hover { border-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.8); }
+
+    .add-user-form { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+    .add-user-form input {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px; padding: 7px 12px; color: white; font-size: 0.9em;
+      outline: none; width: 170px;
+    }
+    .add-user-form input:focus { border-color: rgba(80,160,255,0.6); }
+    .add-user-form input::placeholder { color: rgba(255,255,255,0.3); }
+    .add-user-form button {
+      padding: 7px 14px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08); color: white;
+      cursor: pointer; font-size: 0.85em; transition: background 0.15s;
+    }
+    .add-user-form button:hover { background: rgba(255,255,255,0.16); }
+    .add-user-form .ok-btn { border-color: rgba(80,160,255,0.5); background: rgba(80,160,255,0.2); }
+    .add-user-form .ok-btn:hover { background: rgba(80,160,255,0.35); }
+
+    #no-user-msg { text-align: center; color: rgba(255,255,255,0.35); padding: 28px; font-size: 0.95em; }
+    #tracker-wrap { display: flex; flex-direction: column; gap: 28px; }
   </style>
+
+  <!-- Firebase SDK (compat — no build step needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
 </head>
 <body>
 
@@ -256,6 +311,25 @@
 
 <div class="page">
   <h1>Time Tracker</h1>
+
+  <!-- User selector -->
+  <div class="panel">
+    <h2>Who are you?</h2>
+    <div class="user-list" id="user-list"><span style="color:rgba(255,255,255,0.3);font-size:.85em">Loading…</span></div>
+    <div style="margin-top:12px;">
+      <button class="add-user-btn" onclick="showAddUser()">+ Add user</button>
+      <div class="add-user-form" id="add-user-form" style="display:none;">
+        <input id="new-user-name" type="text" placeholder="Enter name…" maxlength="32"
+               onkeydown="if(event.key==='Enter')confirmAddUser();if(event.key==='Escape')hideAddUser();">
+        <button class="ok-btn" onclick="confirmAddUser()">Add</button>
+        <button onclick="hideAddUser()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="no-user-msg" class="panel">👆 Select or create a user above to start tracking.</div>
+
+  <div id="tracker-wrap" style="display:none;">
 
   <!-- Buttons -->
   <div class="panel">
@@ -314,9 +388,28 @@
     </div>
     <div class="chart-subtitle" id="chart-subtitle"></div>
   </div>
+
+  </div><!-- /tracker-wrap -->
 </div>
 
 <script>
+// ─────────────────────────────────────────────
+//  Firebase init
+// ─────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey:            "AIzaSyAnRbmN4bVSbegq4IDvQfCsMmlcc1nX3bs",
+  authDomain:        "time-tracker-df33b.firebaseapp.com",
+  projectId:         "time-tracker-df33b",
+  storageBucket:     "time-tracker-df33b.firebasestorage.app",
+  messagingSenderId: "1065069705605",
+  appId:             "1:1065069705605:web:2ea80cfcd7813dc3f26cec",
+  measurementId:     "G-38HFDLKEF3"
+});
+const db        = firebase.firestore();
+const analytics = firebase.analytics();
+const usersCol  = db.collection('users');
+const entriesCol = db.collection('entries');
+
 // ─────────────────────────────────────────────
 //  Category config
 // ─────────────────────────────────────────────
@@ -334,25 +427,14 @@ const AUTO_STOP_MS = 2 * 60 * 60 * 1000;   // 2 hours
 const WARN_MS      = 1.75 * 60 * 60 * 1000; // 1h 45m — start warning
 
 // ─────────────────────────────────────────────
-//  Data layer (localStorage)
-// ─────────────────────────────────────────────
-const STORE_KEY = 'timetracker_v1';
-
-function loadEntries() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
-  catch { return []; }
-}
-
-function saveEntries(entries) {
-  localStorage.setItem(STORE_KEY, JSON.stringify(entries));
-}
-
-// ─────────────────────────────────────────────
 //  State
 // ─────────────────────────────────────────────
-let entries = loadEntries();
-let tickInterval = null;
-let chartFilter = 'today';
+let entries       = [];
+let users         = [];
+let currentUserId = localStorage.getItem('tt_uid') || null;
+let unsubEntries  = null;
+let tickInterval  = null;
+let chartFilter   = 'today';
 
 // ─────────────────────────────────────────────
 //  Filter helpers
@@ -414,49 +496,126 @@ function activeEntry() {
 }
 
 // ─────────────────────────────────────────────
-//  Actions
+//  User management
 // ─────────────────────────────────────────────
-function startCategory(cat) {
-  const now = new Date().toISOString();
-  // Close current open entry
-  const active = activeEntry();
-  if (active) {
-    active.end = now;
-    active.duration = new Date(now) - new Date(active.start);
+async function loadUsers() {
+  const snap = await usersCol.orderBy('createdAt').get();
+  users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Validate stored user still exists
+  if (currentUserId && !users.find(u => u.id === currentUserId)) {
+    currentUserId = null;
+    localStorage.removeItem('tt_uid');
   }
-  // Open new entry
-  entries.push({ id: Date.now(), category: cat, start: now, end: null, duration: null });
-  saveEntries(entries);
-  render();
+  renderUserSelector();
+  if (currentUserId) activateUser(currentUserId);
+  else showTracker(false);
 }
 
-function stopTracking(auto = false) {
+async function addUser(name) {
+  const ref = await usersCol.add({ name: name.trim(), createdAt: new Date().toISOString() });
+  users.push({ id: ref.id, name: name.trim() });
+  renderUserSelector();
+  selectUser(ref.id);
+}
+
+async function deleteUser(userId) {
+  const u = users.find(x => x.id === userId);
+  if (!confirm(`Delete user "${u?.name}" and all their data?`)) return;
+  const snap = await entriesCol.where('userId', '==', userId).get();
+  const batch = db.batch();
+  snap.docs.forEach(d => batch.delete(d.ref));
+  batch.delete(usersCol.doc(userId));
+  await batch.commit();
+  users = users.filter(x => x.id !== userId);
+  if (currentUserId === userId) {
+    currentUserId = null; localStorage.removeItem('tt_uid');
+    entries = []; if (unsubEntries) { unsubEntries(); unsubEntries = null; }
+    showTracker(false);
+  }
+  renderUserSelector();
+}
+
+function selectUser(userId) {
+  currentUserId = userId;
+  localStorage.setItem('tt_uid', userId);
+  renderUserSelector();
+  activateUser(userId);
+}
+
+function activateUser(userId) {
+  showTracker(true);
+  if (unsubEntries) { unsubEntries(); unsubEntries = null; }
+  clearInterval(tickInterval);
+  unsubEntries = entriesCol.where('userId', '==', userId).onSnapshot(snap => {
+    entries = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                       .sort((a, b) => new Date(a.start) - new Date(b.start));
+    render();
+  });
+}
+
+function showTracker(show) {
+  document.getElementById('tracker-wrap').style.display = show ? 'flex' : 'none';
+  document.getElementById('no-user-msg').style.display  = show ? 'none'  : 'block';
+}
+
+// ─────────────────────────────────────────────
+//  Actions
+// ─────────────────────────────────────────────
+async function startCategory(cat) {
+  if (!currentUserId) return;
+  const now = new Date().toISOString();
+  const batch = db.batch();
   const active = activeEntry();
   if (active) {
-    const now = new Date().toISOString();
-    active.end = now;
-    active.duration = new Date(now) - new Date(active.start);
-    if (auto) active.autoStopped = true;
-    saveEntries(entries);
+    batch.update(entriesCol.doc(active.id), {
+      end: now, duration: new Date(now) - new Date(active.start)
+    });
   }
-  if (auto) showToast('⏱ Auto-stopped after 2 hours of ' + (active ? CATS[active.category].label : 'tracking'));
-  render();
+  const newRef = entriesCol.doc();
+  batch.set(newRef, { userId: currentUserId, category: cat, start: now, end: null, duration: null, autoStopped: false });
+  await batch.commit();
+}
+
+async function stopTracking(auto = false) {
+  const active = activeEntry();
+  if (!active) return;
+  const now = new Date().toISOString();
+  await entriesCol.doc(active.id).update({
+    end: now, duration: new Date(now) - new Date(active.start), autoStopped: auto
+  });
+  if (auto) showToast('⏱ Auto-stopped after 2 hours of ' + CATS[active.category].label);
 }
 
 let toastTimer = null;
 function showToast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
+  el.textContent = msg; el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 5000);
 }
 
-function clearData() {
-  if (!confirm('Clear all time tracking data?')) return;
-  entries = [];
-  saveEntries(entries);
-  render();
+async function clearData() {
+  if (!currentUserId || !confirm('Clear all your time tracking data?')) return;
+  const snap = await entriesCol.where('userId', '==', currentUserId).get();
+  const batch = db.batch();
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+}
+
+// ── Add user UI ──
+function showAddUser() {
+  document.getElementById('add-user-form').style.display = 'flex';
+  document.getElementById('new-user-name').focus();
+}
+function hideAddUser() {
+  document.getElementById('add-user-form').style.display = 'none';
+  document.getElementById('new-user-name').value = '';
+}
+async function confirmAddUser() {
+  const name = document.getElementById('new-user-name').value.trim();
+  if (!name) return;
+  hideAddUser();
+  await addUser(name);
 }
 
 // ─────────────────────────────────────────────
@@ -517,10 +676,25 @@ function render() {
   }
 }
 
+function renderUserSelector() {
+  const list = document.getElementById('user-list');
+  if (!list) return;
+  if (users.length === 0) {
+    list.innerHTML = '<span style="color:rgba(255,255,255,0.35);font-size:.85em">No users yet — add one below.</span>';
+    return;
+  }
+  list.innerHTML = users.map(u => `
+    <div class="user-pill ${u.id === currentUserId ? 'active' : ''}" onclick="selectUser('${u.id}')">
+      👤 ${u.name}
+      <span class="del-u" onclick="event.stopPropagation();deleteUser('${u.id}')" title="Delete">✕</span>
+    </div>`).join('');
+}
+
 function renderButtonStates() {
   const active = activeEntry();
   document.querySelectorAll('.cat-btn[data-cat]').forEach(btn => {
-    btn.classList.toggle('active', active && btn.dataset.cat === active.category);
+    btn.disabled = !currentUserId;
+    btn.classList.toggle('active', !!active && btn.dataset.cat === active.category);
   });
 }
 
@@ -719,7 +893,7 @@ drawBg();
 // ─────────────────────────────────────────────
 //  Init
 // ─────────────────────────────────────────────
-render();
+loadUsers();
 </script>
 </body>
 </html>
