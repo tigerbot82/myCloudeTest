@@ -13,7 +13,7 @@
       font-family: 'Share Tech Mono', 'Courier New', monospace;
       min-height: 100vh;
       overflow-x: hidden;
-      color: #c8ffd4;
+      color: #c2e4ff;
     }
 
     canvas#bg {
@@ -37,38 +37,46 @@
     /* ── Title block ── */
     .title-wrap { text-align: center; }
 
+    .title-iqvia {
+      font-size: 0.68em;
+      letter-spacing: 0.45em;
+      color: #0C7BC0;
+      margin-bottom: 6px;
+      opacity: 0.75;
+    }
+
     .title-pre {
-      font-size: 0.75em;
-      letter-spacing: 0.25em;
-      color: rgba(0,255,136,0.5);
-      margin-bottom: 8px;
+      font-size: 0.72em;
+      letter-spacing: 0.22em;
+      color: rgba(14,184,255,0.4);
+      margin-bottom: 10px;
     }
 
     h1 {
-      font-size: 1.7em;
+      font-size: 1.65em;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #00ff88;
-      text-shadow: 0 0 12px rgba(0,255,136,0.9), 0 0 40px rgba(0,255,136,0.4), 0 0 80px rgba(0,200,100,0.2);
+      color: #0eb8ff;
+      text-shadow: 0 0 14px rgba(14,184,255,0.85), 0 0 40px rgba(12,123,192,0.55), 0 0 90px rgba(21,14,68,0.6);
     }
 
     .title-sub {
-      font-size: 0.78em;
+      font-size: 0.75em;
       letter-spacing: 0.15em;
-      color: rgba(0,255,136,0.4);
+      color: rgba(14,184,255,0.35);
       margin-top: 6px;
     }
 
     /* ── Glass panel ── */
     .panel {
       background:
-        repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,255,136,0.018) 3px, rgba(0,255,136,0.018) 4px),
-        rgba(0,8,2,0.72);
+        repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(14,184,255,0.022) 3px, rgba(14,184,255,0.022) 4px),
+        rgba(12,8,38,0.82);
       backdrop-filter: blur(14px);
-      border: 1px solid rgba(0,255,136,0.2);
+      border: 1px solid rgba(14,184,255,0.2);
       border-radius: 4px;
       padding: 24px;
-      box-shadow: 0 0 24px rgba(0,255,136,0.08), inset 0 0 40px rgba(0,255,136,0.03);
+      box-shadow: 0 0 24px rgba(14,184,255,0.08), inset 0 0 40px rgba(14,184,255,0.03);
       position: relative;
     }
 
@@ -77,7 +85,7 @@
       content: '';
       position: absolute;
       width: 12px; height: 12px;
-      border-color: #00ff88;
+      border-color: #0eb8ff;
       border-style: solid;
       opacity: 0.6;
     }
@@ -88,7 +96,7 @@
       font-size: 0.72em;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: rgba(0,255,136,0.5);
+      color: rgba(14,184,255,0.5);
       margin-bottom: 16px;
     }
 
@@ -107,17 +115,17 @@
       letter-spacing: 0.06em;
       cursor: pointer;
       border-radius: 2px;
-      border: 1px solid rgba(0,255,136,0.2);
+      border: 1px solid rgba(14,184,255,0.2);
       transition: transform 0.1s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
-      color: rgba(0,255,136,0.8);
-      background: rgba(0,255,136,0.04);
+      color: rgba(14,184,255,0.8);
+      background: rgba(14,184,255,0.04);
     }
 
-    .cat-btn:hover  { transform: scale(1.03); border-color: rgba(0,255,136,0.6); background: rgba(0,255,136,0.1); color: #00ff88; }
+    .cat-btn:hover  { transform: scale(1.03); border-color: rgba(14,184,255,0.6); background: rgba(14,184,255,0.1); color: #0eb8ff; }
     .cat-btn:active { transform: scale(0.97); }
 
     .cat-btn.active {
-      border-color: #00ff88;
+      border-color: #0eb8ff;
       box-shadow: 0 0 16px 2px var(--glow);
       background: var(--bg);
       color: white;
@@ -133,8 +141,8 @@
     .cat-btn[data-cat="stop"]        { --bg: rgba(255,80,80,0.2);   --glow: rgba(255,80,80,0.5); color: #ff9999; }
 
     /* ── Active timer display ── */
-    #active-display { color: rgba(0,255,136,0.7); }
-    #active-display strong { color: #00ff88; }
+    #active-display { color: rgba(14,184,255,0.7); }
+    #active-display strong { color: #0eb8ff; }
 
     /* ── Warning state on active display ── */
     #active-display.warn  { animation: pulse-warn 1.2s ease-in-out infinite; }
@@ -149,14 +157,14 @@
       bottom: 30px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: rgba(0,8,2,0.95);
-      border: 1px solid rgba(0,255,136,0.4);
-      color: #00ff88;
+      background: rgba(8,4,28,0.95);
+      border: 1px solid rgba(14,184,255,0.4);
+      color: #0eb8ff;
       padding: 12px 24px;
       border-radius: 2px;
       font-size: 0.85em;
       backdrop-filter: blur(10px);
-      box-shadow: 0 0 20px rgba(0,255,136,0.2);
+      box-shadow: 0 0 20px rgba(14,184,255,0.2);
       opacity: 0;
       transition: opacity 0.3s, transform 0.3s;
       z-index: 100;
@@ -197,23 +205,23 @@
     thead th {
       position: sticky;
       top: 0;
-      background: rgba(0,12,4,0.92);
+      background: rgba(10,6,36,0.92);
       padding: 9px 12px;
       text-align: left;
       font-size: 0.72em;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: rgba(0,255,136,0.45);
+      color: rgba(14,184,255,0.45);
       backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(0,255,136,0.15);
+      border-bottom: 1px solid rgba(14,184,255,0.15);
     }
 
-    tbody tr { border-bottom: 1px solid rgba(0,255,136,0.06); }
-    tbody tr:hover { background: rgba(0,255,136,0.04); }
+    tbody tr { border-bottom: 1px solid rgba(14,184,255,0.06); }
+    tbody tr:hover { background: rgba(14,184,255,0.04); }
 
     tbody td {
       padding: 9px 12px;
-      color: rgba(0,255,136,0.75);
+      color: rgba(14,184,255,0.75);
     }
 
     .dot {
@@ -255,19 +263,19 @@
       cursor: pointer;
       border-radius: 20px;
       border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(0,255,136,0.03);
-      color: rgba(0,255,136,0.45);
+      background: rgba(14,184,255,0.03);
+      color: rgba(14,184,255,0.45);
       transition: background 0.15s, color 0.15s, border-color 0.15s;
       font-family: inherit; border-radius: 2px;
     }
 
-    .filter-btn:hover { background: rgba(0,255,136,0.1); color: #00ff88; border-color: rgba(0,255,136,0.5); }
+    .filter-btn:hover { background: rgba(14,184,255,0.1); color: #0eb8ff; border-color: rgba(14,184,255,0.5); }
 
     .filter-btn.active {
-      background: rgba(0,255,136,0.15);
-      border-color: rgba(0,255,136,0.6);
-      color: #00ff88;
-      box-shadow: 0 0 10px rgba(0,255,136,0.2);
+      background: rgba(14,184,255,0.15);
+      border-color: rgba(14,184,255,0.6);
+      color: #0eb8ff;
+      box-shadow: 0 0 10px rgba(14,184,255,0.2);
     }
 
     .chart-subtitle {
@@ -297,16 +305,16 @@
     .user-pill {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 7px 16px; border-radius: 2px;
-      border: 1px solid rgba(0,255,136,0.2);
-      background: rgba(0,255,136,0.04);
-      color: rgba(0,255,136,0.6);
+      border: 1px solid rgba(14,184,255,0.2);
+      background: rgba(14,184,255,0.04);
+      color: rgba(14,184,255,0.6);
       cursor: pointer; font-size: 0.85em; font-family: inherit;
       transition: all 0.15s; user-select: none;
     }
-    .user-pill:hover { background: rgba(0,255,136,0.1); color: #00ff88; border-color: rgba(0,255,136,0.5); }
+    .user-pill:hover { background: rgba(14,184,255,0.1); color: #0eb8ff; border-color: rgba(14,184,255,0.5); }
     .user-pill.active {
-      background: rgba(0,255,136,0.15); border-color: rgba(0,255,136,0.7);
-      color: #00ff88; box-shadow: 0 0 12px rgba(0,255,136,0.25);
+      background: rgba(14,184,255,0.15); border-color: rgba(14,184,255,0.7);
+      color: #0eb8ff; box-shadow: 0 0 12px rgba(14,184,255,0.25);
     }
     .user-pill .del-u { font-size: 0.8em; opacity: 0; transition: opacity 0.15s; }
     .user-pill:hover .del-u { opacity: 0.45; }
@@ -314,11 +322,11 @@
 
     .add-user-btn {
       padding: 7px 14px; border-radius: 2px;
-      border: 1px dashed rgba(0,255,136,0.25);
-      background: transparent; color: rgba(0,255,136,0.35);
+      border: 1px dashed rgba(14,184,255,0.25);
+      background: transparent; color: rgba(14,184,255,0.35);
       cursor: pointer; font-size: 0.82em; font-family: inherit; transition: all 0.15s;
     }
-    .add-user-btn:hover { border-color: rgba(0,255,136,0.6); color: #00ff88; }
+    .add-user-btn:hover { border-color: rgba(14,184,255,0.6); color: #0eb8ff; }
 
     .add-user-form { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
     .add-user-form input {
@@ -354,7 +362,8 @@
 
 <div class="page">
   <div class="title-wrap">
-    <div class="title-pre">// matrix time protocol v1.0 //</div>
+    <div class="title-iqvia">⬡ &nbsp; I Q V I A &nbsp; ⬡</div>
+    <div class="title-pre">// neural time protocol v1.0 //</div>
     <h1>you cannot escape the matrix</h1>
     <div class="title-sub">track it &mdash; or it tracks you</div>
   </div>
@@ -896,10 +905,10 @@ function drawBg() {
         Math.sin(Math.sqrt((nx-.5)**2 + (ny-.5)**2) * 20 - t * 1.5)
       ) / 4;
 
-      // Bias hue: sweep 100–200 (green→cyan→blue) with occasional pink flash
-      const hue = (120 + (v + 1) / 2 * 140 + t * 25) % 360;
-      const s = (85 + Math.sin(t + v * 5) * 12) / 100;
-      const l = (30 + Math.sin(t * 0.7 + v * 3) * 14) / 100;
+      // IQVIA palette: deep violet (#150E44) → denim blue (#0C7BC0) sweep
+      const hue = (210 + (v + 1) / 2 * 100 + t * 18) % 360;
+      const s = (80 + Math.sin(t + v * 5) * 15) / 100;
+      const l = (22 + Math.sin(t * 0.7 + v * 3) * 16) / 100;
       const c = (1 - Math.abs(2*l - 1)) * s;
       const h = hue / 60;
       const xc = c * (1 - Math.abs(h % 2 - 1));
@@ -922,7 +931,7 @@ function drawBg() {
     const ox = cx + Math.cos(phase * 0.4) * 80;
     const oy = cy + Math.sin(phase * 0.3) * 60;
     const grad = bgCtx.createRadialGradient(ox, oy, 0, ox, oy, radius);
-    const hue = (120 + t * 30 + i * 40) % 360;
+    const hue = (220 + t * 20 + i * 30) % 360;
     grad.addColorStop(0,   `hsla(${hue},100%,70%,0.15)`);
     grad.addColorStop(0.5, `hsla(${(hue+120)%360},100%,60%,0.08)`);
     grad.addColorStop(1,   `hsla(${(hue+240)%360},100%,50%,0)`);
