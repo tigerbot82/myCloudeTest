@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello World</title>
+  <title>Time Tracker</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       min-height: 100vh;
-      overflow-y: auto;
       overflow-x: hidden;
+      color: white;
     }
 
-    canvas {
+    canvas#bg {
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
@@ -24,394 +24,535 @@
     .page {
       position: relative;
       z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 60px 20px 80px;
-      gap: 60px;
-    }
-
-    /* ── Hero section ── */
-    .hero {
-      text-align: center;
+      gap: 28px;
     }
 
     h1 {
-      font-size: 3em;
-      margin-bottom: 24px;
-      color: white;
-      text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(255,100,255,0.6);
-      animation: wobble 3s ease-in-out infinite;
-    }
-
-    @keyframes wobble {
-      0%, 100% { transform: scale(1) rotate(0deg); }
-      25%  { transform: scale(1.05) rotate(1deg); }
-      75%  { transform: scale(0.97) rotate(-1deg); }
-    }
-
-    button {
-      padding: 14px 28px;
-      font-size: 20px;
-      cursor: pointer;
-      border: 3px solid rgba(255,255,255,0.7);
-      border-radius: 50px;
-      background: rgba(0,0,0,0.3);
-      color: white;
-      backdrop-filter: blur(6px);
-      transition: transform 0.1s, box-shadow 0.3s;
-      text-shadow: 0 0 10px white;
-    }
-
-    button:hover  { transform: scale(1.08); box-shadow: 0 0 30px rgba(255,255,255,0.5); }
-    button:active { transform: scale(0.95); }
-
-    #count {
-      margin-top: 20px;
-      font-size: 22px;
-      color: white;
-      text-shadow: 0 0 15px rgba(255,255,255,0.9);
-    }
-
-    /* ── Markets section ── */
-    .markets {
-      width: 100%;
-      max-width: 1200px;
-    }
-
-    .markets h2 {
-      color: white;
-      font-size: 1.6em;
-      margin-bottom: 20px;
       text-align: center;
-      text-shadow: 0 0 16px rgba(255,180,255,0.8);
-      letter-spacing: 0.05em;
+      font-size: 2em;
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 20px rgba(255,255,255,0.7), 0 0 40px rgba(200,100,255,0.5);
     }
 
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-    }
-
-    .chart-card {
-      background: rgba(0, 0, 0, 0.55);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 0 24px rgba(180,100,255,0.2);
-    }
-
-    .chart-card-label {
-      padding: 12px 16px 4px;
-      color: rgba(255,255,255,0.85);
-      font-size: 0.85em;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    /* TradingView widget container */
-    .tradingview-widget-container {
-      width: 100%;
-    }
-
-    .tradingview-widget-container__widget {
-      width: 100%;
-    }
-
-    /* ── Ticker tape ── */
-    .tape-card {
-      width: 100%;
-      max-width: 1200px;
+    /* ── Glass panel ── */
+    .panel {
       background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 0 24px rgba(100,180,255,0.2);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 0 32px rgba(160,80,255,0.15);
     }
+
+    .panel h2 {
+      font-size: 0.8em;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 16px;
+    }
+
+    /* ── Category buttons ── */
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+    }
+
+    .cat-btn {
+      padding: 14px 10px;
+      font-size: 0.92em;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      transition: transform 0.1s, box-shadow 0.2s, border-color 0.2s;
+      color: white;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .cat-btn:hover  { transform: scale(1.04); }
+    .cat-btn:active { transform: scale(0.97); }
+
+    .cat-btn.active {
+      border-color: white;
+      box-shadow: 0 0 18px 4px var(--glow);
+      background: var(--bg);
+    }
+
+    .cat-btn[data-cat="focused"]   { --bg: rgba(80,160,255,0.3);  --glow: rgba(80,160,255,0.6); }
+    .cat-btn[data-cat="directs"]   { --bg: rgba(160,80,255,0.3);  --glow: rgba(160,80,255,0.6); }
+    .cat-btn[data-cat="peers"]     { --bg: rgba(255,140,60,0.3);  --glow: rgba(255,140,60,0.6); }
+    .cat-btn[data-cat="email"]     { --bg: rgba(80,220,160,0.3);  --glow: rgba(80,220,160,0.6); }
+    .cat-btn[data-cat="personal"]  { --bg: rgba(255,80,140,0.3);  --glow: rgba(255,80,140,0.6); }
+    .cat-btn[data-cat="finish"]    { --bg: rgba(255,220,60,0.25); --glow: rgba(255,220,60,0.5); color: #ffe87a; }
+
+    /* ── Active timer ── */
+    #active-display {
+      text-align: center;
+      font-size: 1em;
+      color: rgba(255,255,255,0.75);
+      min-height: 1.4em;
+    }
+
+    #active-display strong { color: white; }
+    #active-display .timer { font-variant-numeric: tabular-nums; font-size: 1.1em; }
+
+    /* ── Table ── */
+    .table-wrap {
+      max-height: 260px;
+      overflow-y: auto;
+      border-radius: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.2) transparent;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88em;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: rgba(20,0,40,0.85);
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 0.78em;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      backdrop-filter: blur(8px);
+    }
+
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    tbody tr:hover { background: rgba(255,255,255,0.05); }
+
+    tbody td {
+      padding: 9px 12px;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .dot {
+      display: inline-block;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      margin-right: 7px;
+      vertical-align: middle;
+    }
+
+    .no-entries {
+      text-align: center;
+      padding: 24px;
+      color: rgba(255,255,255,0.35);
+      font-size: 0.9em;
+    }
+
+    /* ── Bar chart ── */
+    .chart-wrap { position: relative; }
+
+    canvas#chart {
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    /* ── Clear button ── */
+    .clear-btn {
+      align-self: flex-end;
+      background: rgba(255,60,60,0.15);
+      border: 1px solid rgba(255,60,60,0.3);
+      color: rgba(255,150,150,0.9);
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 0.8em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .clear-btn:hover { background: rgba(255,60,60,0.28); }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
 
-  <div class="page">
+<canvas id="bg"></canvas>
 
-    <!-- Hero -->
-    <div class="hero">
-      <h1>Hello, World!</h1>
-      <button onclick="increment()">Click me</button>
-      <p id="count">Clicks: 0</p>
+<div class="page">
+  <h1>Time Tracker</h1>
+
+  <!-- Buttons -->
+  <div class="panel">
+    <h2>What are you working on?</h2>
+    <div class="btn-grid">
+      <button class="cat-btn" data-cat="focused"  onclick="startCategory('focused')">🎯 Focused Work</button>
+      <button class="cat-btn" data-cat="directs"  onclick="startCategory('directs')">👥 1:1 with Directs</button>
+      <button class="cat-btn" data-cat="peers"    onclick="startCategory('peers')">🤝 1:1 with Peers</button>
+      <button class="cat-btn" data-cat="email"    onclick="startCategory('email')">📧 Email Processing</button>
+      <button class="cat-btn" data-cat="personal" onclick="startCategory('personal')">🌿 Personal</button>
+      <button class="cat-btn" data-cat="finish"   onclick="finishDay()">✅ Finish Day</button>
     </div>
-
-    <!-- Ticker tape -->
-    <div class="tape-card">
-      <div class="tradingview-widget-container">
-        <div class="tradingview-widget-container__widget"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-        {
-          "symbols": [
-            {"proName": "SP:SPX",       "title": "S&P 500"},
-            {"proName": "NASDAQ:IXIC",  "title": "NASDAQ"},
-            {"proName": "DJ:DJI",       "title": "Dow Jones"},
-            {"proName": "XETR:DAX",     "title": "DAX"},
-            {"proName": "LSE:UKX",      "title": "FTSE 100"},
-            {"proName": "TSX:OSPTSX",   "title": "TSX"},
-            {"proName": "TVC:NIKKEI",   "title": "Nikkei 225"}
-          ],
-          "showSymbolLogo": true,
-          "isTransparent": true,
-          "displayMode": "adaptive",
-          "colorTheme": "dark",
-          "locale": "en"
-        }
-        </script>
-      </div>
+    <div style="margin-top:16px">
+      <div id="active-display">No active session</div>
     </div>
+  </div>
 
-    <!-- Charts grid -->
-    <div class="markets">
-      <h2>Markets — 3 Month Charts</h2>
-      <div class="charts-grid">
+  <!-- Log table -->
+  <div class="panel">
+    <h2>Time Log</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Started</th>
+            <th>Ended</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody id="log-body">
+          <tr><td colspan="4" class="no-entries">No entries yet — start a session above.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+      <button class="clear-btn" onclick="clearData()">Clear all data</button>
+    </div>
+  </div>
 
-        <!-- S&P 500 -->
-        <div class="chart-card">
-          <div class="chart-card-label">S&amp;P 500 · SP:SPX</div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            {
-              "symbol": "SP:SPX",
-              "width": "100%",
-              "height": 220,
-              "locale": "en",
-              "dateRange": "3M",
-              "colorTheme": "dark",
-              "trendLineColor": "rgba(100,220,255,1)",
-              "underLineColor": "rgba(100,220,255,0.15)",
-              "underLineBottomColor": "rgba(100,220,255,0)",
-              "isTransparent": true,
-              "autosize": false,
-              "largeChartUrl": ""
-            }
-            </script>
-          </div>
-        </div>
+  <!-- Bar chart -->
+  <div class="panel">
+    <h2>Time by Category</h2>
+    <div class="chart-wrap">
+      <canvas id="chart" height="220"></canvas>
+    </div>
+  </div>
+</div>
 
-        <!-- NASDAQ -->
-        <div class="chart-card">
-          <div class="chart-card-label">NASDAQ · IXIC</div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            {
-              "symbol": "NASDAQ:IXIC",
-              "width": "100%",
-              "height": 220,
-              "locale": "en",
-              "dateRange": "3M",
-              "colorTheme": "dark",
-              "trendLineColor": "rgba(180,100,255,1)",
-              "underLineColor": "rgba(180,100,255,0.15)",
-              "underLineBottomColor": "rgba(180,100,255,0)",
-              "isTransparent": true,
-              "autosize": false,
-              "largeChartUrl": ""
-            }
-            </script>
-          </div>
-        </div>
+<script>
+// ─────────────────────────────────────────────
+//  Category config
+// ─────────────────────────────────────────────
+const CATS = {
+  focused:  { label: 'Focused Work',      color: 'rgba(80,160,255,0.85)' },
+  directs:  { label: '1:1 with Directs',  color: 'rgba(160,80,255,0.85)' },
+  peers:    { label: '1:1 with Peers',    color: 'rgba(255,140,60,0.85)' },
+  email:    { label: 'Email Processing',  color: 'rgba(80,220,160,0.85)' },
+  personal: { label: 'Personal',          color: 'rgba(255,80,140,0.85)' },
+};
 
-        <!-- Dow Jones -->
-        <div class="chart-card">
-          <div class="chart-card-label">Dow Jones · DJI</div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            {
-              "symbol": "DJ:DJI",
-              "width": "100%",
-              "height": 220,
-              "locale": "en",
-              "dateRange": "3M",
-              "colorTheme": "dark",
-              "trendLineColor": "rgba(255,180,80,1)",
-              "underLineColor": "rgba(255,180,80,0.15)",
-              "underLineBottomColor": "rgba(255,180,80,0)",
-              "isTransparent": true,
-              "autosize": false,
-              "largeChartUrl": ""
-            }
-            </script>
-          </div>
-        </div>
+// ─────────────────────────────────────────────
+//  Data layer (localStorage)
+// ─────────────────────────────────────────────
+const STORE_KEY = 'timetracker_v1';
 
-        <!-- DAX -->
-        <div class="chart-card">
-          <div class="chart-card-label">DAX · XETR</div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            {
-              "symbol": "XETR:DAX",
-              "width": "100%",
-              "height": 220,
-              "locale": "en",
-              "dateRange": "3M",
-              "colorTheme": "dark",
-              "trendLineColor": "rgba(100,255,160,1)",
-              "underLineColor": "rgba(100,255,160,0.15)",
-              "underLineBottomColor": "rgba(100,255,160,0)",
-              "isTransparent": true,
-              "autosize": false,
-              "largeChartUrl": ""
-            }
-            </script>
-          </div>
-        </div>
+function loadEntries() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  catch { return []; }
+}
 
-        <!-- FTSE 100 -->
-        <div class="chart-card">
-          <div class="chart-card-label">FTSE 100 · LSE</div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            {
-              "symbol": "LSE:UKX",
-              "width": "100%",
-              "height": 220,
-              "locale": "en",
-              "dateRange": "3M",
-              "colorTheme": "dark",
-              "trendLineColor": "rgba(255,100,130,1)",
-              "underLineColor": "rgba(255,100,130,0.15)",
-              "underLineBottomColor": "rgba(255,100,130,0)",
-              "isTransparent": true,
-              "autosize": false,
-              "largeChartUrl": ""
-            }
-            </script>
-          </div>
-        </div>
+function saveEntries(entries) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(entries));
+}
 
-        <!-- Nikkei 225 -->
-        <div class="chart-card">
-          <div class="chart-card-label">Nikkei 225 · TVC</div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            {
-              "symbol": "TVC:NI225",
-              "width": "100%",
-              "height": 220,
-              "locale": "en",
-              "dateRange": "3M",
-              "colorTheme": "dark",
-              "trendLineColor": "rgba(255,220,80,1)",
-              "underLineColor": "rgba(255,220,80,0.15)",
-              "underLineBottomColor": "rgba(255,220,80,0)",
-              "isTransparent": true,
-              "autosize": false,
-              "largeChartUrl": ""
-            }
-            </script>
-          </div>
-        </div>
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+let entries = loadEntries();
+let tickInterval = null;
 
-      </div><!-- /charts-grid -->
-    </div><!-- /markets -->
+function activeEntry() {
+  return entries.find(e => e.end === null) || null;
+}
 
-  </div><!-- /page -->
+// ─────────────────────────────────────────────
+//  Actions
+// ─────────────────────────────────────────────
+function startCategory(cat) {
+  const now = new Date().toISOString();
+  // Close current open entry
+  const active = activeEntry();
+  if (active) {
+    active.end = now;
+    active.duration = new Date(now) - new Date(active.start);
+  }
+  // Open new entry
+  entries.push({ id: Date.now(), category: cat, start: now, end: null, duration: null });
+  saveEntries(entries);
+  render();
+}
 
-  <script>
-    // Click counter
-    let clicks = 0;
-    function increment() {
-      clicks++;
-      document.getElementById('count').textContent = 'Clicks: ' + clicks;
+function finishDay() {
+  const active = activeEntry();
+  if (active) {
+    const now = new Date().toISOString();
+    active.end = now;
+    active.duration = new Date(now) - new Date(active.start);
+    saveEntries(entries);
+  }
+  render();
+}
+
+function clearData() {
+  if (!confirm('Clear all time tracking data?')) return;
+  entries = [];
+  saveEntries(entries);
+  render();
+}
+
+// ─────────────────────────────────────────────
+//  Formatting helpers
+// ─────────────────────────────────────────────
+function fmtTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) return '';
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ';
+}
+
+function fmtDuration(ms) {
+  if (ms === null || ms === undefined) return '—';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2,'0')}m`;
+  if (m > 0) return `${m}m ${String(s).padStart(2,'0')}s`;
+  return `${s}s`;
+}
+
+function elapsedMs(entry) {
+  return entry.end
+    ? entry.duration
+    : (Date.now() - new Date(entry.start));
+}
+
+// ─────────────────────────────────────────────
+//  Render
+// ─────────────────────────────────────────────
+function render() {
+  renderActiveDisplay();
+  renderTable();
+  renderChart();
+  renderButtonStates();
+
+  clearInterval(tickInterval);
+  if (activeEntry()) {
+    tickInterval = setInterval(() => {
+      renderActiveDisplay();
+      renderTable();
+      renderChart();
+    }, 1000);
+  }
+}
+
+function renderButtonStates() {
+  const active = activeEntry();
+  document.querySelectorAll('.cat-btn[data-cat]').forEach(btn => {
+    btn.classList.toggle('active', active && btn.dataset.cat === active.category);
+  });
+}
+
+function renderActiveDisplay() {
+  const el = document.getElementById('active-display');
+  const active = activeEntry();
+  if (!active) {
+    el.innerHTML = 'No active session';
+    return;
+  }
+  const cfg = CATS[active.category];
+  const elapsed = fmtDuration(Date.now() - new Date(active.start));
+  el.innerHTML = `<strong style="color:${cfg.color}">${cfg.label}</strong> &nbsp;·&nbsp; <span class="timer">${elapsed}</span>`;
+}
+
+function renderTable() {
+  const tbody = document.getElementById('log-body');
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="no-entries">No entries yet — start a session above.</td></tr>';
+    return;
+  }
+
+  // Show newest first
+  const sorted = [...entries].reverse();
+  tbody.innerHTML = sorted.map(e => {
+    const cfg = CATS[e.category];
+    const isActive = e.end === null;
+    const dur = isActive
+      ? `<span style="color:${cfg.color}">${fmtDuration(Date.now() - new Date(e.start))} ●</span>`
+      : fmtDuration(e.duration);
+    return `<tr>
+      <td><span class="dot" style="background:${cfg.color}"></span>${cfg.label}</td>
+      <td>${fmtDate(e.start)}${fmtTime(e.start)}</td>
+      <td>${isActive ? '<em style="opacity:.4">ongoing</em>' : fmtDate(e.end) + fmtTime(e.end)}</td>
+      <td>${dur}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderChart() {
+  const canvas = document.getElementById('chart');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth;
+  const H = 220;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // Aggregate totals
+  const totals = {};
+  Object.keys(CATS).forEach(k => totals[k] = 0);
+  entries.forEach(e => { totals[e.category] += elapsedMs(e); });
+
+  const keys = Object.keys(CATS);
+  const maxMs = Math.max(...keys.map(k => totals[k]), 1);
+
+  const padL = 54, padR = 16, padT = 16, padB = 36;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const barW = Math.floor(chartW / keys.length) - 10;
+  const barGap = (chartW - barW * keys.length) / (keys.length + 1);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + chartH - (i / 4) * chartH;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + chartW, y); ctx.stroke();
+    // Y label
+    const ms = (i / 4) * maxMs;
+    const label = ms >= 3600000
+      ? (ms / 3600000).toFixed(1) + 'h'
+      : Math.round(ms / 60000) + 'm';
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = `${10 * dpr / dpr}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText(label, padL - 6, y + 4);
+  }
+
+  // Bars
+  keys.forEach((key, i) => {
+    const cfg = CATS[key];
+    const val = totals[key];
+    const barH = val === 0 ? 2 : Math.max(2, (val / maxMs) * chartH);
+    const x = padL + barGap + i * (barW + barGap);
+    const y = padT + chartH - barH;
+
+    // Bar glow
+    const grad = ctx.createLinearGradient(0, y, 0, y + barH);
+    grad.addColorStop(0, cfg.color);
+    grad.addColorStop(1, cfg.color.replace('0.85', '0.3'));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [4, 4, 0, 0]);
+    ctx.fill();
+
+    // Value label on top
+    if (val > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = `bold 11px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(fmtDuration(val), x + barW / 2, y - 5);
     }
 
-    // Psychedelic canvas background
-    const canvas = document.getElementById('bg');
-    const ctx = canvas.getContext('2d');
-    let t = 0;
+    // X label
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = `10px sans-serif`;
+    ctx.textAlign = 'center';
+    const shortLabel = cfg.label.length > 10 ? cfg.label.split(' ').slice(-1)[0] : cfg.label;
+    ctx.fillText(shortLabel, x + barW / 2, padT + chartH + 20);
+  });
+}
 
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+// ─────────────────────────────────────────────
+//  Psychedelic background
+// ─────────────────────────────────────────────
+const bgCanvas = document.getElementById('bg');
+const bgCtx = bgCanvas.getContext('2d');
+let t = 0;
+
+function resizeBg() {
+  bgCanvas.width = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', () => { resizeBg(); renderChart(); });
+
+function drawBg() {
+  const W = bgCanvas.width, H = bgCanvas.height;
+  bgCtx.fillStyle = '#000';
+  bgCtx.fillRect(0, 0, W, H);
+
+  const imageData = bgCtx.createImageData(W, H);
+  const data = imageData.data;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const nx = x / W, ny = y / H;
+      const v = (
+        Math.sin(nx * 10 + t) +
+        Math.sin(ny * 10 + t * 1.3) +
+        Math.sin((nx + ny) * 8 + t * 0.7) +
+        Math.sin(Math.sqrt((nx-.5)**2 + (ny-.5)**2) * 20 - t * 1.5)
+      ) / 4;
+
+      const hue = ((v + 1) / 2 * 360 + t * 40) % 360;
+      const s = (90 + Math.sin(t + v * 5) * 10) / 100;
+      const l = (45 + Math.sin(t * 0.7 + v * 3) * 15) / 100;
+      const c = (1 - Math.abs(2*l - 1)) * s;
+      const h = hue / 60;
+      const xc = c * (1 - Math.abs(h % 2 - 1));
+      const m = l - c/2;
+      let r, g, b;
+      if (h<1){r=c;g=xc;b=0}else if(h<2){r=xc;g=c;b=0}
+      else if(h<3){r=0;g=c;b=xc}else if(h<4){r=0;g=xc;b=c}
+      else if(h<5){r=xc;g=0;b=c}else{r=c;g=0;b=xc}
+
+      const idx = (y * W + x) * 4;
+      data[idx]=(r+m)*255; data[idx+1]=(g+m)*255; data[idx+2]=(b+m)*255; data[idx+3]=255;
     }
-    resize();
-    window.addEventListener('resize', resize);
+  }
+  bgCtx.putImageData(imageData, 0, 0);
 
-    function draw() {
-      const W = canvas.width, H = canvas.height;
-      const cx = W / 2, cy = H / 2;
+  const cx = W/2, cy = H/2;
+  for (let i = 0; i < 6; i++) {
+    const phase = t * (0.5 + i * 0.15) + i * Math.PI / 3;
+    const radius = 100 + i * 60 + Math.sin(t * 0.8 + i) * 40;
+    const ox = cx + Math.cos(phase * 0.4) * 80;
+    const oy = cy + Math.sin(phase * 0.3) * 60;
+    const grad = bgCtx.createRadialGradient(ox, oy, 0, ox, oy, radius);
+    const hue = (t * 60 + i * 60) % 360;
+    grad.addColorStop(0,   `hsla(${hue},100%,70%,0.15)`);
+    grad.addColorStop(0.5, `hsla(${(hue+120)%360},100%,60%,0.08)`);
+    grad.addColorStop(1,   `hsla(${(hue+240)%360},100%,50%,0)`);
+    bgCtx.fillStyle = grad;
+    bgCtx.beginPath();
+    bgCtx.arc(ox, oy, radius, 0, Math.PI * 2);
+    bgCtx.fill();
+  }
 
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, W, H);
+  t += 0.012;
+  requestAnimationFrame(drawBg);
+}
 
-      const imageData = ctx.createImageData(W, H);
-      const data = imageData.data;
+drawBg();
 
-      for (let y = 0; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-          const nx = x / W, ny = y / H;
-          const v1 = Math.sin(nx * 10 + t);
-          const v2 = Math.sin(ny * 10 + t * 1.3);
-          const v3 = Math.sin((nx + ny) * 8 + t * 0.7);
-          const v4 = Math.sin(Math.sqrt((nx - 0.5) ** 2 + (ny - 0.5) ** 2) * 20 - t * 1.5);
-          const v = (v1 + v2 + v3 + v4) / 4;
-
-          const hue = ((v + 1) / 2 * 360 + t * 40) % 360;
-          const sat = 90 + Math.sin(t + v * 5) * 10;
-          const light = 45 + Math.sin(t * 0.7 + v * 3) * 15;
-
-          const h = hue / 60;
-          const s = sat / 100, l = light / 100;
-          const c = (1 - Math.abs(2 * l - 1)) * s;
-          const xc = c * (1 - Math.abs(h % 2 - 1));
-          const m = l - c / 2;
-          let r, g, b;
-          if (h < 1)      { r = c;  g = xc; b = 0; }
-          else if (h < 2) { r = xc; g = c;  b = 0; }
-          else if (h < 3) { r = 0;  g = c;  b = xc; }
-          else if (h < 4) { r = 0;  g = xc; b = c; }
-          else if (h < 5) { r = xc; g = 0;  b = c; }
-          else            { r = c;  g = 0;  b = xc; }
-
-          const idx = (y * W + x) * 4;
-          data[idx]     = (r + m) * 255;
-          data[idx + 1] = (g + m) * 255;
-          data[idx + 2] = (b + m) * 255;
-          data[idx + 3] = 255;
-        }
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-
-      for (let i = 0; i < 6; i++) {
-        const phase = t * (0.5 + i * 0.15) + i * Math.PI / 3;
-        const radius = 100 + i * 60 + Math.sin(t * 0.8 + i) * 40;
-        const ox = cx + Math.cos(phase * 0.4) * 80;
-        const oy = cy + Math.sin(phase * 0.3) * 60;
-        const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, radius);
-        const hue = (t * 60 + i * 60) % 360;
-        grad.addColorStop(0,   `hsla(${hue},100%,70%,0.15)`);
-        grad.addColorStop(0.5, `hsla(${(hue+120)%360},100%,60%,0.08)`);
-        grad.addColorStop(1,   `hsla(${(hue+240)%360},100%,50%,0)`);
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(ox, oy, radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      t += 0.012;
-      requestAnimationFrame(draw);
-    }
-
-    draw();
-  </script>
+// ─────────────────────────────────────────────
+//  Init
+// ─────────────────────────────────────────────
+render();
+</script>
 </body>
 </html>
