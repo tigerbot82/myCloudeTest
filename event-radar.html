@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Event Radar — Vienna</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;color:#c2e4ff;font-family:'Share Tech Mono','Courier New',monospace}
+canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+.page{position:relative;z-index:1;min-height:100vh;padding-bottom:60px}
+.top-nav{display:flex;align-items:center;gap:16px;padding:14px 28px;background:rgba(5,3,18,.88);backdrop-filter:blur(14px);border-bottom:1px solid rgba(14,184,255,.12);position:sticky;top:0;z-index:50}
+.nav-back{color:#0eb8ff;text-decoration:none;font-size:.8em;letter-spacing:.12em;text-transform:uppercase;opacity:.8}
+.nav-back:hover{opacity:1}
+.nav-title{color:#0eb8ff;font-size:.82em;letter-spacing:.2em;text-transform:uppercase;flex:1;text-align:center}
+.nav-btn{background:rgba(14,184,255,.08);border:1px solid rgba(14,184,255,.2);color:#0eb8ff;padding:5px 14px;font-family:inherit;font-size:.7em;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.nav-btn:hover{background:rgba(14,184,255,.2)}
+.main{max-width:1000px;margin:0 auto;padding:28px 20px}
+h1{font-size:1.65em;letter-spacing:.18em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 14px rgba(14,184,255,.85),0 0 40px rgba(12,123,192,.5);margin-bottom:4px}
+.subtitle{font-size:.72em;letter-spacing:.14em;color:rgba(194,228,255,.4);text-transform:uppercase;margin-bottom:24px}
+
+/* stats */
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:24px}
+.stat{background:rgba(12,8,38,.82);border:1px solid rgba(14,184,255,.16);padding:12px 20px;flex:1;min-width:110px;text-align:center;position:relative}
+.stat::before,.stat::after{content:'';position:absolute;width:8px;height:8px;border-color:#0eb8ff;border-style:solid;opacity:.4}
+.stat::before{top:-1px;left:-1px;border-width:2px 0 0 2px}.stat::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.stat-v{font-size:1.8em;color:#0eb8ff;text-shadow:0 0 10px rgba(14,184,255,.7)}
+.stat-l{font-size:.6em;letter-spacing:.14em;text-transform:uppercase;color:rgba(194,228,255,.4);margin-top:2px}
+
+/* add panel */
+.add-panel{background:rgba(12,8,38,.9);border:1px solid rgba(14,184,255,.2);padding:22px;margin-bottom:22px;display:none;position:relative}
+.add-panel::before,.add-panel::after{content:'';position:absolute;width:12px;height:12px;border-color:#0eb8ff;border-style:solid;opacity:.4}
+.add-panel::before{top:-1px;left:-1px;border-width:2px 0 0 2px}.add-panel::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.panel-ttl{font-size:.72em;letter-spacing:.2em;text-transform:uppercase;color:#0eb8ff;margin-bottom:16px}
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.fl{font-size:.6em;letter-spacing:.12em;text-transform:uppercase;color:rgba(194,228,255,.4);margin-bottom:4px}
+.fi{background:rgba(14,184,255,.05);border:1px solid rgba(14,184,255,.18);color:#c2e4ff;padding:7px 10px;font-family:inherit;font-size:.78em;width:100%;outline:none;transition:border-color .2s}
+.fi:focus{border-color:rgba(14,184,255,.5)}
+.fi::placeholder{color:rgba(194,228,255,.2)}
+.fa{display:flex;gap:10px;justify-content:flex-end}
+.btn-p{background:rgba(14,184,255,.12);border:1px solid rgba(14,184,255,.4);color:#0eb8ff;padding:7px 20px;font-family:inherit;font-size:.72em;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-p:hover{background:rgba(14,184,255,.25)}
+.btn-c{background:transparent;border:1px solid rgba(194,228,255,.15);color:rgba(194,228,255,.45);padding:7px 18px;font-family:inherit;font-size:.72em;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-c:hover{border-color:rgba(194,228,255,.35);color:rgba(194,228,255,.7)}
+
+/* filters */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:18px;padding:10px 14px;background:rgba(12,8,38,.6);border:1px solid rgba(14,184,255,.1)}
+.fl2{font-size:.62em;letter-spacing:.14em;text-transform:uppercase;color:rgba(194,228,255,.35);margin-right:2px}
+.fb{background:rgba(14,184,255,.06);border:1px solid rgba(14,184,255,.14);color:rgba(194,228,255,.6);padding:4px 11px;font-family:inherit;font-size:.66em;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.fb:hover,.fb.on{background:rgba(14,184,255,.18);border-color:rgba(14,184,255,.45);color:#0eb8ff}
+.fsep{width:1px;height:18px;background:rgba(14,184,255,.14);margin:0 2px}
+.ftog{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.66em;letter-spacing:.1em;text-transform:uppercase;color:rgba(194,228,255,.6);padding:4px 11px;border:1px solid rgba(14,184,255,.14);background:rgba(14,184,255,.06);transition:all .15s}
+.ftog.on{background:rgba(80,220,160,.12);border-color:rgba(80,220,160,.4);color:rgba(80,220,160,.9)}
+.tdot{width:7px;height:7px;border-radius:50%;background:rgba(14,184,255,.25);transition:background .2s}
+.ftog.on .tdot{background:rgba(80,220,160,.9)}
+
+/* grid */
+#grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.card{background:rgba(12,8,38,.82);border:1px solid rgba(14,184,255,.16);padding:18px;position:relative;transition:transform .15s,border-color .2s}
+.card::before,.card::after{content:'';position:absolute;width:10px;height:10px;border-color:#0eb8ff;border-style:solid;opacity:.3}
+.card::before{top:-1px;left:-1px;border-width:2px 0 0 2px}.card::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.card:hover{transform:translateY(-3px);border-color:rgba(14,184,255,.35)}
+.card.r-skip{border-color:rgba(255,80,80,.25);opacity:.6}
+.card.r-go{border-color:rgba(14,184,255,.4)}
+.card.r-went{border-color:rgba(80,220,160,.4)}
+.cn{font-size:.88em;color:#e8f4ff;letter-spacing:.06em;line-height:1.35;margin-bottom:4px}
+.cv{font-size:.7em;color:rgba(194,228,255,.5);letter-spacing:.07em;margin-bottom:8px}
+.meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.mdate{font-size:.7em;color:#0eb8ff;letter-spacing:.07em}
+.mtime{font-size:.7em;color:rgba(194,228,255,.65)}
+.badge-pf{font-size:.58em;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;background:rgba(80,220,160,.1);border:1px solid rgba(80,220,160,.3);color:rgba(80,220,160,.9)}
+.gtags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.gtag{font-size:.58em;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;background:rgba(14,184,255,.06);border:1px solid rgba(14,184,255,.13);color:rgba(194,228,255,.5)}
+.lineup{font-size:.65em;color:rgba(194,228,255,.5);letter-spacing:.06em;margin-bottom:10px}
+.lineup b{color:rgba(194,228,255,.75)}
+.rrow{display:flex;gap:5px;padding-top:10px;border-top:1px solid rgba(14,184,255,.08)}
+.rb{flex:1;padding:5px 2px;font-family:inherit;font-size:.62em;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border:1px solid transparent;background:transparent;color:rgba(194,228,255,.35);transition:all .15s}
+.rb:hover{background:rgba(14,184,255,.08);border-color:rgba(14,184,255,.2);color:rgba(194,228,255,.75)}
+.rb.a-skip{background:rgba(255,80,80,.1);border-color:rgba(255,80,80,.35);color:rgba(255,120,120,.9)}
+.rb.a-maybe{background:rgba(255,200,80,.08);border-color:rgba(255,200,80,.28);color:rgba(255,200,80,.85)}
+.rb.a-go{background:rgba(14,184,255,.1);border-color:rgba(14,184,255,.4);color:#0eb8ff}
+.rb.a-went{background:rgba(80,220,160,.1);border-color:rgba(80,220,160,.38);color:rgba(80,220,160,.9)}
+.cfoot{display:flex;justify-content:flex-end;margin-top:6px}
+.del{background:transparent;border:none;color:rgba(194,228,255,.2);font-family:inherit;font-size:.6em;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;padding:2px 4px}
+.del:hover{color:rgba(255,80,80,.6)}
+.empty{grid-column:1/-1;padding:50px 20px;text-align:center;border:1px dashed rgba(14,184,255,.1)}
+.empty p{font-size:.72em;color:rgba(194,228,255,.25);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px}
+#status{font-size:.7em;letter-spacing:.1em;text-transform:uppercase;color:rgba(194,228,255,.3);text-align:center;padding:16px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(14,184,255,.2)}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="page">
+  <nav class="top-nav">
+    <a href="index.html" class="nav-back">← home</a>
+    <span class="nav-title">// event radar — vienna //</span>
+    <button class="nav-btn" onclick="toggleAdd()">+ add event</button>
+  </nav>
+  <div class="main">
+    <h1>Event Radar</h1>
+    <div class="subtitle">Vienna · Electronic Music · Parent-Friendly Intelligence</div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-v" id="s-total">—</div><div class="stat-l">events tracked</div></div>
+      <div class="stat"><div class="stat-v" id="s-upcoming">—</div><div class="stat-l">upcoming 30d</div></div>
+      <div class="stat"><div class="stat-v" id="s-pf">—</div><div class="stat-l">parent friendly</div></div>
+      <div class="stat"><div class="stat-v" id="s-rated">—</div><div class="stat-l">rated</div></div>
+    </div>
+
+    <!-- Add panel -->
+    <div class="add-panel" id="add-panel">
+      <div class="panel-ttl">// add event</div>
+      <div class="fg">
+        <div style="grid-column:1/-1"><div class="fl">Event Name *</div><input class="fi" id="f-name" placeholder="Artist / Event Name"></div>
+        <div><div class="fl">Venue</div><input class="fi" id="f-venue" placeholder="Club / Hall"></div>
+        <div><div class="fl">Date *</div><input class="fi" id="f-date" type="date"></div>
+        <div><div class="fl">Start Time</div><input class="fi" id="f-start" type="time"></div>
+        <div><div class="fl">End Time</div><input class="fi" id="f-end" type="time"></div>
+        <div><div class="fl">Genres (comma-sep)</div><input class="fi" id="f-genres" placeholder="techno, electronic"></div>
+        <div><div class="fl">Price (EUR)</div><input class="fi" id="f-price" type="number" min="0" placeholder="0"></div>
+        <div style="grid-column:1/-1"><div class="fl">Lineup (comma-sep)</div><input class="fi" id="f-lineup" placeholder="Artist 1, Artist 2"></div>
+        <div style="grid-column:1/-1"><div class="fl">URL</div><input class="fi" id="f-url" type="url" placeholder="https://ra.co/..."></div>
+        <div style="grid-column:1/-1"><div class="fl">Notes</div><input class="fi" id="f-notes" placeholder="Any notes..."></div>
+      </div>
+      <div class="fa">
+        <button class="btn-c" onclick="toggleAdd()">Cancel</button>
+        <button class="btn-p" onclick="saveEvent()">Save Event</button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <span class="fl2">Window:</span>
+      <button class="fb" data-w="2w" onclick="setW(this)">2w</button>
+      <button class="fb on" data-w="1m" onclick="setW(this)">1m</button>
+      <button class="fb" data-w="3m" onclick="setW(this)">3m</button>
+      <button class="fb" data-w="6m" onclick="setW(this)">6m</button>
+      <button class="fb" data-w="all" onclick="setW(this)">all</button>
+      <div class="fsep"></div>
+      <span class="fl2">Sort:</span>
+      <button class="fb on" data-s="date" onclick="setS(this)">date</button>
+      <button class="fb" data-s="rating" onclick="setS(this)">rating</button>
+      <div class="fsep"></div>
+      <button class="ftog" id="pf-btn" onclick="togglePF()"><span class="tdot" id="pf-dot"></span>parent-friendly only</button>
+    </div>
+    <div id="genre-bar" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+    <div id="status">loading...</div>
+    <div id="grid"></div>
+  </div>
+</div>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyAnRbmN4bVSbegq4IDvQfCsMmlcc1nX3bs",
+  authDomain:"time-tracker-df33b.firebaseapp.com",
+  projectId:"time-tracker-df33b",
+  storageBucket:"time-tracker-df33b.firebasestorage.app",
+  messagingSenderId:"1065069705605",
+  appId:"1:1065069705605:web:2ea80cfcd7813dc3f26cec"
+});
+const db = firebase.firestore();
+
+let events=[], ratings={};
+let fil={w:'1m',s:'date',pf:false,genre:''};
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function eA(s){return String(s||'').replace(/'/g,'&#39;')}
+function today(){return new Date().toISOString().slice(0,10)}
+function fmtD(d){if(!d)return'—';const x=new Date(d+'T12:00:00');return x.toLocaleDateString('en-AT',{weekday:'short',day:'numeric',month:'short'})}
+function fmtT(t){return t?t.slice(0,5):''}
+
+function winEnd(){
+  const d=new Date();
+  if(fil.w==='2w')d.setDate(d.getDate()+14);
+  else if(fil.w==='1m')d.setMonth(d.getMonth()+1);
+  else if(fil.w==='3m')d.setMonth(d.getMonth()+3);
+  else if(fil.w==='6m')d.setMonth(d.getMonth()+6);
+  else d.setFullYear(d.getFullYear()+5);
+  return d.toISOString().slice(0,10);
+}
+
+function isPF(ev){
+  if(!ev.startTime)return false;
+  const sh=parseInt(ev.startTime);
+  if(sh>20)return false;
+  if(ev.endTime){const eh=parseInt(ev.endTime);if(eh>=0&&eh<=5)return false;}
+  return true;
+}
+
+function ratingOrder(id){return{went:0,go:1,maybe:2,skip:4}[ratings[id]?.rating]??3}
+
+function filtered(){
+  const t=today(),we=winEnd();
+  return events
+    .filter(ev=>{
+      if(ev.date&&ev.date<t)return false;
+      if(ev.date&&ev.date>we)return false;
+      if(fil.pf&&!isPF(ev))return false;
+      if(fil.genre&&!(ev.genres||[]).map(g=>g.toLowerCase()).includes(fil.genre))return false;
+      return true;
+    })
+    .sort((a,b)=>{
+      if(fil.s==='rating')return ratingOrder(a.id)-ratingOrder(b.id);
+      return(a.date||'').localeCompare(b.date||'');
+    });
+}
+
+function allGenres(){
+  const s=new Set();
+  events.forEach(ev=>(ev.genres||[]).forEach(g=>s.add(g.toLowerCase())));
+  return[...s].sort();
+}
+
+function renderStats(){
+  const t=today(),in30=new Date();in30.setDate(in30.getDate()+30);
+  const i30=in30.toISOString().slice(0,10);
+  document.getElementById('s-total').textContent=events.length;
+  document.getElementById('s-upcoming').textContent=events.filter(e=>e.date>=t&&e.date<=i30).length;
+  document.getElementById('s-pf').textContent=events.filter(e=>e.date>=t&&isPF(e)).length;
+  document.getElementById('s-rated').textContent=Object.keys(ratings).length;
+}
+
+function renderGenreBar(){
+  const gs=allGenres();
+  const bar=document.getElementById('genre-bar');
+  if(!gs.length){bar.style.display='none';return;}
+  bar.style.display='flex';
+  bar.innerHTML=`<span class="fl2" style="align-self:center">genre:</span>`+
+    `<button class="fb${!fil.genre?' on':''}" onclick="setG(this,'')">all</button>`+
+    gs.map(g=>`<button class="fb${fil.genre===g?' on':''}" onclick="setG(this,'${eA(g)}')">${esc(g)}</button>`).join('');
+}
+
+function renderGrid(){
+  const evs=filtered();
+  document.getElementById('status').textContent='';
+  const grid=document.getElementById('grid');
+  if(!evs.length){
+    grid.innerHTML=`<div class="empty"><p>no events for current filters</p><button class="btn-p" onclick="toggleAdd()">+ add event</button></div>`;
+    return;
+  }
+  grid.innerHTML=evs.map(ev=>{
+    const r=ratings[ev.id]?.rating||null;
+    const pf=isPF(ev);
+    const time=ev.startTime?fmtT(ev.startTime)+(ev.endTime?'–'+fmtT(ev.endTime):''):'';
+    const price=ev.price!=null&&ev.price!==''?` · €${ev.price}`:'';
+    const genres=(ev.genres||[]).map(g=>`<span class="gtag">${esc(g)}</span>`).join('');
+    const lineup=(ev.lineup||[]).length?`<div class="lineup"><b>lineup:</b> ${esc((ev.lineup||[]).join(' · '))}</div>`:'';
+    const urlLink=ev.url?`<a href="${eA(ev.url)}" target="_blank" rel="noopener" style="font-size:.62em;color:rgba(14,184,255,.45);text-decoration:none;letter-spacing:.06em">→ event link</a> `:'';
+    return`<div class="card${r?' r-'+r:''}" id="c-${ev.id}">
+  <div class="cn">${esc(ev.name||'—')}</div>
+  <div class="cv">${esc(ev.venue||'')}</div>
+  <div class="meta">
+    <span class="mdate">${fmtD(ev.date)}</span>
+    ${time?`<span class="mtime">${time}${price}</span>`:''}
+    ${pf?'<span class="badge-pf">parent friendly</span>':''}
+  </div>
+  ${genres?`<div class="gtags">${genres}</div>`:''}
+  ${lineup}
+  <div class="rrow">
+    ${['skip','maybe','go','went'].map(x=>`<button class="rb${r===x?' a-'+x:''}" onclick="rate('${ev.id}','${x}')">${x==='skip'?'✕ skip':x==='maybe'?'~ maybe':x==='go'?'★ go':'✓ went'}</button>`).join('')}
+  </div>
+  <div class="cfoot">${urlLink}<button class="del" onclick="del('${ev.id}')">delete</button></div>
+</div>`;
+  }).join('');
+}
+
+function render(){renderStats();renderGenreBar();renderGrid();}
+
+db.collection('events_vienna').orderBy('date').onSnapshot(snap=>{
+  events=snap.docs.map(d=>({id:d.id,...d.data()}));render();
+},e=>{document.getElementById('status').textContent='error: '+e.message;});
+
+db.collection('event_ratings').onSnapshot(snap=>{
+  ratings={};snap.docs.forEach(d=>{ratings[d.id]=d.data();});render();
+});
+
+async function rate(id,r){
+  const cur=ratings[id]?.rating;
+  if(cur===r)await db.collection('event_ratings').doc(id).delete();
+  else await db.collection('event_ratings').doc(id).set({rating:r,ratedAt:firebase.firestore.FieldValue.serverTimestamp()});
+}
+
+async function del(id){
+  if(!confirm('Delete this event?'))return;
+  const batch=db.batch();
+  batch.delete(db.collection('events_vienna').doc(id));
+  batch.delete(db.collection('event_ratings').doc(id));
+  await batch.commit();
+}
+
+async function saveEvent(){
+  const name=document.getElementById('f-name').value.trim();
+  const date=document.getElementById('f-date').value;
+  if(!name||!date){alert('Name and date required');return;}
+  const lineup=document.getElementById('f-lineup').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const genres=document.getElementById('f-genres').value.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  const price=document.getElementById('f-price').value;
+  await db.collection('events_vienna').add({
+    name,
+    venue:document.getElementById('f-venue').value.trim()||null,
+    date,
+    startTime:document.getElementById('f-start').value||null,
+    endTime:document.getElementById('f-end').value||null,
+    lineup,genres,
+    price:price!==''?parseFloat(price):null,
+    url:document.getElementById('f-url').value.trim()||null,
+    notes:document.getElementById('f-notes').value.trim()||null,
+    addedAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+  ['f-name','f-venue','f-date','f-start','f-end','f-genres','f-price','f-lineup','f-url','f-notes'].forEach(i=>document.getElementById(i).value='');
+  toggleAdd();
+}
+
+let addOpen=false;
+function toggleAdd(){
+  addOpen=!addOpen;
+  const p=document.getElementById('add-panel');
+  p.style.display=addOpen?'block':'none';
+  if(addOpen){document.getElementById('f-date').value=today();p.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+
+function setW(btn){document.querySelectorAll('[data-w]').forEach(b=>b.classList.remove('on'));btn.classList.add('on');fil.w=btn.dataset.w;render();}
+function setS(btn){document.querySelectorAll('[data-s]').forEach(b=>b.classList.remove('on'));btn.classList.add('on');fil.s=btn.dataset.s;render();}
+function setG(btn,g){fil.genre=g;render();}
+function togglePF(){fil.pf=!fil.pf;document.getElementById('pf-btn').classList.toggle('on',fil.pf);document.getElementById('pf-dot').style.background=fil.pf?'rgba(80,220,160,.9)':'rgba(14,184,255,.25)';render();}
+
+// canvas background
+(function(){
+  const c=document.getElementById('bg'),ctx=c.getContext('2d');let t=0;
+  function resize(){c.width=innerWidth;c.height=innerHeight;}resize();
+  window.addEventListener('resize',resize);
+  function draw(){
+    const W=c.width,H=c.height,img=ctx.createImageData(W,H),d=img.data;
+    for(let y=0;y<H;y++){for(let x=0;x<W;x++){
+      const nx=x/W,ny=y/H;
+      const v=(Math.sin(nx*10+t)+Math.sin(ny*10+t*1.3)+Math.sin((nx+ny)*8+t*.7)+Math.sin(Math.sqrt((nx-.5)**2+(ny-.5)**2)*20-t*1.5))/4;
+      const hue=(210+(v+1)/2*100+t*18)%360,s=(80+Math.sin(t+v*5)*15)/100,l=(22+Math.sin(t*.7+v*3)*16)/100;
+      const cc=(1-Math.abs(2*l-1))*s,h=hue/60,xc=cc*(1-Math.abs(h%2-1)),m=l-cc/2;
+      let r,g,b;
+      if(h<1){r=cc;g=xc;b=0}else if(h<2){r=xc;g=cc;b=0}else if(h<3){r=0;g=cc;b=xc}
+      else if(h<4){r=0;g=xc;b=cc}else if(h<5){r=xc;g=0;b=cc}else{r=cc;g=0;b=xc}
+      const i=(y*W+x)*4;d[i]=(r+m)*255;d[i+1]=(g+m)*255;d[i+2]=(b+m)*255;d[i+3]=255;
+    }}
+    ctx.putImageData(img,0,0);
+    const cx=W/2,cy=H/2;
+    for(let i=0;i<6;i++){
+      const ph=t*(.5+i*.15)+i*Math.PI/3,rad=100+i*60+Math.sin(t*.8+i)*40;
+      const ox=cx+Math.cos(ph*.4)*80,oy=cy+Math.sin(ph*.3)*60;
+      const gr=ctx.createRadialGradient(ox,oy,0,ox,oy,rad);
+      const hu=(220+t*20+i*30)%360;
+      gr.addColorStop(0,`hsla(${hu},100%,70%,.15)`);gr.addColorStop(.5,`hsla(${(hu+120)%360},100%,60%,.08)`);gr.addColorStop(1,`hsla(${(hu+240)%360},100%,50%,0)`);
+      ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+    }
+    t+=.012;requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
