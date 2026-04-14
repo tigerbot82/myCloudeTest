@@ -5,14 +5,15 @@ Garmin → Firestore sync script.
 Auth priority:
   1. Tokens stored in Firestore _config/garmin_tokens  (auto-saved after login)
   2. GARMIN_TOKENS env var (base64 blob, legacy)
-  3. Email + password login — requires GARMIN_MFA_CODE env var if Garmin asks for MFA
+  3. Email + password + TOTP (fully automated — preferred for re-auth)
+  4. Email + password + manual MFA code (fallback)
 
 Required env vars:
   GARMIN_EMAIL              - Garmin Connect email
   GARMIN_PASSWORD           - Garmin Connect password
   FIREBASE_CREDENTIALS_JSON - Firebase service account key JSON string
-  GARMIN_MFA_CODE           - (optional) MFA code from email, only needed on re-auth runs
-  GARMIN_TOKENS             - (optional) legacy base64 token blob
+  GARMIN_TOTP_SECRET        - TOTP secret from Garmin authenticator setup (recommended)
+  GARMIN_MFA_CODE           - (optional) manual one-time MFA code fallback
   SYNC_DAYS                 - (optional) days to sync, default 7
 """
 
@@ -22,13 +23,13 @@ import os
 import tempfile
 from datetime import date, timedelta
 
-import garth
+import pyotp
 import garminconnect
 import firebase_admin
 from firebase_admin import credentials, firestore
 
 
-# ── firebase init (first — tokens are stored here) ────────────────────────────
+# ── firebase init ─────────────────────────────────────────────────────────────
 
 FIREBASE_CREDS = os.environ["FIREBASE_CREDENTIALS_JSON"]
 cred = credentials.Certificate(json.loads(FIREBASE_CREDS))
@@ -37,11 +38,12 @@ db  = firestore.client()
 col = db.collection("health_daily")
 cfg = db.collection("_config")
 
-SYNC_DAYS       = int(os.environ.get("SYNC_DAYS", "7"))
-GARMIN_EMAIL    = os.environ.get("GARMIN_EMAIL")
-GARMIN_PASSWORD = os.environ.get("GARMIN_PASSWORD")
-GARMIN_MFA_CODE = os.environ.get("GARMIN_MFA_CODE", "").strip()
-GARMIN_TOKENS   = os.environ.get("GARMIN_TOKENS")  # legacy
+SYNC_DAYS          = int(os.environ.get("SYNC_DAYS", "7"))
+GARMIN_EMAIL       = os.environ.get("GARMIN_EMAIL")
+GARMIN_PASSWORD    = os.environ.get("GARMIN_PASSWORD")
+GARMIN_TOTP_SECRET = os.environ.get("GARMIN_TOTP_SECRET", "").strip()
+GARMIN_MFA_CODE    = os.environ.get("GARMIN_MFA_CODE", "").strip()
+GARMIN_TOKENS      = os.environ.get("GARMIN_TOKENS")  # legacy
 
 
 # ── token helpers ─────────────────────────────────────────────────────────────
@@ -55,21 +57,39 @@ def load_tokens_from_firestore():
 
 def save_tokens_to_firestore(api):
     with tempfile.TemporaryDirectory() as tmpdir:
-        # try api.garth.dump first; fall back to module-level garth.save
-        if hasattr(api, 'garth') and hasattr(api.garth, 'dump'):
-            api.garth.dump(tmpdir)
-        else:
-            garth.save(tmpdir)
+        # try every known dump method across garminconnect versions
+        dumped = False
+        for attempt in [
+            lambda: api.garth.dump(tmpdir),
+            lambda: api.client.dump(tmpdir),
+            lambda: api.dump(tmpdir),
+        ]:
+            try:
+                attempt()
+                dumped = True
+                break
+            except AttributeError:
+                continue
+
+        if not dumped:
+            print("  warning: could not save tokens (unknown garminconnect version) — will re-auth next run")
+            return
+
         token_data = {}
         for fname in os.listdir(tmpdir):
             with open(os.path.join(tmpdir, fname)) as f:
                 token_data[fname] = f.read()
+
+    if not token_data:
+        print("  warning: token directory was empty — tokens not saved")
+        return
+
     blob = base64.b64encode(json.dumps(token_data).encode()).decode()
     cfg.document("garmin_tokens").set({
         "tokens":    blob,
         "updatedAt": firestore.SERVER_TIMESTAMP,
     })
-    print("  ✓ tokens saved to Firestore for future runs")
+    print("  ✓ tokens saved to Firestore — future runs won't need MFA")
 
 
 def login_with_blob(blob):
@@ -103,30 +123,33 @@ if api is None and GARMIN_TOKENS:
     try:
         api = login_with_blob(GARMIN_TOKENS)
         print("Authenticated via env token.")
-        save_tokens_to_firestore(api)   # migrate to Firestore
+        save_tokens_to_firestore(api)
     except Exception as e:
         print(f"  Env token auth failed ({e}), falling back to login...")
 
-# 3. email + password (with optional MFA code)
+# 3. email + password (TOTP or manual MFA)
 if api is None:
     if not GARMIN_EMAIL or not GARMIN_PASSWORD:
         raise EnvironmentError("Set GARMIN_EMAIL and GARMIN_PASSWORD")
 
     def mfa_callback():
+        if GARMIN_TOTP_SECRET:
+            code = pyotp.TOTP(GARMIN_TOTP_SECRET).now()
+            print(f"  using TOTP code (auto-computed): {code}")
+            return code
         if GARMIN_MFA_CODE:
-            print(f"  using MFA code from env: {GARMIN_MFA_CODE}")
+            print(f"  using manual MFA code from env: {GARMIN_MFA_CODE}")
             return GARMIN_MFA_CODE
         raise RuntimeError(
-            "Garmin requested MFA but GARMIN_MFA_CODE is not set.\n"
-            "Go to GitHub Actions → 'Garmin → Firestore Sync' → Run workflow\n"
-            "and enter the code from your Garmin email in the mfa_code field."
+            "Garmin requires MFA but neither GARMIN_TOTP_SECRET nor GARMIN_MFA_CODE is set.\n"
+            "Add GARMIN_TOTP_SECRET (from Garmin authenticator app setup) as a GitHub secret."
         )
 
     print("Logging in with email/password...")
     api = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD, prompt_mfa=mfa_callback)
     api.login()
     print("Logged in.")
-    save_tokens_to_firestore(api)   # save so next run skips login entirely
+    save_tokens_to_firestore(api)
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
