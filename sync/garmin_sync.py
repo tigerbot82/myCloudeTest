@@ -133,17 +133,40 @@ if api is None:
         raise EnvironmentError("Set GARMIN_EMAIL and GARMIN_PASSWORD")
 
     def mfa_callback():
+        import time
+
+        # Option A: TOTP (fully automated, best option)
         if GARMIN_TOTP_SECRET:
             code = pyotp.TOTP(GARMIN_TOTP_SECRET).now()
             print(f"  using TOTP code (auto-computed): {code}")
             return code
+
+        # Option B: Firestore relay — write a waiting flag, poll for user input
+        print("  MFA required — writing pending request to Firestore...")
+        mfa_ref = cfg.document("garmin_mfa_pending")
+        mfa_ref.set({"status": "waiting", "requestedAt": firestore.SERVER_TIMESTAMP})
+        print("  open health.html and enter the code from your Garmin email")
+        print("  polling for up to 6 minutes...")
+
+        for _ in range(72):   # 72 × 5s = 6 minutes
+            time.sleep(5)
+            snap = mfa_ref.get()
+            if snap.exists:
+                data = snap.to_dict()
+                if data.get("status") == "submitted" and data.get("code"):
+                    code = str(data["code"]).strip()
+                    mfa_ref.delete()
+                    print(f"  received MFA code via Firestore: {code}")
+                    return code
+
+        mfa_ref.delete()
+
+        # Option C: manual env var fallback
         if GARMIN_MFA_CODE:
-            print(f"  using manual MFA code from env: {GARMIN_MFA_CODE}")
+            print(f"  timed out on Firestore relay, using GARMIN_MFA_CODE: {GARMIN_MFA_CODE}")
             return GARMIN_MFA_CODE
-        raise RuntimeError(
-            "Garmin requires MFA but neither GARMIN_TOTP_SECRET nor GARMIN_MFA_CODE is set.\n"
-            "Add GARMIN_TOTP_SECRET (from Garmin authenticator app setup) as a GitHub secret."
-        )
+
+        raise RuntimeError("Timed out waiting for MFA code (6 minutes)")
 
     print("Logging in with email/password...")
     api = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD, prompt_mfa=mfa_callback)
