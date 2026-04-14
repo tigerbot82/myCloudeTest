@@ -22,6 +22,7 @@ import os
 import tempfile
 from datetime import date, timedelta
 
+import garth
 import garminconnect
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -54,7 +55,11 @@ def load_tokens_from_firestore():
 
 def save_tokens_to_firestore(api):
     with tempfile.TemporaryDirectory() as tmpdir:
-        api.garth.dump(tmpdir)
+        # try api.garth.dump first; fall back to module-level garth.save
+        if hasattr(api, 'garth') and hasattr(api.garth, 'dump'):
+            api.garth.dump(tmpdir)
+        else:
+            garth.save(tmpdir)
         token_data = {}
         for fname in os.listdir(tmpdir):
             with open(os.path.join(tmpdir, fname)) as f:
