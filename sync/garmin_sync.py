@@ -2,15 +2,18 @@
 """
 Garmin → Firestore sync script.
 
-Fetches the last N days of Garmin health data and writes each day as a
-document in the Firestore `health_daily` collection, keyed by YYYY-MM-DD.
+Auth priority:
+  1. Tokens stored in Firestore _config/garmin_tokens  (auto-saved after login)
+  2. GARMIN_TOKENS env var (base64 blob, legacy)
+  3. Email + password login — requires GARMIN_MFA_CODE env var if Garmin asks for MFA
 
-Required environment variables:
-  GARMIN_TOKENS     - base64 token blob from garmin_get_tokens.py (preferred)
-  GARMIN_EMAIL      - fallback: Garmin Connect email (may hit 429 from cloud IPs)
-  GARMIN_PASSWORD   - fallback: Garmin Connect password
-  FIREBASE_CREDENTIALS_JSON - full JSON string of your Firebase service account key
-  SYNC_DAYS         - (optional) number of past days to sync, default 7
+Required env vars:
+  GARMIN_EMAIL              - Garmin Connect email
+  GARMIN_PASSWORD           - Garmin Connect password
+  FIREBASE_CREDENTIALS_JSON - Firebase service account key JSON string
+  GARMIN_MFA_CODE           - (optional) MFA code from email, only needed on re-auth runs
+  GARMIN_TOKENS             - (optional) legacy base64 token blob
+  SYNC_DAYS                 - (optional) days to sync, default 7
 """
 
 import base64
@@ -24,48 +27,106 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 
-# ── config ────────────────────────────────────────────────────────────────────────────────
+# ── firebase init (first — tokens are stored here) ────────────────────────────
 
-GARMIN_TOKENS   = os.environ.get("GARMIN_TOKENS")
-GARMIN_EMAIL    = os.environ.get("GARMIN_EMAIL")
-GARMIN_PASSWORD = os.environ.get("GARMIN_PASSWORD")
-FIREBASE_CREDS  = os.environ["FIREBASE_CREDENTIALS_JSON"]
-SYNC_DAYS       = int(os.environ.get("SYNC_DAYS", "7"))
-
-
-# ── firebase init ───────────────────────────────────────────────────────────────────────────
-
+FIREBASE_CREDS = os.environ["FIREBASE_CREDENTIALS_JSON"]
 cred = credentials.Certificate(json.loads(FIREBASE_CREDS))
 firebase_admin.initialize_app(cred)
-db = firestore.client()
+db  = firestore.client()
 col = db.collection("health_daily")
+cfg = db.collection("_config")
+
+SYNC_DAYS       = int(os.environ.get("SYNC_DAYS", "7"))
+GARMIN_EMAIL    = os.environ.get("GARMIN_EMAIL")
+GARMIN_PASSWORD = os.environ.get("GARMIN_PASSWORD")
+GARMIN_MFA_CODE = os.environ.get("GARMIN_MFA_CODE", "").strip()
+GARMIN_TOKENS   = os.environ.get("GARMIN_TOKENS")  # legacy
 
 
-# ── garmin init ───────────────────────────────────────────────────────────────────────────────
+# ── token helpers ─────────────────────────────────────────────────────────────
 
-if GARMIN_TOKENS:
-    print("Authenticating via saved OAuth tokens...")
-    token_data = json.loads(base64.b64decode(GARMIN_TOKENS).decode())
+def load_tokens_from_firestore():
+    doc = cfg.document("garmin_tokens").get()
+    if doc.exists:
+        return doc.to_dict().get("tokens")
+    return None
+
+
+def save_tokens_to_firestore(api):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        api.garth.dump(tmpdir)
+        token_data = {}
+        for fname in os.listdir(tmpdir):
+            with open(os.path.join(tmpdir, fname)) as f:
+                token_data[fname] = f.read()
+    blob = base64.b64encode(json.dumps(token_data).encode()).decode()
+    cfg.document("garmin_tokens").set({
+        "tokens":    blob,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    })
+    print("  ✓ tokens saved to Firestore for future runs")
+
+
+def login_with_blob(blob):
+    token_data = json.loads(base64.b64decode(blob).decode())
     with tempfile.TemporaryDirectory() as tmpdir:
         for fname, content in token_data.items():
             with open(os.path.join(tmpdir, fname), "w") as f:
                 f.write(content)
         api = garminconnect.Garmin()
         api.login(tokenstore=tmpdir)
-    print("Authenticated via tokens.")
-elif GARMIN_EMAIL and GARMIN_PASSWORD:
-    print("Logging in with email/password (may fail from cloud IPs)...")
-    api = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD)
+    return api
+
+
+# ── garmin auth ───────────────────────────────────────────────────────────────
+
+api = None
+
+# 1. try Firestore tokens
+blob = load_tokens_from_firestore()
+if blob:
+    print("Authenticating via Firestore tokens...")
+    try:
+        api = login_with_blob(blob)
+        print("Authenticated via Firestore tokens.")
+    except Exception as e:
+        print(f"  Firestore token auth failed ({e}), falling back to login...")
+
+# 2. try legacy GARMIN_TOKENS env var
+if api is None and GARMIN_TOKENS:
+    print("Authenticating via GARMIN_TOKENS env var...")
+    try:
+        api = login_with_blob(GARMIN_TOKENS)
+        print("Authenticated via env token.")
+        save_tokens_to_firestore(api)   # migrate to Firestore
+    except Exception as e:
+        print(f"  Env token auth failed ({e}), falling back to login...")
+
+# 3. email + password (with optional MFA code)
+if api is None:
+    if not GARMIN_EMAIL or not GARMIN_PASSWORD:
+        raise EnvironmentError("Set GARMIN_EMAIL and GARMIN_PASSWORD")
+
+    def mfa_callback():
+        if GARMIN_MFA_CODE:
+            print(f"  using MFA code from env: {GARMIN_MFA_CODE}")
+            return GARMIN_MFA_CODE
+        raise RuntimeError(
+            "Garmin requested MFA but GARMIN_MFA_CODE is not set.\n"
+            "Go to GitHub Actions → 'Garmin → Firestore Sync' → Run workflow\n"
+            "and enter the code from your Garmin email in the mfa_code field."
+        )
+
+    print("Logging in with email/password...")
+    api = garminconnect.Garmin(GARMIN_EMAIL, GARMIN_PASSWORD, prompt_mfa=mfa_callback)
     api.login()
     print("Logged in.")
-else:
-    raise EnvironmentError("Set GARMIN_TOKENS (preferred) or GARMIN_EMAIL + GARMIN_PASSWORD")
+    save_tokens_to_firestore(api)   # save so next run skips login entirely
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────────────────
+# ── helpers ───────────────────────────────────────────────────────────────────
 
 def safe(fn, *args, **kwargs):
-    """Call fn, return None on any error (don't abort the whole sync)."""
     try:
         return fn(*args, **kwargs)
     except Exception as e:
@@ -77,18 +138,17 @@ def minutes_to_hours(m):
     return round(m / 60, 2) if m is not None else None
 
 
-# ── fetch + write ────────────────────────────────────────────────────────────────────────────
+# ── fetch + write ─────────────────────────────────────────────────────────────
 
 today = date.today()
 
 for i in range(SYNC_DAYS - 1, -1, -1):
     d  = today - timedelta(days=i)
-    ds = d.isoformat()          # "YYYY-MM-DD"
+    ds = d.isoformat()
 
     print(f"\nSyncing {ds}...")
 
-    # ── steps / daily summary ──────────────────────────────────────────────────
-    summary = safe(api.get_stats, ds) or {}
+    summary         = safe(api.get_stats, ds) or {}
     steps           = summary.get("totalSteps")
     calories        = summary.get("totalKilocalories")
     active_calories = summary.get("activeKilocalories")
@@ -97,11 +157,9 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     resting_hr      = summary.get("restingHeartRate")
     avg_hr          = summary.get("averageHeartRate")
 
-    # ── heart rate ────────────────────────────────────────────────────────────────────
     hr_data = safe(api.get_heart_rates, ds) or {}
     max_hr  = hr_data.get("maxHeartRate")
 
-    # ── body battery ──────────────────────────────────────────────────────────────────
     bb_list = safe(api.get_body_battery, ds, ds) or []
     bb      = bb_list[0] if bb_list else {}
     body_battery = {
@@ -111,7 +169,6 @@ for i in range(SYNC_DAYS - 1, -1, -1):
         "drained": bb.get("drained"),
     } if bb else None
 
-    # ── sleep ────────────────────────────────────────────────────────────────────────────
     sleep_raw = safe(api.get_sleep_data, ds) or {}
     sd        = sleep_raw.get("dailySleepDTO") or {}
     sleep = {
@@ -123,7 +180,6 @@ for i in range(SYNC_DAYS - 1, -1, -1):
         "score":           sd.get("sleepScores", {}).get("overall", {}).get("value") if sd.get("sleepScores") else None,
     } if sd else None
 
-    # ── HRV ───────────────────────────────────────────────────────────────────────────────
     hrv_raw = safe(api.get_hrv_data, ds) or {}
     hrv_sum = hrv_raw.get("hrvSummary") or {}
     hrv = {
@@ -132,13 +188,11 @@ for i in range(SYNC_DAYS - 1, -1, -1):
         "status":    hrv_sum.get("hrvStatus"),
     } if hrv_sum else None
 
-    # ── SpO2 ──────────────────────────────────────────────────────────────────────────────
     spo2_raw = safe(api.get_spo2_data, ds) or {}
     spo2_avg = spo2_raw.get("averageSpO2")
     spo2_min = spo2_raw.get("lowestSpO2")
     spo2 = {"avg": spo2_avg, "min": spo2_min} if spo2_avg else None
 
-    # ── assemble document ──────────────────────────────────────────────────────────────────────────
     doc = {
         "date":           ds,
         "steps":          steps,
@@ -155,11 +209,9 @@ for i in range(SYNC_DAYS - 1, -1, -1):
         "spo2":           spo2,
         "syncedAt":       firestore.SERVER_TIMESTAMP,
     }
-
-    # strip None values so Firestore stays clean
     doc = {k: v for k, v in doc.items() if v is not None}
 
     col.document(ds).set(doc, merge=True)
-    print(f"  ✓ wrote {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}")
+    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}")
 
 print(f"\nSync complete — {SYNC_DAYS} days written to Firestore `health_daily`.")

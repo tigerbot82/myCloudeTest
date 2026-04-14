@@ -2,11 +2,14 @@ name: Garmin → Firestore Sync
 
 on:
   schedule:
-    # runs every day at 07:00 UTC — adjust to your timezone
+    # runs every day at 07:00 UTC
     - cron: '0 7 * * *'
   workflow_dispatch:
-    # also lets you trigger it manually from the GitHub Actions tab
     inputs:
+      mfa_code:
+        description: 'MFA code from Garmin email (only needed when Garmin asks for it)'
+        required: false
+        default: ''
       sync_days:
         description: 'Number of past days to sync (default 7)'
         required: false
@@ -33,5 +36,7 @@ jobs:
           GARMIN_EMAIL:               ${{ secrets.GARMIN_EMAIL }}
           GARMIN_PASSWORD:            ${{ secrets.GARMIN_PASSWORD }}
           FIREBASE_CREDENTIALS_JSON:  ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+          GARMIN_TOKENS:              ${{ secrets.GARMIN_TOKENS }}
+          GARMIN_MFA_CODE:            ${{ github.event.inputs.mfa_code || '' }}
           SYNC_DAYS:                  ${{ github.event.inputs.sync_days || '7' }}
         run: python sync/garmin_sync.py
