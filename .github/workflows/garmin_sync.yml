@@ -36,6 +36,7 @@ jobs:
           GARMIN_EMAIL:               ${{ secrets.GARMIN_EMAIL }}
           GARMIN_PASSWORD:            ${{ secrets.GARMIN_PASSWORD }}
           FIREBASE_CREDENTIALS_JSON:  ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+          GARMIN_TOTP_SECRET:         ${{ secrets.GARMIN_TOTP_SECRET }}
           GARMIN_TOKENS:              ${{ secrets.GARMIN_TOKENS }}
           GARMIN_MFA_CODE:            ${{ github.event.inputs.mfa_code || '' }}
           SYNC_DAYS:                  ${{ github.event.inputs.sync_days || '7' }}

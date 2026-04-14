@@ -155,10 +155,54 @@
       font-size:.68em;letter-spacing:.12em;color:rgba(14,184,255,.3);
       text-align:center;margin-top:-16px;
     }
+
+    /* ── mfa relay panel ── */
+    #mfaPanel{
+      display:none;
+      position:fixed;bottom:28px;right:28px;z-index:100;
+      padding:22px 24px;
+      background:rgba(12,8,38,0.96);
+      border:1px solid rgba(14,184,255,.5);
+      border-radius:4px;
+      backdrop-filter:blur(16px);
+      box-shadow:0 0 40px rgba(14,184,255,.2);
+      min-width:280px;
+    }
+    #mfaPanel.visible{display:flex;flex-direction:column;gap:12px}
+    .mfa-title{font-size:.75em;letter-spacing:.2em;text-transform:uppercase;color:#0eb8ff}
+    .mfa-desc{font-size:.68em;color:rgba(14,184,255,.5);line-height:1.6}
+    .mfa-input-row{display:flex;gap:8px}
+    #mfaCode{
+      font-family:inherit;font-size:1.4em;letter-spacing:.3em;
+      width:140px;padding:8px 10px;text-align:center;
+      background:rgba(14,184,255,.06);
+      border:1px solid rgba(14,184,255,.3);border-radius:2px;
+      color:#0eb8ff;outline:none;
+    }
+    #mfaCode:focus{border-color:#0eb8ff;box-shadow:0 0 8px rgba(14,184,255,.3)}
+    #mfaSubmit{
+      font-family:inherit;font-size:.72em;letter-spacing:.12em;
+      padding:8px 14px;border-radius:2px;cursor:pointer;
+      background:rgba(14,184,255,.15);border:1px solid rgba(14,184,255,.4);
+      color:#0eb8ff;transition:all .15s;
+    }
+    #mfaSubmit:hover{background:rgba(14,184,255,.28)}
+    #mfaStatus{font-size:.65em;color:rgba(14,184,255,.4);min-height:1em}
   </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
+
+<!-- MFA relay panel — only visible when sync workflow is waiting for a code -->
+<div id="mfaPanel">
+  <div class="mfa-title">⚡ garmin mfa required</div>
+  <div class="mfa-desc">the sync workflow is waiting.<br>check your garmin email and enter the code below.</div>
+  <div class="mfa-input-row">
+    <input id="mfaCode" type="text" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+    <button id="mfaSubmit" onclick="submitMfa()">submit</button>
+  </div>
+  <div id="mfaStatus"></div>
+</div>
 
 <nav class="top-nav">
   <a href="index.html" class="nav-back">← home</a>
@@ -408,6 +452,37 @@ function fmt(n) { return n != null ? Number(n).toLocaleString() : '—'; }
 
 function triggerManualNote() {
   alert('To sync data, go to GitHub Actions → "Garmin → Firestore Sync" → Run workflow.\n\nData auto-syncs daily at 07:00 UTC.');
+}
+
+// ── MFA relay ─────────────────────────────────────────────────────────────────
+const mfaRef   = db.collection('_config').doc('garmin_mfa_pending');
+const mfaPanel = document.getElementById('mfaPanel');
+const mfaInput = document.getElementById('mfaCode');
+
+mfaRef.onSnapshot(snap => {
+  if (snap.exists && snap.data().status === 'waiting') {
+    mfaPanel.classList.add('visible');
+    mfaInput.focus();
+    document.getElementById('mfaStatus').textContent = 'workflow is waiting — enter the code from your garmin email';
+  } else {
+    mfaPanel.classList.remove('visible');
+    mfaInput.value = '';
+    document.getElementById('mfaStatus').textContent = '';
+  }
+});
+
+// auto-submit when 6 digits entered
+mfaInput.addEventListener('input', () => {
+  if (mfaInput.value.replace(/\D/g,'').length === 6) submitMfa();
+});
+
+function submitMfa() {
+  const code = mfaInput.value.replace(/\D/g,'');
+  if (code.length !== 6) { document.getElementById('mfaStatus').textContent = 'enter 6-digit code'; return; }
+  document.getElementById('mfaStatus').textContent = 'submitting...';
+  mfaRef.set({ status: 'submitted', code }, { merge: true })
+    .then(() => { document.getElementById('mfaStatus').textContent = '✓ code sent — workflow resuming'; })
+    .catch(e => { document.getElementById('mfaStatus').textContent = 'error: ' + e.message; });
 }
 </script>
 
