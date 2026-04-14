@@ -188,6 +188,19 @@
     }
     #mfaSubmit:hover{background:rgba(14,184,255,.28)}
     #mfaStatus{font-size:.65em;color:rgba(14,184,255,.4);min-height:1em}
+
+    /* ── weather correlation section ── */
+    .section-divider{border:none;border-top:1px solid rgba(14,184,255,.1);margin:8px 0}
+    .correl-section-hdr{text-align:center}
+    .correl-section-title{font-size:.8em;letter-spacing:.3em;text-transform:uppercase;color:rgba(14,184,255,.35)}
+    #correlStatus{font-size:.68em;letter-spacing:.12em;color:rgba(14,184,255,.3);text-align:center;margin-top:-16px}
+    .correl-matrix{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;overflow-x:auto}
+    .correl-row{display:flex;gap:4px;align-items:stretch}
+    .correl-hdr-cell{min-width:84px;padding:4px 6px;font-size:.65em;letter-spacing:.1em;text-align:center;color:rgba(14,184,255,.4);text-transform:uppercase}
+    .correl-row-label{min-width:108px;padding:8px 8px 8px 0;font-size:.65em;letter-spacing:.1em;text-align:right;color:rgba(14,184,255,.5);flex-shrink:0;display:flex;align-items:center;justify-content:flex-end}
+    .correl-cell{min-width:84px;padding:8px 6px;font-size:.65em;letter-spacing:.08em;text-align:center;border-radius:2px;border:1px solid rgba(14,184,255,.12);border-left-width:3px;background:rgba(8,5,28,0.97);cursor:default;transition:all .15s}
+    .correl-cell:hover{border-color:rgba(14,184,255,.4);border-left-width:3px}
+    .correl-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.62em;letter-spacing:.1em;color:rgba(14,184,255,.3);margin-top:8px}
   </style>
 </head>
 <body>
@@ -230,6 +243,15 @@
 
   <!-- charts -->
   <div class="chart-grid" id="chartGrid"></div>
+
+  <!-- weather correlations -->
+  <hr class="section-divider">
+  <div class="correl-section-hdr">
+    <div class="hdr-pre">// natural environment //</div>
+    <div class="correl-section-title">weather correlations · vienna 1220</div>
+  </div>
+  <div id="correlStatus">initialising...</div>
+  <div class="chart-grid" id="correlGrid"></div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════ Firebase config -->
@@ -291,6 +313,11 @@ function render(docs) {
 
   renderStats(data);
   renderCharts(data);
+  // correlations always use full 90-day history for stable rolling windows
+  const corrData = allDocs.filter(d => d.date >= dateStr(89)).sort((a,b) => a.date.localeCompare(b.date));
+  loadAndRenderCorrelations(corrData).catch(e => {
+    document.getElementById('correlStatus').textContent = 'weather unavailable — ' + e.message;
+  });
 }
 
 function renderEmpty() {
@@ -452,6 +479,179 @@ function fmt(n) { return n != null ? Number(n).toLocaleString() : '—'; }
 
 function triggerManualNote() {
   alert('To sync data, go to GitHub Actions → "Garmin → Firestore Sync" → Run workflow.\n\nData auto-syncs daily at 07:00 UTC.');
+}
+
+// ── Weather correlations ──────────────────────────────────────────────────────
+async function fetchWeather() {
+  try {
+    const c = JSON.parse(localStorage.getItem('health_wx_v3') || 'null');
+    if (c && Date.now() - c.t < 3 * 3600 * 1000) return c.d;
+  } catch(e) {}
+
+  const url = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude=48.2416&longitude=16.4442'
+    + '&daily=temperature_2m_mean,sunshine_duration,precipitation_sum,daylight_duration'
+    + '&past_days=92&forecast_days=1'
+    + '&timezone=Europe%2FVienna';
+
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('open-meteo ' + resp.status);
+  const j = await resp.json();
+
+  const byDate = {};
+  (j.daily?.time || []).forEach((d, i) => {
+    byDate[d] = {
+      tempMean: j.daily.temperature_2m_mean[i],
+      sunshine: (j.daily.sunshine_duration[i] ?? 0) / 3600,
+      daylight: (j.daily.daylight_duration[i] ?? 0) / 3600,
+      precip:   j.daily.precipitation_sum[i],
+    };
+  });
+
+  try { localStorage.setItem('health_wx_v3', JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
+  return byDate;
+}
+
+function pearson(xs, ys) {
+  const pairs = xs.map((x,i) => [x, ys[i]]).filter(([x,y]) => x != null && y != null && !isNaN(x) && !isNaN(y));
+  const n = pairs.length;
+  if (n < 3) return null;
+  const mx = pairs.reduce((s,[x]) => s+x, 0) / n;
+  const my = pairs.reduce((s,[,y]) => s+y, 0) / n;
+  let num=0, dx2=0, dy2=0;
+  for (const [x,y] of pairs) {
+    const a=x-mx, b=y-my;
+    num += a*b; dx2 += a*a; dy2 += b*b;
+  }
+  const denom = Math.sqrt(dx2 * dy2);
+  return denom < 1e-10 ? 0 : parseFloat((num/denom).toFixed(3));
+}
+
+function rollingCorr(dates, xs, ys, win=7) {
+  return dates.slice(win-1).map((_, i) => ({
+    date: dates[i+win-1],
+    r:    pearson(xs.slice(i, i+win), ys.slice(i, i+win)),
+  }));
+}
+
+function corrStyle(r) {
+  if (r == null) return 'color:rgba(14,184,255,0.25);border-left-color:rgba(14,184,255,0.08)';
+  const a = (0.35 + Math.abs(r) * 0.65).toFixed(2);
+  const col = r >= 0 ? `rgba(14,184,255,${a})` : `rgba(255,80,80,${a})`;
+  return `color:${col};border-left-color:${col}`;
+}
+
+let correlCharts = {};
+
+async function loadAndRenderCorrelations(data) {
+  const statusEl = document.getElementById('correlStatus');
+  if (!data.length) { statusEl.textContent = 'no data'; return; }
+
+  statusEl.textContent = 'fetching weather from open-meteo...';
+
+  let wx;
+  try { wx = await fetchWeather(); }
+  catch(e) { throw e; }
+
+  const dates = data.map(d => d.date);
+
+  const H = {
+    'HRV':          data.map(d => d.hrv?.lastNight        ?? null),
+    'Sleep':        data.map(d => d.sleep?.durationHours  ?? null),
+    'Stress':       data.map(d => d.avgStress             ?? null),
+    'Body Battery': data.map(d => d.bodyBattery?.end      ?? null),
+    'Steps':        data.map(d => d.steps                 ?? null),
+    'Resting HR':   data.map(d => d.restingHR             ?? null),
+  };
+  const W = {
+    'Temp °C':    dates.map(d => wx[d]?.tempMean ?? null),
+    'Sunshine h': dates.map(d => wx[d]?.sunshine ?? null),
+    'Daylight h': dates.map(d => wx[d]?.daylight ?? null),
+    'Precip mm':  dates.map(d => wx[d]?.precip   ?? null),
+  };
+
+  const hKeys = Object.keys(H);
+  const wKeys = Object.keys(W);
+
+  const mat = {};
+  hKeys.forEach(hk => { mat[hk] = {}; wKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], W[wk]); }); });
+
+  Object.values(correlCharts).forEach(c => c.destroy());
+  correlCharts = {};
+
+  const pairs = [
+    { h:'HRV',          w:'Temp °C',    hc:'rgba(160,80,255,0.85)'  },
+    { h:'Sleep',        w:'Daylight h', hc:'rgba(80,160,255,0.85)'  },
+    { h:'Stress',       w:'Sunshine h', hc:'rgba(255,200,80,0.85)'  },
+    { h:'Body Battery', w:'Temp °C',    hc:'rgba(80,220,160,0.85)'  },
+  ];
+
+  const matrixHTML = `
+    <div class="chart-panel" style="grid-column:1/-1">
+      <div class="chart-title">// pearson r · biometrics vs weather · last ${dates.length} days //</div>
+      <div class="correl-matrix">
+        <div class="correl-row">
+          <div class="correl-row-label"></div>
+          ${wKeys.map(wk => `<div class="correl-hdr-cell">${wk}</div>`).join('')}
+        </div>
+        ${hKeys.map(hk => `
+          <div class="correl-row">
+            <div class="correl-row-label">${hk}</div>
+            ${wKeys.map(wk => {
+              const r = mat[hk][wk];
+              return `<div class="correl-cell" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r}">${r != null ? r : 'n/a'}</div>`;
+            }).join('')}
+          </div>`).join('')}
+      </div>
+      <div class="correl-legend">
+        <span style="color:rgba(255,80,80,.85)">■ negative</span>
+        <span style="color:rgba(14,184,255,.4)">■ near zero</span>
+        <span style="color:rgba(14,184,255,.95)">■ positive</span>
+        <span>&nbsp;· intensity = |r| · open-meteo · vienna 48.24°N · full history</span>
+      </div>
+    </div>`;
+
+  const rollingHTML = pairs.map((p, i) => `
+    <div class="chart-panel">
+      <div class="chart-title">// 7-day rolling r · ${p.h.toLowerCase()} vs ${p.w.toLowerCase()} //</div>
+      <div class="chart-wrap"><canvas id="cc-${i}"></canvas></div>
+    </div>`).join('');
+
+  document.getElementById('correlGrid').innerHTML = matrixHTML + rollingHTML;
+
+  pairs.forEach((p, i) => {
+    const roll = rollingCorr(dates, H[p.h], W[p.w]);
+    if (!roll.length) return;
+    const ctx = document.getElementById(`cc-${i}`).getContext('2d');
+    correlCharts[i] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: roll.map(r => r.date.slice(5)),
+        datasets: [{
+          data: roll.map(r => r.r),
+          borderColor: p.hc,
+          backgroundColor: p.hc.replace('0.85','0.08'),
+          borderWidth: 1.5, pointRadius: 3, pointBackgroundColor: p.hc,
+          fill: true, tension: 0.35, spanGaps: true,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: {display:false}, tooltip: {...tooltipStyle()} },
+        scales: {
+          x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR, font:{family:'Share Tech Mono',size:10}} },
+          y: {
+            grid: {color:GRID_COLOR},
+            ticks: { color:TICK_COLOR, font:{family:'Share Tech Mono',size:10}, callback: v => v.toFixed(1) },
+            min: -1, max: 1,
+            afterBuildTicks: ax => { ax.ticks = [-1,-0.5,0,0.5,1].map(v => ({value:v})); },
+          },
+        }
+      }
+    });
+  });
+
+  statusEl.textContent = `weather · vienna 1220 · open-meteo · ${dates.length} days · cached 3h`;
 }
 
 // ── MFA relay ─────────────────────────────────────────────────────────────────
