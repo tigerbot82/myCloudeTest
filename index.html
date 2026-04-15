@@ -18,11 +18,17 @@
       justify-content: center;
       color: #c2e4ff;
       overflow-x: hidden;
+      background: #06091a;
+      background-image:
+        radial-gradient(ellipse 90% 60% at 8% 8%,  rgba(12,100,192,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 50% at 92% 92%, rgba(14,184,255,0.07) 0%, transparent 60%);
+      background-attachment: fixed;
     }
 
-    canvas#bg {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%; z-index: 0;
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(circle, rgba(14,184,255,0.05) 1px, transparent 1px);
+      background-size: 30px 30px;
     }
 
     .page {
@@ -39,7 +45,7 @@
     h1 {
       font-size: 2em; letter-spacing: 0.12em; text-transform: uppercase;
       color: #0eb8ff;
-      text-shadow: 0 0 14px rgba(14,184,255,0.85), 0 0 40px rgba(12,123,192,0.5);
+      text-shadow: 0 0 24px rgba(14,184,255,0.4);
     }
     .title-sub { font-size: 0.75em; letter-spacing: 0.15em; color: rgba(14,184,255,0.3); margin-top: 8px; }
 
@@ -54,33 +60,22 @@
     .project-card {
       display: flex; flex-direction: column; gap: 12px;
       padding: 28px 24px;
-      background:
-        repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(14,184,255,0.018) 3px, rgba(14,184,255,0.018) 4px),
-        rgba(12,8,38,0.82);
-      backdrop-filter: blur(14px);
-      border: 1px solid rgba(14,184,255,0.18);
+      background: rgba(8,12,32,0.97);
+      border: 1px solid rgba(14,184,255,0.12);
+      border-top: 2px solid rgba(14,184,255,0.28);
       border-radius: 4px;
       text-decoration: none;
       color: inherit;
       position: relative;
       transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s;
-      box-shadow: 0 0 20px rgba(14,184,255,0.06);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.55);
       cursor: pointer;
     }
-
-    /* Corner accents */
-    .project-card::before, .project-card::after {
-      content: ''; position: absolute;
-      width: 10px; height: 10px;
-      border-color: #0eb8ff; border-style: solid; opacity: 0.5;
-    }
-    .project-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
-    .project-card::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
 
     .project-card:hover {
       transform: translateY(-4px);
       border-color: rgba(14,184,255,0.5);
-      box-shadow: 0 8px 32px rgba(14,184,255,0.15);
+      box-shadow: 0 8px 32px rgba(14,184,255,0.12);
     }
 
     .project-card.coming-soon {
@@ -88,7 +83,7 @@
       cursor: default;
       pointer-events: none;
     }
-    .project-card.coming-soon:hover { transform: none; box-shadow: 0 0 20px rgba(14,184,255,0.06); }
+    .project-card.coming-soon:hover { transform: none; box-shadow: 0 4px 20px rgba(0,0,0,0.55); }
 
     .card-icon { font-size: 2em; line-height: 1; }
 
@@ -118,7 +113,6 @@
   </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
 
 <div class="page">
   <div class="title-wrap">
@@ -160,51 +154,5 @@
   </div>
 </div>
 
-<script>
-// Psychedelic background
-const bgCanvas = document.getElementById('bg');
-const bgCtx    = bgCanvas.getContext('2d');
-let t = 0;
-
-function resizeBg() { bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; }
-resizeBg();
-window.addEventListener('resize', resizeBg);
-
-function drawBg() {
-  const W = bgCanvas.width, H = bgCanvas.height;
-  bgCtx.fillStyle = '#000'; bgCtx.fillRect(0, 0, W, H);
-  const img = bgCtx.createImageData(W, H); const d = img.data;
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const nx = x/W, ny = y/H;
-      const v = (Math.sin(nx*10+t) + Math.sin(ny*10+t*1.3) +
-                 Math.sin((nx+ny)*8+t*0.7) +
-                 Math.sin(Math.sqrt((nx-.5)**2+(ny-.5)**2)*20-t*1.5)) / 4;
-      const hue = (210 + (v+1)/2*100 + t*18) % 360;
-      const s = (80 + Math.sin(t+v*5)*15)/100, l = (22 + Math.sin(t*.7+v*3)*16)/100;
-      const c=(1-Math.abs(2*l-1))*s, h=hue/60, xc=c*(1-Math.abs(h%2-1)), m=l-c/2;
-      let r,g,b;
-      if(h<1){r=c;g=xc;b=0}else if(h<2){r=xc;g=c;b=0}else if(h<3){r=0;g=c;b=xc}
-      else if(h<4){r=0;g=xc;b=c}else if(h<5){r=xc;g=0;b=c}else{r=c;g=0;b=xc}
-      const i=(y*W+x)*4; d[i]=(r+m)*255; d[i+1]=(g+m)*255; d[i+2]=(b+m)*255; d[i+3]=255;
-    }
-  }
-  bgCtx.putImageData(img, 0, 0);
-  const cx=W/2, cy=H/2;
-  for(let i=0;i<6;i++){
-    const phase=t*(0.5+i*0.15)+i*Math.PI/3;
-    const radius=100+i*60+Math.sin(t*0.8+i)*40;
-    const ox=cx+Math.cos(phase*0.4)*80, oy=cy+Math.sin(phase*0.3)*60;
-    const grad=bgCtx.createRadialGradient(ox,oy,0,ox,oy,radius);
-    const hue=(220+t*20+i*30)%360;
-    grad.addColorStop(0,`hsla(${hue},100%,70%,0.15)`);
-    grad.addColorStop(0.5,`hsla(${(hue+120)%360},100%,60%,0.08)`);
-    grad.addColorStop(1,`hsla(${(hue+240)%360},100%,50%,0)`);
-    bgCtx.fillStyle=grad; bgCtx.beginPath(); bgCtx.arc(ox,oy,radius,0,Math.PI*2); bgCtx.fill();
-  }
-  t+=0.012; requestAnimationFrame(drawBg);
-}
-drawBg();
-</script>
 </body>
 </html>
