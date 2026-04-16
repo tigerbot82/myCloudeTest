@@ -1298,7 +1298,7 @@ async function render3DScatter(docs) {
   if (!xSel.options.length) {
     const bioKeys = Object.keys(ADV_M);
     const envKeys = ['Temp °C','Sunshine h','Precip mm','PM2.5','PM10','AQI','UV idx'];
-    const defaults = ['HRV','Sleep','Temp °C'];
+    const defaults = ['HRV','Sleep','Steps'];   // biometric-only defaults — always have data
     [xSel, ySel, zSel].forEach((sel, si) => {
       const mk = document.createElement('optgroup'); mk.label = 'biometrics';
       bioKeys.forEach(k => { const o=document.createElement('option'); o.value=k; o.textContent=k; if(k===defaults[si]) o.selected=true; mk.appendChild(o); });
@@ -1310,8 +1310,24 @@ async function render3DScatter(docs) {
   }
 
   const xKey = xSel.value, yKey = ySel.value, zKey = zSel.value;
+  const needsEnv = [xKey,yKey,zKey].some(k => !(k in ADV_M));
 
-  function getVal(doc, key) {
+  // Fetch env data if an env axis is selected and data isn't loaded yet
+  if (needsEnv && (!wxData || !aqData)) {
+    const sorted = [...docs].filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
+    const startDate = sorted[0]?.date;
+    if (startDate) {
+      if (statusEl) statusEl.textContent = 'fetching environment data...';
+      try {
+        [wxData, aqData] = await Promise.all([
+          fetchWeatherArchive(startDate),
+          fetchAirQualityArchive(startDate),
+        ]);
+      } catch(e) {
+        if (statusEl) statusEl.textContent = 'env data unavailable — ' + e.message;
+      }
+    }
+  }
     return key in ADV_M ? ADV_M[key].fn(doc) : getEnvVal(doc.date, key);
   }
 
@@ -1322,7 +1338,10 @@ async function render3DScatter(docs) {
     .sort((a,b) => a.date.localeCompare(b.date));
 
   if (!points.length) {
-    document.getElementById('scatter3dPlot').innerHTML = '<div class="no-data">no overlapping data for these axes — try biometric-only axes or run sync_days=365</div>';
+    const hint = needsEnv
+      ? 'no garmin data overlaps with env data — run the sync workflow with sync_days=365'
+      : 'no data for selected axes — run the sync workflow to pull garmin data';
+    document.getElementById('scatter3dPlot').innerHTML = `<div class="no-data">${hint}</div>`;
     if (statusEl) statusEl.textContent = 'no overlapping data';
     return;
   }
