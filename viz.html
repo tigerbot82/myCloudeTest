@@ -109,7 +109,7 @@
   <div class="chart-panel">
     <div class="chart-title">moving averages</div>
     <div class="viz-tabs" id="maTabs"></div>
-    <div class="ma-chart-wrap"><canvas id="maChart"></canvas></div>
+    <div class="ma-chart-wrap"><canvas id="maCanvas"></canvas></div>
   </div>
 
   <!-- ── 3D Variable Space ── -->
@@ -117,14 +117,14 @@
     <div class="chart-title">3d variable space</div>
     <div class="scatter3d-controls">
       <span class="axis-lbl">X</span>
-      <select class="axis-sel" id="axisX" onchange="render3DScatter()"></select>
+      <select class="axis-sel" id="sel3dx"></select>
       <span class="axis-lbl">Y</span>
-      <select class="axis-sel" id="axisY" onchange="render3DScatter()"></select>
+      <select class="axis-sel" id="sel3dy"></select>
       <span class="axis-lbl">Z</span>
-      <select class="axis-sel" id="axisZ" onchange="render3DScatter()"></select>
+      <select class="axis-sel" id="sel3dz"></select>
       <span class="scatter3d-status" id="scatter3dStatus"></span>
     </div>
-    <div class="scatter3d-wrap" id="scatter3dDiv"></div>
+    <div class="scatter3d-wrap" id="scatter3dPlot"></div>
   </div>
 </div>
 
