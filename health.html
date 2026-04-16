@@ -165,12 +165,37 @@
     #mfaSubmit:hover{background:rgba(14,184,255,.2)}
     #mfaStatus{font-size:.64em;color:rgba(14,184,255,.38);min-height:1em}
 
-    /* ── weather correlation section ── */
-    .section-divider{border:none;border-top:1px solid rgba(14,184,255,.12);margin:4px 0}
-    .correl-section-hdr{text-align:center}
-    .correl-section-title{font-size:1.02em;letter-spacing:.12em;text-transform:uppercase;color:rgba(14,184,255,.88)}
-    #correlStatus{font-size:.92em;letter-spacing:.06em;color:rgba(14,184,255,.72);text-align:center;margin-top:-12px}
-    /* matrix is a flat CSS grid — no more .correl-row flex wrapper */
+    /* ── collapsible sections ── */
+    .sec-toggle{
+      display:flex;align-items:center;gap:14px;
+      padding:14px 20px;
+      background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);
+      border-top:2px solid rgba(14,184,255,.28);
+      border-radius:4px;
+      cursor:pointer;user-select:none;
+      transition:border-color .15s,background .15s;
+      width:100%;text-align:left;font-family:inherit;
+    }
+    .sec-toggle:hover{border-color:rgba(14,184,255,.38);background:rgba(14,184,255,.03)}
+    .sec-toggle.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
+    .sec-toggle-text{display:flex;flex-direction:column;gap:3px}
+    .sec-toggle-pre{font-size:.78em;letter-spacing:.2em;color:rgba(14,184,255,.48);text-transform:none}
+    .sec-toggle-title{font-size:.98em;letter-spacing:.1em;text-transform:uppercase;color:rgba(14,184,255,.9)}
+    .sec-badge{font-size:.7em;letter-spacing:.1em;padding:2px 8px;border-radius:2px;background:rgba(14,184,255,.06);border:1px solid rgba(14,184,255,.18);color:rgba(14,184,255,.5);white-space:nowrap}
+    .sec-count{margin-left:auto;font-size:.78em;letter-spacing:.06em;color:rgba(14,184,255,.4)}
+    .sec-arrow{font-size:.75em;color:rgba(14,184,255,.4);transition:transform .3s cubic-bezier(.4,0,.2,1);flex-shrink:0;margin-left:4px}
+    .sec-toggle.open .sec-arrow{transform:rotate(90deg)}
+    /* smooth expand/collapse via CSS grid trick */
+    .sec-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s cubic-bezier(.4,0,.2,1)}
+    .sec-wrap.open{grid-template-rows:1fr}
+    .sec-inner{overflow:hidden}
+    .sec-body{display:flex;flex-direction:column;gap:14px;padding:14px 0 0;
+      border:1px solid rgba(14,184,255,.12);border-top:none;
+      border-bottom-left-radius:4px;border-bottom-right-radius:4px;
+      padding:14px}
+    #correlStatus{font-size:.88em;letter-spacing:.06em;color:rgba(14,184,255,.65);text-align:center}
+    /* ── weather correlation styles ── */
     .correl-matrix{display:grid;gap:3px;margin-bottom:12px;overflow-x:auto;min-width:max-content}
     .correl-group-cell{text-align:center;font-size:.82em;letter-spacing:.08em;padding:5px 8px;border-radius:2px}
     .correl-group-wx{color:rgba(14,184,255,.85);border-bottom:2px solid rgba(14,184,255,.4)}
@@ -223,8 +248,6 @@
     .cov-pct{font-size:.82em;min-width:72px;text-align:right}
 
     /* ── advanced visualizations ── */
-    .adv-hdr{text-align:center}
-    .adv-title{font-size:1.02em;letter-spacing:.12em;text-transform:uppercase;color:rgba(14,184,255,.88)}
     .heatmap-outer{overflow-x:auto;position:relative;padding-bottom:2px}
     #heatmapCanvas{display:block;cursor:crosshair}
     .heatmap-tip{
@@ -290,58 +313,81 @@
 
   <div id="status">loading data...</div>
 
-  <!-- today's snapshot -->
+  <!-- today's snapshot — always visible -->
   <div class="stat-grid" id="statGrid"></div>
 
-  <!-- charts -->
-  <div class="chart-grid" id="chartGrid"></div>
-
-  <!-- weather correlations -->
-  <hr class="section-divider">
-  <div class="correl-section-hdr">
-    <div class="hdr-pre">// natural environment //</div>
-    <div class="correl-section-title">weather correlations · vienna 1220</div>
-  </div>
-  <div id="correlStatus">initialising...</div>
-  <div id="correlControls"></div>
-  <div class="chart-grid" id="correlGrid"></div>
-
-  <!-- ── Advanced Visualizations ──────────────────────────────── -->
-  <hr class="section-divider">
-  <div class="adv-hdr">
-    <div class="hdr-pre">// advanced visualizations //</div>
-    <div class="adv-title">deep dive · multi-variable analysis</div>
-  </div>
-
-  <!-- Calendar heatmap: full width -->
-  <div class="chart-panel">
-    <div class="chart-title">// activity calendar · 52 weeks //</div>
-    <div class="viz-tabs" id="heatmapTabs"></div>
-    <div class="heatmap-outer">
-      <canvas id="heatmapCanvas"></canvas>
-      <div class="heatmap-tip" id="heatmapTip"></div>
+  <!-- ── Section: Charts ─────────────────────────────────────── -->
+  <button class="sec-toggle open" id="btn-charts" onclick="toggleSec('charts')">
+    <div class="sec-toggle-text">
+      <div class="sec-toggle-pre">// biometric trends //</div>
+      <div class="sec-toggle-title">charts</div>
     </div>
+    <span class="sec-count" id="cnt-charts"></span>
+    <span class="sec-arrow">▶</span>
+  </button>
+  <div class="sec-wrap open" id="wrap-charts">
+    <div class="sec-inner"><div class="sec-body">
+      <div class="chart-grid" id="chartGrid"></div>
+    </div></div>
   </div>
 
-  <!-- Moving averages (half-width on wide screens) -->
-  <div class="chart-grid">
-    <div class="chart-panel">
-      <div class="chart-title">// moving averages //</div>
-      <div class="viz-tabs" id="maTabs"></div>
-      <div class="ma-chart-wrap"><canvas id="maCanvas"></canvas></div>
+  <!-- ── Section: Correlations ───────────────────────────────── -->
+  <button class="sec-toggle" id="btn-correl" onclick="toggleSec('correl')">
+    <div class="sec-toggle-text">
+      <div class="sec-toggle-pre">// natural environment //</div>
+      <div class="sec-toggle-title">weather &amp; air quality correlations</div>
     </div>
+    <span class="sec-badge">vienna 48.24°N</span>
+    <span class="sec-arrow">▶</span>
+  </button>
+  <div class="sec-wrap" id="wrap-correl">
+    <div class="sec-inner"><div class="sec-body">
+      <div id="correlStatus">click to initialise...</div>
+      <div id="correlControls"></div>
+      <div class="chart-grid" id="correlGrid"></div>
+    </div></div>
   </div>
 
-  <!-- 3D scatter: full width -->
-  <div class="chart-panel">
-    <div class="chart-title">// 3d variable space · drag to rotate //</div>
-    <div class="scatter3d-controls">
-      <span class="axis-lbl">X</span><select class="axis-sel" id="sel3dx"></select>
-      <span class="axis-lbl">Y</span><select class="axis-sel" id="sel3dy"></select>
-      <span class="axis-lbl">Z</span><select class="axis-sel" id="sel3dz"></select>
-      <span class="scatter3d-status" id="scatter3dStatus">loading...</span>
+  <!-- ── Section: Advanced Viz ───────────────────────────────── -->
+  <button class="sec-toggle" id="btn-adv" onclick="toggleSec('adv')">
+    <div class="sec-toggle-text">
+      <div class="sec-toggle-pre">// deep dive //</div>
+      <div class="sec-toggle-title">advanced visualizations</div>
     </div>
-    <div class="scatter3d-wrap" id="scatter3dPlot"></div>
+    <span class="sec-badge">heatmap · MA · 3d</span>
+    <span class="sec-arrow">▶</span>
+  </button>
+  <div class="sec-wrap" id="wrap-adv">
+    <div class="sec-inner"><div class="sec-body">
+      <!-- Calendar heatmap -->
+      <div class="chart-panel">
+        <div class="chart-title">// activity calendar · 52 weeks //</div>
+        <div class="viz-tabs" id="heatmapTabs"></div>
+        <div class="heatmap-outer">
+          <canvas id="heatmapCanvas"></canvas>
+          <div class="heatmap-tip" id="heatmapTip"></div>
+        </div>
+      </div>
+      <!-- Moving averages -->
+      <div class="chart-grid">
+        <div class="chart-panel">
+          <div class="chart-title">// moving averages //</div>
+          <div class="viz-tabs" id="maTabs"></div>
+          <div class="ma-chart-wrap"><canvas id="maCanvas"></canvas></div>
+        </div>
+      </div>
+      <!-- 3D scatter -->
+      <div class="chart-panel">
+        <div class="chart-title">// 3d variable space · drag to rotate //</div>
+        <div class="scatter3d-controls">
+          <span class="axis-lbl">X</span><select class="axis-sel" id="sel3dx"></select>
+          <span class="axis-lbl">Y</span><select class="axis-sel" id="sel3dy"></select>
+          <span class="axis-lbl">Z</span><select class="axis-sel" id="sel3dz"></select>
+          <span class="scatter3d-status" id="scatter3dStatus">loading...</span>
+        </div>
+        <div class="scatter3d-wrap" id="scatter3dPlot"></div>
+      </div>
+    </div></div>
   </div>
 </div>
 
@@ -364,6 +410,42 @@ const col = db.collection("health_daily");
 let activeDays = 7;
 let allDocs    = [];
 let charts     = {};
+
+// ── Section accordion ─────────────────────────────────────────────────────────
+let correlInited = false;
+let advInited    = false;
+
+function toggleSec(id) {
+  const btn  = document.getElementById('btn-'  + id);
+  const wrap = document.getElementById('wrap-' + id);
+  const open = btn.classList.toggle('open');
+  wrap.classList.toggle('open', open);
+  localStorage.setItem('sec_' + id, open ? '1' : '0');
+
+  if (open && id === 'correl' && !correlInited) {
+    correlInited = true;
+    document.getElementById('correlStatus').textContent = 'initialising...';
+    loadAndRenderCorrelations(allDocs).catch(e => {
+      document.getElementById('correlStatus').textContent = 'weather unavailable — ' + e.message;
+    });
+  }
+  if (open && id === 'adv' && !advInited) {
+    advInited = true;
+    renderAdvancedViz(allDocs);
+  }
+}
+
+// Restore section states from localStorage (default: charts=open, rest=closed)
+(function initSections() {
+  ['charts','correl','adv'].forEach(id => {
+    const saved   = localStorage.getItem('sec_' + id);
+    const isOpen  = saved !== null ? saved === '1' : id === 'charts';
+    if (!isOpen) {
+      document.getElementById('btn-'  + id)?.classList.remove('open');
+      document.getElementById('wrap-' + id)?.classList.remove('open');
+    }
+  });
+})();
 
 // ── range picker ──────────────────────────────────────────────────────────────
 document.getElementById('rangeRow').addEventListener('click', e => {
@@ -404,11 +486,18 @@ function render(docs) {
 
   renderStats(data);
   renderCharts(data);
-  // correlations + advanced viz use ALL available Garmin data
-  loadAndRenderCorrelations(allDocs).catch(e => {
-    document.getElementById('correlStatus').textContent = 'weather unavailable — ' + e.message;
-  });
-  if (allDocs.length !== advLastDocCount) {
+
+  // Update charts section badge
+  const cnt = document.getElementById('cnt-charts');
+  if (cnt) cnt.textContent = data.length + ' days';
+
+  // Re-render open sections if new data arrived
+  if (correlInited) {
+    loadAndRenderCorrelations(allDocs).catch(e => {
+      document.getElementById('correlStatus').textContent = 'weather unavailable — ' + e.message;
+    });
+  }
+  if (advInited && allDocs.length !== advLastDocCount) {
     advLastDocCount = allDocs.length;
     renderAdvancedViz(allDocs);
   }
