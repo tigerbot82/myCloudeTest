@@ -1328,6 +1328,8 @@ async function render3DScatter(docs) {
       }
     }
   }
+
+  function getVal(doc, key) {
     return key in ADV_M ? ADV_M[key].fn(doc) : getEnvVal(doc.date, key);
   }
 
