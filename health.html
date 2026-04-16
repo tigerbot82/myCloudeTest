@@ -221,6 +221,39 @@
     .cov-bar-bg{flex:1;height:5px;background:rgba(14,184,255,.12);border-radius:3px;overflow:hidden}
     .cov-bar{height:100%;border-radius:3px;transition:width .3s}
     .cov-pct{font-size:.82em;min-width:72px;text-align:right}
+
+    /* ── advanced visualizations ── */
+    .adv-hdr{text-align:center}
+    .adv-title{font-size:1.02em;letter-spacing:.12em;text-transform:uppercase;color:rgba(14,184,255,.88)}
+    .heatmap-outer{overflow-x:auto;position:relative;padding-bottom:2px}
+    #heatmapCanvas{display:block;cursor:crosshair}
+    .heatmap-tip{
+      position:fixed;pointer-events:none;display:none;
+      padding:6px 10px;background:rgba(4,6,18,.97);
+      border:1px solid rgba(14,184,255,.4);border-radius:3px;
+      font-size:.82em;letter-spacing:.05em;color:#0eb8ff;
+      white-space:nowrap;z-index:50;
+    }
+    .viz-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+    .viz-tab{
+      font-family:inherit;font-size:.85em;letter-spacing:.08em;
+      padding:5px 14px;border-radius:2px;cursor:pointer;
+      border:1px solid rgba(14,184,255,.2);
+      background:transparent;color:rgba(14,184,255,.7);transition:all .15s;
+    }
+    .viz-tab:hover{background:rgba(14,184,255,.07);color:rgba(14,184,255,.95)}
+    .viz-tab.active{background:rgba(14,184,255,.12);color:#0eb8ff;border-color:rgba(14,184,255,.55)}
+    .ma-chart-wrap{position:relative;height:240px}
+    .scatter3d-controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+    .axis-lbl{font-size:.82em;letter-spacing:.1em;color:rgba(14,184,255,.55)}
+    .axis-sel{
+      font-family:inherit;font-size:.85em;letter-spacing:.04em;
+      padding:5px 10px;border-radius:2px;
+      background:rgba(6,9,24,.99);border:1px solid rgba(14,184,255,.25);
+      color:rgba(14,184,255,.88);outline:none;cursor:pointer;
+    }
+    .scatter3d-wrap{height:460px;border-radius:3px;overflow:hidden;background:rgba(6,9,24,.99)}
+    .scatter3d-status{font-size:.82em;letter-spacing:.06em;color:rgba(14,184,255,.45);margin-left:auto}
   </style>
 </head>
 <body>
@@ -272,6 +305,44 @@
   <div id="correlStatus">initialising...</div>
   <div id="correlControls"></div>
   <div class="chart-grid" id="correlGrid"></div>
+
+  <!-- ── Advanced Visualizations ──────────────────────────────── -->
+  <hr class="section-divider">
+  <div class="adv-hdr">
+    <div class="hdr-pre">// advanced visualizations //</div>
+    <div class="adv-title">deep dive · multi-variable analysis</div>
+  </div>
+
+  <!-- Calendar heatmap: full width -->
+  <div class="chart-panel">
+    <div class="chart-title">// activity calendar · 52 weeks //</div>
+    <div class="viz-tabs" id="heatmapTabs"></div>
+    <div class="heatmap-outer">
+      <canvas id="heatmapCanvas"></canvas>
+      <div class="heatmap-tip" id="heatmapTip"></div>
+    </div>
+  </div>
+
+  <!-- Moving averages (half-width on wide screens) -->
+  <div class="chart-grid">
+    <div class="chart-panel">
+      <div class="chart-title">// moving averages //</div>
+      <div class="viz-tabs" id="maTabs"></div>
+      <div class="ma-chart-wrap"><canvas id="maCanvas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 3D scatter: full width -->
+  <div class="chart-panel">
+    <div class="chart-title">// 3d variable space · drag to rotate //</div>
+    <div class="scatter3d-controls">
+      <span class="axis-lbl">X</span><select class="axis-sel" id="sel3dx"></select>
+      <span class="axis-lbl">Y</span><select class="axis-sel" id="sel3dy"></select>
+      <span class="axis-lbl">Z</span><select class="axis-sel" id="sel3dz"></select>
+      <span class="scatter3d-status" id="scatter3dStatus">loading...</span>
+    </div>
+    <div class="scatter3d-wrap" id="scatter3dPlot"></div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════ Firebase config -->
@@ -333,10 +404,14 @@ function render(docs) {
 
   renderStats(data);
   renderCharts(data);
-  // correlations use ALL available Garmin data
+  // correlations + advanced viz use ALL available Garmin data
   loadAndRenderCorrelations(allDocs).catch(e => {
     document.getElementById('correlStatus').textContent = 'weather unavailable — ' + e.message;
   });
+  if (allDocs.length !== advLastDocCount) {
+    advLastDocCount = allDocs.length;
+    renderAdvancedViz(allDocs);
+  }
 }
 
 function renderEmpty() {
@@ -894,6 +969,359 @@ async function loadAndRenderCorrelations(rawDocs) {
   const wxN = Object.keys(wxData).filter(d => d >= startDate).length;
   const aqN = Object.keys(aqData).filter(d => d >= startDate).length;
   statusEl.textContent = `open-meteo · ${corrAllData.length} garmin · ${wxN} weather · ${aqN} AQ days · vienna 48.24°N`;
+}
+
+// ── Advanced Visualizations ──────────────────────────────────────────────────
+let advAllDocs     = [];
+let advLastDocCount = -1;
+let heatMetric     = 'HRV';
+let maMetric       = 'HRV';
+let maChartInst    = null;
+let heatCells      = [];   // {x,y,w,h,date,val} for hit-testing
+let plotlyReady    = false;
+
+const ADV_M = {
+  'HRV':          { fn:d=>d.hrv?.lastNight??null,       lb:false, color:'rgba(160,80,255,0.85)',  unit:'ms'  },
+  'Sleep':        { fn:d=>d.sleep?.durationHours??null,  lb:false, color:'rgba(80,160,255,0.85)',  unit:'h'   },
+  'Steps':        { fn:d=>d.steps??null,                 lb:false, color:'rgba(14,184,255,0.85)',  unit:''    },
+  'Resting HR':   { fn:d=>d.restingHR??null,             lb:true,  color:'rgba(255,80,140,0.85)',  unit:'bpm' },
+  'Stress':       { fn:d=>d.avgStress??null,             lb:true,  color:'rgba(255,200,80,0.85)',  unit:''    },
+  'Body Battery': { fn:d=>d.bodyBattery?.end??null,      lb:false, color:'rgba(80,220,160,0.85)',  unit:''    },
+};
+
+function getEnvVal(date, key) {
+  const m = {
+    'Temp °C':    ()=>wxData?.[date]?.tempMean??null,
+    'Sunshine h': ()=>wxData?.[date]?.sunshine??null,
+    'Precip mm':  ()=>wxData?.[date]?.precip??null,
+    'PM2.5':      ()=>aqData?.[date]?.pm2_5??null,
+    'PM10':       ()=>aqData?.[date]?.pm10??null,
+    'AQI':        ()=>aqData?.[date]?.aqi??null,
+    'UV idx':     ()=>aqData?.[date]?.uv??null,
+  };
+  return m[key]?.() ?? null;
+}
+
+function computeMA(vals, win) {
+  return vals.map((_, i) => {
+    const slice = vals.slice(Math.max(0, i - win + 1), i + 1).filter(v => v != null);
+    return slice.length >= Math.ceil(win / 2) ? slice.reduce((a,b)=>a+b,0)/slice.length : null;
+  });
+}
+
+// ── Calendar heatmap ─────────────────────────────────────────────
+function drawHeatmap(docs, metricKey) {
+  const canvas = document.getElementById('heatmapCanvas');
+  if (!canvas) return;
+  const m = ADV_M[metricKey];
+  const byDate = {};
+  docs.forEach(d => { const v = m.fn(d); if (v != null) byDate[d.date] = v; });
+  const vals = Object.values(byDate);
+
+  const CS = 13, GAP = 2, STEP = CS + GAP;
+  const ML = 22, MT = 22, MB = 36;
+
+  if (!vals.length) {
+    canvas.width = 400; canvas.height = 60;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,400,60);
+    ctx.fillStyle = 'rgba(14,184,255,0.4)';
+    ctx.font = '12px Share Tech Mono,monospace';
+    ctx.fillText('no ' + metricKey + ' data — run workflow with sync_days=365', 10, 35);
+    heatCells = [];
+    return;
+  }
+
+  const min = Math.min(...vals), max = Math.max(...vals), rng = max - min || 1;
+
+  // 53 weeks ending today, starting on a Monday
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate() - 52 * 7);
+  const monOffset = (start.getDay() + 6) % 7;  // shift to Monday=0
+  start.setDate(start.getDate() - monOffset);
+
+  const totalDays = Math.round((today - start) / 86400000) + 1;
+  const weeks     = Math.ceil(totalDays / 7);
+
+  canvas.width  = ML + weeks * STEP + 4;
+  canvas.height = MT + 7 * STEP + MB;
+  heatCells = [];
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = '10px Share Tech Mono,monospace';
+
+  function cellColor(v) {
+    if (v == null) return null;
+    const t = (v - min) / rng;
+    const n = m.lb ? 1 - t : t;  // 0 = bad, 1 = good
+    // red → steel-blue → cyan-green
+    const r = n<.5 ? Math.round(200+(40-200)*(n*2))  : Math.round(40+(18-40)*((n-.5)*2));
+    const g = n<.5 ? Math.round(50+(100-50)*(n*2))   : Math.round(100+(210-100)*((n-.5)*2));
+    const b = n<.5 ? Math.round(50+(160-50)*(n*2))   : Math.round(160+(145-160)*((n-.5)*2));
+    const a = 0.30 + n * 0.65;
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  // Month labels
+  ctx.fillStyle = 'rgba(14,184,255,0.45)';
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let lastMon = -1;
+  for (let w = 0; w < weeks; w++) {
+    const d = new Date(start.getTime() + w * 7 * 86400000);
+    if (d.getMonth() !== lastMon) { lastMon = d.getMonth(); ctx.fillText(MONTHS[d.getMonth()], ML + w*STEP, 13); }
+  }
+  // Day labels (M W F on Mon=0 Wed=2 Fri=4)
+  ['M','','W','','F','',''].forEach((lbl, i) => {
+    if (lbl) { ctx.fillStyle='rgba(14,184,255,0.4)'; ctx.fillText(lbl, 2, MT + i*STEP + CS - 2); }
+  });
+
+  // Draw cells
+  for (let w = 0; w < weeks; w++) {
+    for (let dow = 0; dow < 7; dow++) {
+      const d  = new Date(start.getTime() + (w*7+dow) * 86400000);
+      if (d > today) continue;
+      const ds = d.toISOString().slice(0,10);
+      const val = byDate[ds] ?? null;
+      const x = ML + w*STEP, y = MT + dow*STEP;
+      ctx.fillStyle = cellColor(val) ?? 'rgba(14,184,255,0.05)';
+      ctx.fillRect(x, y, CS, CS);
+      heatCells.push({ x, y, w:CS, h:CS, date:ds, val });
+    }
+  }
+
+  // Legend gradient bar
+  const lgW = 100, lgX = ML, lgY = MT + 7*STEP + 9;
+  const grad = ctx.createLinearGradient(lgX, 0, lgX+lgW, 0);
+  grad.addColorStop(0,   m.lb ? 'rgba(18,210,145,0.95)' : 'rgba(200,50,50,0.8)');
+  grad.addColorStop(0.5, 'rgba(40,100,160,0.7)');
+  grad.addColorStop(1,   m.lb ? 'rgba(200,50,50,0.8)' : 'rgba(18,210,145,0.95)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(lgX, lgY, lgW, 6);
+  ctx.fillStyle = 'rgba(14,184,255,0.45)';
+  ctx.fillText(m.lb?'best':'low',  lgX,        lgY+19);
+  ctx.fillText(m.lb?'worst':'high', lgX+lgW-28, lgY+19);
+  ctx.fillText(`range: ${min.toFixed(m.unit?1:0)}–${max.toFixed(m.unit?1:0)} ${m.unit}`, lgX+lgW+10, lgY+6);
+  ctx.fillText(`${vals.length} days of data`, lgX+lgW+10, lgY+19);
+}
+
+// Heatmap tooltip
+const heatTip = document.getElementById('heatmapTip');
+document.getElementById('heatmapCanvas')?.addEventListener('mousemove', function(e) {
+  const rect = this.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const cell = heatCells.find(c => mx>=c.x && mx<c.x+c.w && my>=c.y && my<c.y+c.h);
+  if (cell?.val != null) {
+    heatTip.style.display = 'block';
+    heatTip.style.left = (e.clientX + 14) + 'px';
+    heatTip.style.top  = (e.clientY - 32) + 'px';
+    const v = cell.val;
+    heatTip.textContent = `${cell.date}  ${heatMetric}: ${typeof v==='number'&&v<100 ? v.toFixed(1) : Math.round(v)} ${ADV_M[heatMetric].unit}`;
+  } else {
+    heatTip.style.display = 'none';
+  }
+});
+document.getElementById('heatmapCanvas')?.addEventListener('mouseleave', () => {
+  if (heatTip) heatTip.style.display = 'none';
+});
+
+// ── Moving averages ───────────────────────────────────────────────
+function renderMAChart(docs, metricKey) {
+  const m      = ADV_M[metricKey];
+  const sorted = [...docs].sort((a,b) => a.date.localeCompare(b.date));
+  const labels = sorted.map(d => d.date.slice(5));
+  const raw    = sorted.map(d => m.fn(d));
+
+  const MAS        = [7, 14, 30, 90];
+  const MA_COLORS  = [
+    'rgba(14,184,255,0.50)',
+    'rgba(80,220,160,0.80)',
+    'rgba(255,200,80,0.88)',
+    'rgba(255,90,80,0.90)',
+  ];
+  const MA_WIDTHS  = [1.5, 2, 2, 2.5];
+
+  const datasets = [
+    {
+      label: 'raw', data: raw,
+      borderColor: m.color.replace('0.85','0.15'),
+      backgroundColor: 'transparent',
+      borderWidth: 1, pointRadius: 0, tension: 0.2, spanGaps: true, order: 10,
+    },
+    ...MAS.map((win, i) => ({
+      label: `${win}d MA`,
+      data: computeMA(raw, win),
+      borderColor: MA_COLORS[i],
+      backgroundColor: 'transparent',
+      borderWidth: MA_WIDTHS[i],
+      pointRadius: 0, tension: 0.4, spanGaps: true, order: i,
+    })),
+  ];
+
+  const ctx = document.getElementById('maCanvas').getContext('2d');
+  if (maChartInst) { maChartInst.destroy(); maChartInst = null; }
+  maChartInst = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 500, easing: 'easeInOutQuart' },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color:'rgba(14,184,255,0.75)', font:{family:'Share Tech Mono',size:10}, boxWidth:10,
+                    filter: item => item.datasetIndex > 0 },
+        },
+        tooltip: { ...tooltipStyle(), callbacks: {
+          label: c => `${c.dataset.label}: ${c.parsed.y?.toFixed(1) ?? '—'} ${m.unit}`
+        }},
+      },
+      scales: {
+        x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10},maxTicksLimit:8} },
+        y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}}, beginAtZero:false },
+      }
+    }
+  });
+}
+
+// ── 3D scatter via Plotly ─────────────────────────────────────────
+function loadPlotly() {
+  return new Promise((res, rej) => {
+    if (window.Plotly) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.plot.ly/plotly-2.27.0.min.js';
+    s.onload = () => { plotlyReady = true; res(); };
+    s.onerror = () => rej(new Error('plotly CDN unavailable'));
+    document.head.appendChild(s);
+  });
+}
+
+async function render3DScatter(docs) {
+  const xSel = document.getElementById('sel3dx');
+  const ySel = document.getElementById('sel3dy');
+  const zSel = document.getElementById('sel3dz');
+  const statusEl = document.getElementById('scatter3dStatus');
+  if (!xSel) return;
+
+  // Populate selects once
+  if (!xSel.options.length) {
+    const bioKeys = Object.keys(ADV_M);
+    const envKeys = ['Temp °C','Sunshine h','Precip mm','PM2.5','PM10','AQI','UV idx'];
+    const defaults = ['HRV','Sleep','Temp °C'];
+    [xSel, ySel, zSel].forEach((sel, si) => {
+      const mk = document.createElement('optgroup'); mk.label = 'biometrics';
+      bioKeys.forEach(k => { const o=document.createElement('option'); o.value=k; o.textContent=k; if(k===defaults[si]) o.selected=true; mk.appendChild(o); });
+      const ek = document.createElement('optgroup'); ek.label = 'environment';
+      envKeys.forEach(k => { const o=document.createElement('option'); o.value=k; o.textContent=k; if(k===defaults[si]) o.selected=true; ek.appendChild(o); });
+      sel.appendChild(mk); sel.appendChild(ek);
+      sel.addEventListener('change', () => render3DScatter(advAllDocs));
+    });
+  }
+
+  const xKey = xSel.value, yKey = ySel.value, zKey = zSel.value;
+
+  function getVal(doc, key) {
+    return key in ADV_M ? ADV_M[key].fn(doc) : getEnvVal(doc.date, key);
+  }
+
+  const points = docs
+    .filter(d => d.date)
+    .map(d => ({ date:d.date, x:getVal(d,xKey), y:getVal(d,yKey), z:getVal(d,zKey) }))
+    .filter(p => p.x!=null && p.y!=null && p.z!=null)
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  if (!points.length) {
+    document.getElementById('scatter3dPlot').innerHTML = '<div class="no-data">no overlapping data for these axes — try biometric-only axes or run sync_days=365</div>';
+    if (statusEl) statusEl.textContent = 'no overlapping data';
+    return;
+  }
+
+  // Color gradient: oldest = dark purple, newest = bright cyan
+  const colors = points.map((_, i) => {
+    const t = points.length > 1 ? i / (points.length - 1) : 1;
+    return `rgb(${Math.round(80+(14-80)*t)},${Math.round(20+(184-20)*t)},${Math.round(120+(255-120)*t)})`;
+  });
+
+  if (statusEl) statusEl.textContent = 'loading plotly...';
+  try { await loadPlotly(); } catch(e) { if (statusEl) statusEl.textContent = 'plotly CDN unavailable'; return; }
+
+  const axStyle = {
+    gridcolor:'rgba(14,184,255,0.14)', linecolor:'rgba(14,184,255,0.18)',
+    tickcolor:'rgba(14,184,255,0.25)', titlefont:{color:'rgba(14,184,255,0.72)'},
+    tickfont:{color:'rgba(14,184,255,0.45)', family:'Share Tech Mono', size:10},
+  };
+
+  window.Plotly.react('scatter3dPlot', [{
+    type:'scatter3d', mode:'markers',
+    x:points.map(p=>p.x), y:points.map(p=>p.y), z:points.map(p=>p.z),
+    text:points.map(p=>`${p.date}<br>${xKey}: ${p.x.toFixed?.(1)??p.x}<br>${yKey}: ${p.y.toFixed?.(1)??p.y}<br>${zKey}: ${p.z.toFixed?.(1)??p.z}`),
+    hovertemplate:'%{text}<extra></extra>',
+    marker:{ size:4.5, color:colors, opacity:0.88, line:{color:'rgba(14,184,255,0.15)',width:0.5} },
+  }], {
+    paper_bgcolor:'rgba(6,9,24,0)',
+    font:{color:'rgba(14,184,255,0.72)', family:'Share Tech Mono', size:11},
+    scene:{
+      bgcolor:'rgba(6,9,24,0)',
+      xaxis:{title:xKey, ...axStyle},
+      yaxis:{title:yKey, ...axStyle},
+      zaxis:{title:zKey, ...axStyle},
+      camera:{eye:{x:1.5,y:1.5,z:1.2}},
+    },
+    margin:{l:0,r:0,b:0,t:0},
+    modebar:{bgcolor:'transparent',color:'rgba(14,184,255,0.4)',activecolor:'#0eb8ff'},
+  }, { responsive:true, displaylogo:false, displayModeBar:true });
+
+  if (statusEl) statusEl.textContent = `${points.length} days · drag to rotate · scroll to zoom`;
+}
+
+// ── Entry point ───────────────────────────────────────────────────
+function renderAdvancedViz(docs) {
+  advAllDocs = docs;
+  if (!docs.length) return;
+
+  // Heatmap metric tabs (build once)
+  const heatTabsEl = document.getElementById('heatmapTabs');
+  if (heatTabsEl && !heatTabsEl.children.length) {
+    Object.keys(ADV_M).forEach(key => {
+      const btn = document.createElement('button');
+      btn.className = 'viz-tab' + (key===heatMetric?' active':'');
+      btn.textContent = key;
+      btn.addEventListener('click', () => {
+        heatMetric = key;
+        document.querySelectorAll('#heatmapTabs .viz-tab').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        drawHeatmap(advAllDocs, heatMetric);
+      });
+      heatTabsEl.appendChild(btn);
+    });
+  }
+  drawHeatmap(docs, heatMetric);
+
+  // MA metric tabs (build once)
+  const maTabsEl = document.getElementById('maTabs');
+  if (maTabsEl && !maTabsEl.children.length) {
+    Object.keys(ADV_M).forEach(key => {
+      const btn = document.createElement('button');
+      btn.className = 'viz-tab' + (key===maMetric?' active':'');
+      btn.textContent = key;
+      btn.addEventListener('click', () => {
+        maMetric = key;
+        document.querySelectorAll('#maTabs .viz-tab').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        renderMAChart(advAllDocs, maMetric);
+      });
+      maTabsEl.appendChild(btn);
+    });
+  }
+  renderMAChart(docs, maMetric);
+
+  // 3D scatter (loads Plotly lazily, non-blocking)
+  render3DScatter(docs).catch(e => {
+    const s = document.getElementById('scatter3dStatus');
+    if (s) s.textContent = '3d unavailable — ' + e.message;
+  });
 }
 
 // ── MFA relay ─────────────────────────────────────────────────────────────────
