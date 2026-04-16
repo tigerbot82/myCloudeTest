@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Health Tracker</title>
+  <title>Health · Overview</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -11,277 +11,92 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{
-      font-family:'Share Tech Mono','Courier New',monospace;
-      min-height:100vh; color:#c8e2f5; overflow-x:hidden;
+    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#c8e2f5;overflow-x:hidden;
       background:#06091a;
-      background-image:
-        radial-gradient(ellipse 90% 60% at 8% 8%,  rgba(12,100,192,0.13) 0%,transparent 60%),
-        radial-gradient(ellipse 70% 50% at 92% 92%, rgba(14,184,255,0.07) 0%,transparent 60%);
-      background-attachment:fixed;
-    }
-    body::before{
-      content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:radial-gradient(ellipse 90% 60% at 8% 8%,rgba(12,100,192,0.13) 0%,transparent 60%),
+        radial-gradient(ellipse 70% 50% at 92% 92%,rgba(14,184,255,0.07) 0%,transparent 60%);
+      background-attachment:fixed;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       background-image:radial-gradient(circle,rgba(14,184,255,0.05) 1px,transparent 1px);
-      background-size:30px 30px;
-    }
-
-    /* ── nav ── */
-    .top-nav{
-      position:fixed;top:0;left:0;right:0;z-index:10;
-      display:flex;align-items:center;gap:16px;
-      padding:14px 28px;
-      background:rgba(4,6,18,0.97);
-      border-bottom:1px solid rgba(14,184,255,0.14);
-      box-shadow:0 1px 24px rgba(0,0,0,0.7);
-    }
+      background-size:30px 30px;}
+    .top-nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:16px;
+      padding:14px 28px;background:rgba(4,6,18,0.97);
+      border-bottom:1px solid rgba(14,184,255,0.14);box-shadow:0 1px 24px rgba(0,0,0,0.7);}
     .nav-back{font-size:1em;letter-spacing:.06em;color:rgba(14,184,255,.9);text-decoration:none;transition:color .15s}
     .nav-back:hover{color:#0eb8ff}
     .nav-crumb{font-size:.94em;letter-spacing:.1em;color:rgba(14,184,255,.72)}
-    .nav-sync{
-      margin-left:auto;font-size:.94em;letter-spacing:.06em;
+    .nav-sync{margin-left:auto;font-size:.94em;letter-spacing:.06em;
       padding:6px 16px;border:1px solid rgba(14,184,255,.35);border-radius:3px;
-      background:transparent;color:rgba(14,184,255,.82);
-      cursor:pointer;transition:all .15s;
-    }
+      background:transparent;color:rgba(14,184,255,.82);cursor:pointer;transition:all .15s;}
     .nav-sync:hover{background:rgba(14,184,255,.1);color:#0eb8ff;border-color:rgba(14,184,255,.7)}
-
-    /* ── page layout ── */
-    .page{
-      position:relative;z-index:1;
-      max-width:1100px;margin:0 auto;
-      padding:90px 24px 60px;
-      display:flex;flex-direction:column;gap:28px;
-    }
-
-    /* ── header ── */
+    .page-nav{position:fixed;top:53px;left:0;right:0;z-index:9;display:flex;padding:0 24px;
+      background:rgba(4,6,18,0.95);border-bottom:1px solid rgba(14,184,255,.08);}
+    .page-tab{font-size:.82em;letter-spacing:.12em;text-decoration:none;
+      padding:9px 16px;color:rgba(14,184,255,.48);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+    .page-tab:hover{color:rgba(14,184,255,.82);}
+    .page-tab.active{color:#0eb8ff;border-bottom-color:#0eb8ff;}
+    .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;
+      padding:108px 24px 60px;display:flex;flex-direction:column;gap:28px;}
     .hdr{text-align:center;padding:8px 0}
     .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.78);margin-bottom:10px;text-transform:uppercase}
-    .hdr h1{
-      font-size:1.9em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;
-      text-shadow:0 0 24px rgba(14,184,255,.4);
-    }
+    .hdr h1{font-size:1.9em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
     .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.72);margin-top:8px}
-
-    /* ── range picker ── */
     .range-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-    .range-btn{
-      font-family:inherit;font-size:.98em;letter-spacing:.06em;
+    .range-btn{font-family:inherit;font-size:.98em;letter-spacing:.06em;
       padding:8px 24px;border-radius:3px;cursor:pointer;
-      border:1px solid rgba(14,184,255,.3);
-      background:transparent;color:rgba(14,184,255,.82);
-      transition:all .15s;
-    }
+      border:1px solid rgba(14,184,255,.3);background:transparent;color:rgba(14,184,255,.82);transition:all .15s;}
     .range-btn:hover{background:rgba(14,184,255,.07);color:rgba(14,184,255,.95)}
     .range-btn.active{background:rgba(14,184,255,.12);color:#0eb8ff;border-color:rgba(14,184,255,.65)}
-
-    /* ── stat cards ── */
     .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
-    .stat-card{
-      padding:18px 16px 14px;
-      background:rgba(8,12,32,0.97);
-      border:1px solid rgba(14,184,255,.12);
-      border-top:2px solid rgba(14,184,255,.28);
-      border-radius:4px;
-      box-shadow:0 4px 20px rgba(0,0,0,.55);
-      display:flex;flex-direction:column;gap:5px;
-    }
+    .stat-card{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:5px;}
     .stat-icon{font-size:1.3em;line-height:1;opacity:.95}
     .stat-label{font-size:.88em;letter-spacing:.08em;color:rgba(14,184,255,.85);text-transform:uppercase;margin-top:2px}
     .stat-value{font-size:1.65em;color:#0eb8ff;letter-spacing:.02em}
     .stat-unit{font-size:.85em;color:rgba(14,184,255,.75)}
     .stat-date{font-size:.82em;color:rgba(14,184,255,.65);margin-top:2px}
-
-    /* ── chart panels ── */
     .chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px}
     @media(max-width:520px){.chart-grid{grid-template-columns:1fr}}
-    .chart-panel{
-      padding:18px 16px 14px;
-      background:rgba(8,12,32,0.97);
-      border:1px solid rgba(14,184,255,.12);
-      border-top:2px solid rgba(14,184,255,.2);
-      border-radius:4px;
-      box-shadow:0 4px 20px rgba(0,0,0,.55);
-    }
-    .chart-title{
-      font-size:.94em;letter-spacing:.1em;text-transform:uppercase;
-      color:rgba(14,184,255,.88);
-      padding-bottom:10px;margin-bottom:12px;
-      border-bottom:1px solid rgba(14,184,255,.14);
-    }
+    .chart-panel{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.2);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
+    .chart-title{font-size:.94em;letter-spacing:.1em;text-transform:uppercase;
+      color:rgba(14,184,255,.88);padding-bottom:10px;margin-bottom:12px;
+      border-bottom:1px solid rgba(14,184,255,.14);}
     .chart-wrap{position:relative;height:180px}
-
-    /* ── sleep breakdown ── */
     .sleep-bar-wrap{margin-top:14px}
     .sleep-bar{height:8px;border-radius:2px;display:flex;overflow:hidden;margin-bottom:6px}
     .sleep-seg{height:100%;transition:width .4s}
     .sleep-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
     .sleep-key{font-size:.88em;color:rgba(14,184,255,.85);display:flex;align-items:center;gap:5px}
     .sleep-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-
-    /* ── no data ── */
-    .no-data{
-      text-align:center;padding:60px 20px;
-      font-size:1em;letter-spacing:.08em;color:rgba(14,184,255,.75);
-      border:1px dashed rgba(14,184,255,.18);border-radius:4px;
-      background:rgba(8,12,32,.8);
-    }
+    .no-data{text-align:center;padding:60px 20px;font-size:1em;letter-spacing:.08em;
+      color:rgba(14,184,255,.75);border:1px dashed rgba(14,184,255,.18);border-radius:4px;background:rgba(8,12,32,.8);}
     .no-data a{color:rgba(14,184,255,.85);text-decoration:none}
     .no-data a:hover{color:#0eb8ff}
-
-    /* ── status bar ── */
     #status{font-size:.92em;letter-spacing:.06em;color:rgba(14,184,255,.75);text-align:center;margin-top:-12px}
-
-    /* ── mfa relay panel ── */
-    #mfaPanel{
-      display:none;
-      position:fixed;bottom:24px;right:24px;z-index:100;
-      padding:20px 22px;
-      background:rgba(4,6,18,0.99);
-      border:1px solid rgba(14,184,255,.35);
-      border-top:2px solid #0eb8ff;
-      border-radius:4px;
-      box-shadow:0 8px 40px rgba(0,0,0,.8);
-      min-width:272px;
-    }
+    #mfaPanel{display:none;position:fixed;bottom:24px;right:24px;z-index:100;
+      padding:20px 22px;background:rgba(4,6,18,0.99);
+      border:1px solid rgba(14,184,255,.35);border-top:2px solid #0eb8ff;
+      border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,.8);min-width:272px;}
     #mfaPanel.visible{display:flex;flex-direction:column;gap:12px}
     .mfa-title{font-size:.72em;letter-spacing:.2em;text-transform:uppercase;color:#0eb8ff}
     .mfa-desc{font-size:.66em;color:rgba(14,184,255,.45);line-height:1.6}
     .mfa-input-row{display:flex;gap:8px}
-    #mfaCode{
-      font-family:inherit;font-size:1.4em;letter-spacing:.3em;
-      width:140px;padding:8px 10px;text-align:center;
-      background:rgba(14,184,255,.04);
-      border:1px solid rgba(14,184,255,.22);border-radius:3px;
-      color:#0eb8ff;outline:none;
-    }
+    #mfaCode{font-family:inherit;font-size:1.4em;letter-spacing:.3em;width:140px;padding:8px 10px;
+      text-align:center;background:rgba(14,184,255,.04);border:1px solid rgba(14,184,255,.22);
+      border-radius:3px;color:#0eb8ff;outline:none;}
     #mfaCode:focus{border-color:rgba(14,184,255,.55)}
-    #mfaSubmit{
-      font-family:inherit;font-size:.72em;letter-spacing:.12em;
-      padding:8px 14px;border-radius:3px;cursor:pointer;
-      background:rgba(14,184,255,.1);border:1px solid rgba(14,184,255,.3);
-      color:#0eb8ff;transition:all .15s;
-    }
+    #mfaSubmit{font-family:inherit;font-size:.72em;letter-spacing:.12em;padding:8px 14px;
+      border-radius:3px;cursor:pointer;background:rgba(14,184,255,.1);
+      border:1px solid rgba(14,184,255,.3);color:#0eb8ff;transition:all .15s;}
     #mfaSubmit:hover{background:rgba(14,184,255,.2)}
     #mfaStatus{font-size:.64em;color:rgba(14,184,255,.38);min-height:1em}
-
-    /* ── collapsible sections ── */
-    .sec-toggle{
-      display:flex;align-items:center;gap:14px;
-      padding:14px 20px;
-      background:rgba(8,12,32,0.97);
-      border:1px solid rgba(14,184,255,.12);
-      border-top:2px solid rgba(14,184,255,.28);
-      border-radius:4px;
-      cursor:pointer;user-select:none;
-      transition:border-color .15s,background .15s;
-      width:100%;text-align:left;font-family:inherit;
-    }
-    .sec-toggle:hover{border-color:rgba(14,184,255,.38);background:rgba(14,184,255,.03)}
-    .sec-toggle.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
-    .sec-toggle-text{display:flex;flex-direction:column;gap:3px}
-    .sec-toggle-pre{font-size:.78em;letter-spacing:.2em;color:rgba(14,184,255,.48);text-transform:none}
-    .sec-toggle-title{font-size:.98em;letter-spacing:.1em;text-transform:uppercase;color:rgba(14,184,255,.9)}
-    .sec-badge{font-size:.7em;letter-spacing:.1em;padding:2px 8px;border-radius:2px;background:rgba(14,184,255,.06);border:1px solid rgba(14,184,255,.18);color:rgba(14,184,255,.5);white-space:nowrap}
-    .sec-count{margin-left:auto;font-size:.78em;letter-spacing:.06em;color:rgba(14,184,255,.4)}
-    .sec-arrow{font-size:.75em;color:rgba(14,184,255,.4);transition:transform .3s cubic-bezier(.4,0,.2,1);flex-shrink:0;margin-left:4px}
-    .sec-toggle.open .sec-arrow{transform:rotate(90deg)}
-    /* smooth expand/collapse via CSS grid trick */
-    .sec-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s cubic-bezier(.4,0,.2,1)}
-    .sec-wrap.open{grid-template-rows:1fr}
-    .sec-inner{overflow:hidden}
-    .sec-body{display:flex;flex-direction:column;gap:14px;padding:14px 0 0;
-      border:1px solid rgba(14,184,255,.12);border-top:none;
-      border-bottom-left-radius:4px;border-bottom-right-radius:4px;
-      padding:14px}
-    #correlStatus{font-size:.88em;letter-spacing:.06em;color:rgba(14,184,255,.65);text-align:center}
-    /* ── weather correlation styles ── */
-    .correl-matrix{display:grid;gap:3px;margin-bottom:12px;overflow-x:auto;min-width:max-content}
-    .correl-group-cell{text-align:center;font-size:.82em;letter-spacing:.08em;padding:5px 8px;border-radius:2px}
-    .correl-group-wx{color:rgba(14,184,255,.85);border-bottom:2px solid rgba(14,184,255,.4)}
-    .correl-group-aq{color:rgba(255,160,40,.92);border-bottom:2px solid rgba(255,160,40,.55);border-left:3px solid rgba(255,160,40,.4)}
-    .correl-hdr-cell{min-width:88px;padding:6px 6px;font-size:.88em;letter-spacing:.05em;text-align:center;color:rgba(14,184,255,.9);text-transform:uppercase}
-    .correl-hdr-aq{color:rgba(255,160,40,.88);border-left:3px solid rgba(255,160,40,.35)}
-    .correl-row-label{min-width:112px;padding:10px 10px 10px 0;font-size:.9em;letter-spacing:.05em;text-align:right;color:#c8e2f5;display:flex;align-items:center;justify-content:flex-end}
-    .correl-cell{min-width:88px;padding:10px 6px;font-size:.92em;letter-spacing:.03em;text-align:center;border-radius:3px;border:1px solid rgba(14,184,255,.1);border-left-width:3px;background:rgba(6,9,24,0.99);cursor:default;transition:border-color .15s}
-    .correl-cell-aq{background:rgba(10,6,22,0.99);border-left:3px solid rgba(255,160,40,.25) !important}
-    .correl-cell:hover{border-color:rgba(14,184,255,.55)}
-    .correl-cell-aq:hover{border-color:rgba(255,160,40,.6) !important}
-    .correl-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.88em;letter-spacing:.05em;color:rgba(14,184,255,.82);margin-top:8px}
-
-    /* ── correlation controls ── */
-    .correl-controls{
-      display:flex;flex-wrap:wrap;gap:24px;
-      padding:20px;
-      background:rgba(8,12,32,0.97);
-      border:1px solid rgba(14,184,255,.12);
-      border-top:2px solid rgba(14,184,255,.28);
-      border-radius:4px;
-      box-shadow:0 4px 20px rgba(0,0,0,.55);
-    }
-    .ctrl-group{display:flex;flex-direction:column;gap:10px;flex:1;min-width:200px}
-    .ctrl-label{font-size:.92em;letter-spacing:.06em;color:rgba(14,184,255,.88)}
-    .ctrl-val{color:#0eb8ff;font-size:1em}
-    .ctrl-sublabel{font-size:.8em;letter-spacing:.05em;color:rgba(14,184,255,.55)}
-    .warn-hint{color:rgba(255,200,80,.9)}
-    input[type=range].correl-range{
-      -webkit-appearance:none;appearance:none;
-      width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;
-      background:rgba(14,184,255,.18);
-    }
-    input[type=range].correl-range::-webkit-slider-thumb{
-      -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
-      background:#0eb8ff;cursor:pointer;
-      box-shadow:0 0 10px rgba(14,184,255,.7);
-    }
-    input[type=range].correl-range::-moz-range-thumb{
-      width:18px;height:18px;border-radius:50%;border:none;
-      background:#0eb8ff;cursor:pointer;
-      box-shadow:0 0 10px rgba(14,184,255,.7);
-    }
-    /* ── data coverage bars ── */
-    .ctrl-coverage{gap:6px}
-    .cov-item{display:flex;align-items:center;gap:8px}
-    .cov-name{font-size:.88em;color:rgba(14,184,255,.88);min-width:90px}
-    .cov-bar-bg{flex:1;height:5px;background:rgba(14,184,255,.12);border-radius:3px;overflow:hidden}
-    .cov-bar{height:100%;border-radius:3px;transition:width .3s}
-    .cov-pct{font-size:.82em;min-width:72px;text-align:right}
-
-    /* ── advanced visualizations ── */
-    .heatmap-outer{overflow-x:auto;position:relative;padding-bottom:2px}
-    #heatmapCanvas{display:block;cursor:crosshair}
-    .heatmap-tip{
-      position:fixed;pointer-events:none;display:none;
-      padding:6px 10px;background:rgba(4,6,18,.97);
-      border:1px solid rgba(14,184,255,.4);border-radius:3px;
-      font-size:.82em;letter-spacing:.05em;color:#0eb8ff;
-      white-space:nowrap;z-index:50;
-    }
-    .viz-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-    .viz-tab{
-      font-family:inherit;font-size:.85em;letter-spacing:.08em;
-      padding:5px 14px;border-radius:2px;cursor:pointer;
-      border:1px solid rgba(14,184,255,.2);
-      background:transparent;color:rgba(14,184,255,.7);transition:all .15s;
-    }
-    .viz-tab:hover{background:rgba(14,184,255,.07);color:rgba(14,184,255,.95)}
-    .viz-tab.active{background:rgba(14,184,255,.12);color:#0eb8ff;border-color:rgba(14,184,255,.55)}
-    .ma-chart-wrap{position:relative;height:240px}
-    .scatter3d-controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
-    .axis-lbl{font-size:.82em;letter-spacing:.1em;color:rgba(14,184,255,.55)}
-    .axis-sel{
-      font-family:inherit;font-size:.85em;letter-spacing:.04em;
-      padding:5px 10px;border-radius:2px;
-      background:rgba(6,9,24,.99);border:1px solid rgba(14,184,255,.25);
-      color:rgba(14,184,255,.88);outline:none;cursor:pointer;
-    }
-    .scatter3d-wrap{height:460px;border-radius:3px;overflow:hidden;background:rgba(6,9,24,.99)}
-    .scatter3d-status{font-size:.82em;letter-spacing:.06em;color:rgba(14,184,255,.45);margin-left:auto}
   </style>
 </head>
 <body>
 
-<!-- MFA relay panel — only visible when sync workflow is waiting for a code -->
 <div id="mfaPanel">
   <div class="mfa-title">⚡ garmin mfa required</div>
   <div class="mfa-desc">the sync workflow is waiting.<br>check your garmin email and enter the code below.</div>
@@ -296,6 +111,11 @@
   <a href="index.html" class="nav-back">← home</a>
   <span class="nav-crumb">// health tracker //</span>
   <button class="nav-sync" onclick="triggerManualNote()">? sync</button>
+</nav>
+<nav class="page-nav">
+  <a href="health.html"       class="page-tab active">overview</a>
+  <a href="correlations.html" class="page-tab">correlations</a>
+  <a href="viz.html"          class="page-tab">visualizations</a>
 </nav>
 
 <div class="page">
@@ -312,86 +132,10 @@
   </div>
 
   <div id="status">loading data...</div>
-
-  <!-- today's snapshot — always visible -->
   <div class="stat-grid" id="statGrid"></div>
-
-  <!-- ── Section: Charts ─────────────────────────────────────── -->
-  <button class="sec-toggle open" id="btn-charts" onclick="toggleSec('charts')">
-    <div class="sec-toggle-text">
-      <div class="sec-toggle-pre">// biometric trends //</div>
-      <div class="sec-toggle-title">charts</div>
-    </div>
-    <span class="sec-count" id="cnt-charts"></span>
-    <span class="sec-arrow">▶</span>
-  </button>
-  <div class="sec-wrap open" id="wrap-charts">
-    <div class="sec-inner"><div class="sec-body">
-      <div class="chart-grid" id="chartGrid"></div>
-    </div></div>
-  </div>
-
-  <!-- ── Section: Correlations ───────────────────────────────── -->
-  <button class="sec-toggle" id="btn-correl" onclick="toggleSec('correl')">
-    <div class="sec-toggle-text">
-      <div class="sec-toggle-pre">// natural environment //</div>
-      <div class="sec-toggle-title">weather &amp; air quality correlations</div>
-    </div>
-    <span class="sec-badge">vienna 48.24°N</span>
-    <span class="sec-arrow">▶</span>
-  </button>
-  <div class="sec-wrap" id="wrap-correl">
-    <div class="sec-inner"><div class="sec-body">
-      <div id="correlStatus">click to initialise...</div>
-      <div id="correlControls"></div>
-      <div class="chart-grid" id="correlGrid"></div>
-    </div></div>
-  </div>
-
-  <!-- ── Section: Advanced Viz ───────────────────────────────── -->
-  <button class="sec-toggle" id="btn-adv" onclick="toggleSec('adv')">
-    <div class="sec-toggle-text">
-      <div class="sec-toggle-pre">// deep dive //</div>
-      <div class="sec-toggle-title">advanced visualizations</div>
-    </div>
-    <span class="sec-badge">heatmap · MA · 3d</span>
-    <span class="sec-arrow">▶</span>
-  </button>
-  <div class="sec-wrap" id="wrap-adv">
-    <div class="sec-inner"><div class="sec-body">
-      <!-- Calendar heatmap -->
-      <div class="chart-panel">
-        <div class="chart-title">// activity calendar · 52 weeks //</div>
-        <div class="viz-tabs" id="heatmapTabs"></div>
-        <div class="heatmap-outer">
-          <canvas id="heatmapCanvas"></canvas>
-          <div class="heatmap-tip" id="heatmapTip"></div>
-        </div>
-      </div>
-      <!-- Moving averages -->
-      <div class="chart-grid">
-        <div class="chart-panel">
-          <div class="chart-title">// moving averages //</div>
-          <div class="viz-tabs" id="maTabs"></div>
-          <div class="ma-chart-wrap"><canvas id="maCanvas"></canvas></div>
-        </div>
-      </div>
-      <!-- 3D scatter -->
-      <div class="chart-panel">
-        <div class="chart-title">// 3d variable space · drag to rotate //</div>
-        <div class="scatter3d-controls">
-          <span class="axis-lbl">X</span><select class="axis-sel" id="sel3dx"></select>
-          <span class="axis-lbl">Y</span><select class="axis-sel" id="sel3dy"></select>
-          <span class="axis-lbl">Z</span><select class="axis-sel" id="sel3dz"></select>
-          <span class="scatter3d-status" id="scatter3dStatus">loading...</span>
-        </div>
-        <div class="scatter3d-wrap" id="scatter3dPlot"></div>
-      </div>
-    </div></div>
-  </div>
+  <div class="chart-grid" id="chartGrid"></div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════ Firebase config -->
 <script>
 firebase.initializeApp({
   apiKey:            "AIzaSyAnRbmN4bVSbegq4IDvQfCsMmlcc1nX3bs",
@@ -405,49 +149,14 @@ const db  = firebase.firestore();
 const col = db.collection("health_daily");
 </script>
 
-<!-- ══════════════════════════════════════════════════════ App -->
 <script>
 let activeDays = 7;
 let allDocs    = [];
 let charts     = {};
 
-// ── Section accordion ─────────────────────────────────────────────────────────
-let correlInited = false;
-let advInited    = false;
+const GRID_COLOR = 'rgba(14,184,255,0.1)';
+const TICK_COLOR = 'rgba(14,184,255,0.65)';
 
-function toggleSec(id) {
-  const btn  = document.getElementById('btn-'  + id);
-  const wrap = document.getElementById('wrap-' + id);
-  const open = btn.classList.toggle('open');
-  wrap.classList.toggle('open', open);
-  localStorage.setItem('sec_' + id, open ? '1' : '0');
-
-  if (open && id === 'correl' && !correlInited) {
-    correlInited = true;
-    document.getElementById('correlStatus').textContent = 'initialising...';
-    loadAndRenderCorrelations(allDocs).catch(e => {
-      document.getElementById('correlStatus').textContent = 'weather unavailable — ' + e.message;
-    });
-  }
-  if (open && id === 'adv' && !advInited) {
-    advInited = true;
-    renderAdvancedViz(allDocs);
-  }
-}
-
-// Restore section states from localStorage (default: charts=open, rest=closed)
-(function initSections() {
-  ['charts','correl','adv'].forEach(id => {
-    const saved   = localStorage.getItem('sec_' + id);
-    const isOpen  = saved !== null ? saved === '1' : id === 'charts';
-    if (!isOpen) {
-      document.getElementById('btn-'  + id)?.classList.remove('open');
-      document.getElementById('wrap-' + id)?.classList.remove('open');
-    }
-  });
-})();
-
-// ── range picker ──────────────────────────────────────────────────────────────
 document.getElementById('rangeRow').addEventListener('click', e => {
   const btn = e.target.closest('.range-btn');
   if (!btn) return;
@@ -457,7 +166,6 @@ document.getElementById('rangeRow').addEventListener('click', e => {
   render(allDocs);
 });
 
-// ── load data ─────────────────────────────────────────────────────────────────
 function dateStr(daysAgo) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
@@ -471,63 +179,36 @@ col.orderBy('date', 'asc').onSnapshot(snap => {
   document.getElementById('status').textContent = 'error loading data — ' + err.message;
 });
 
-// ── render ────────────────────────────────────────────────────────────────────
 function render(docs) {
   const cutoff = dateStr(activeDays - 1);
   const data   = docs.filter(d => d.date >= cutoff).sort((a,b) => a.date.localeCompare(b.date));
-
   if (!data.length) {
-    renderEmpty();
+    document.getElementById('statGrid').innerHTML = '';
+    document.getElementById('chartGrid').innerHTML = `
+      <div class="no-data" style="grid-column:1/-1">no health data yet.<br><br>
+        run the <a href="https://github.com/tigerbot82/myCloudeTest/actions" target="_blank">garmin sync workflow</a>
+        to pull your data from garmin connect.</div>`;
+    document.getElementById('status').textContent = 'no data in selected range';
     return;
   }
-
   document.getElementById('status').textContent =
-    `${data.length} days loaded · last sync: ${data[data.length-1]?.syncedAt?.toDate?.()?.toLocaleString?.() ?? 'unknown'}`;
-
+    `${data.length} days · last sync: ${data[data.length-1]?.syncedAt?.toDate?.()?.toLocaleString?.() ?? 'unknown'}`;
   renderStats(data);
   renderCharts(data);
-
-  // Update charts section badge
-  const cnt = document.getElementById('cnt-charts');
-  if (cnt) cnt.textContent = data.length + ' days';
-
-  // Re-render open sections if new data arrived
-  if (correlInited) {
-    loadAndRenderCorrelations(allDocs).catch(e => {
-      document.getElementById('correlStatus').textContent = 'weather unavailable — ' + e.message;
-    });
-  }
-  if (advInited && allDocs.length !== advLastDocCount) {
-    advLastDocCount = allDocs.length;
-    renderAdvancedViz(allDocs);
-  }
 }
 
-function renderEmpty() {
-  document.getElementById('statGrid').innerHTML = '';
-  document.getElementById('chartGrid').innerHTML = `
-    <div class="no-data" style="grid-column:1/-1">
-      no health data yet.<br><br>
-      run the <a href="https://github.com/tigerbot82/myCloudeTest/actions" target="_blank">garmin sync workflow</a>
-      to pull your data from garmin connect.
-    </div>`;
-  document.getElementById('status').textContent = 'no data in selected range';
-}
-
-// ── today's stat cards ────────────────────────────────────────────────────────
 function renderStats(data) {
   const today = data[data.length - 1];
   const cards = [
-    { icon:'👣', label:'steps',       value: fmt(today.steps),              unit:'steps',   },
-    { icon:'🔥', label:'calories',    value: fmt(today.calories),           unit:'kcal',    },
-    { icon:'💓', label:'resting hr',  value: today.restingHR ?? '—',        unit:'bpm',     },
-    { icon:'⚡', label:'body battery',value: today.bodyBattery?.end ?? '—', unit:'/ 100',   },
-    { icon:'😰', label:'avg stress',  value: today.avgStress ?? '—',        unit:'/ 100',   },
-    { icon:'🌊', label:'hrv',         value: today.hrv?.lastNight ?? '—',   unit:'ms',      },
-    { icon:'😴', label:'sleep',       value: today.sleep?.durationHours ?? '—', unit:'hrs', },
-    { icon:'🩸', label:'spo2',        value: today.spo2?.avg ?? '—',        unit:'%',       },
+    { icon:'👣', label:'steps',        value: fmt(today.steps),              unit:'steps' },
+    { icon:'🔥', label:'calories',     value: fmt(today.calories),           unit:'kcal'  },
+    { icon:'💓', label:'resting hr',   value: today.restingHR ?? '—',        unit:'bpm'   },
+    { icon:'⚡', label:'body battery', value: today.bodyBattery?.end ?? '—', unit:'/ 100' },
+    { icon:'😰', label:'avg stress',   value: today.avgStress ?? '—',        unit:'/ 100' },
+    { icon:'🌊', label:'hrv',          value: today.hrv?.lastNight ?? '—',   unit:'ms'    },
+    { icon:'😴', label:'sleep',        value: today.sleep?.durationHours ?? '—', unit:'hrs' },
+    { icon:'🩸', label:'spo2',         value: today.spo2?.avg ?? '—',        unit:'%'     },
   ];
-
   document.getElementById('statGrid').innerHTML = cards.map(c => `
     <div class="stat-card">
       <div class="stat-icon">${c.icon}</div>
@@ -538,29 +219,21 @@ function renderStats(data) {
     </div>`).join('');
 }
 
-// ── charts ────────────────────────────────────────────────────────────────────
-const GRID_COLOR = 'rgba(14,184,255,0.1)';
-const TICK_COLOR = 'rgba(14,184,255,0.65)';
-
 const chartDefs = [
-  { id:'steps',       title:'// steps //',         key: d => d.steps,                  color:'rgba(14,184,255,0.85)' },
-  { id:'hrv',         title:'// hrv (last night) //', key: d => d.hrv?.lastNight,       color:'rgba(160,80,255,0.85)' },
-  { id:'rhr',         title:'// resting heart rate //', key: d => d.restingHR,           color:'rgba(255,80,140,0.85)' },
-  { id:'stress',      title:'// avg stress //',     key: d => d.avgStress,              color:'rgba(255,200,80,0.85)' },
-  { id:'battery',     title:'// body battery (end) //', key: d => d.bodyBattery?.end,   color:'rgba(80,220,160,0.85)' },
-  { id:'sleep',       title:'// sleep duration //', key: d => d.sleep?.durationHours,   color:'rgba(80,160,255,0.85)' },
-  { id:'spo2',        title:'// spo2 avg //',       key: d => d.spo2?.avg,              color:'rgba(80,220,255,0.85)' },
-  { id:'calories',    title:'// active calories //',key: d => d.activeCalories,         color:'rgba(255,140,60,0.85)' },
+  { id:'steps',    title:'// steps //',              key: d => d.steps,                  color:'rgba(14,184,255,0.85)' },
+  { id:'hrv',      title:'// hrv (last night) //',   key: d => d.hrv?.lastNight,         color:'rgba(160,80,255,0.85)' },
+  { id:'rhr',      title:'// resting heart rate //', key: d => d.restingHR,              color:'rgba(255,80,140,0.85)' },
+  { id:'stress',   title:'// avg stress //',         key: d => d.avgStress,              color:'rgba(255,200,80,0.85)' },
+  { id:'battery',  title:'// body battery (end) //', key: d => d.bodyBattery?.end,       color:'rgba(80,220,160,0.85)' },
+  { id:'sleep',    title:'// sleep duration //',     key: d => d.sleep?.durationHours,   color:'rgba(80,160,255,0.85)' },
+  { id:'spo2',     title:'// spo2 avg //',           key: d => d.spo2?.avg,              color:'rgba(80,220,255,0.85)' },
+  { id:'calories', title:'// active calories //',    key: d => d.activeCalories,         color:'rgba(255,140,60,0.85)'  },
 ];
 
 function renderCharts(data) {
-  const labels = data.map(d => d.date.slice(5)); // MM-DD
-
-  // destroy old charts
+  const labels = data.map(d => d.date.slice(5));
   Object.values(charts).forEach(c => c.destroy());
   charts = {};
-
-  // build HTML
   document.getElementById('chartGrid').innerHTML = chartDefs.map(def => `
     <div class="chart-panel">
       <div class="chart-title">${def.title}</div>
@@ -570,42 +243,28 @@ function renderCharts(data) {
       <div class="chart-title">// sleep stages //</div>
       <div class="chart-wrap"><canvas id="chart-sleepstages"></canvas></div>
     </div>`;
-
-  // draw each line chart
   chartDefs.forEach(def => {
     const values = data.map(def.key);
     if (values.every(v => v == null)) return;
     charts[def.id] = makeLineChart(`chart-${def.id}`, labels, values, def.color);
   });
-
-  // sleep stages stacked bar
   buildSleepStagesChart(data, labels);
 }
 
 function makeLineChart(canvasId, labels, values, color) {
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  return new Chart(ctx, {
+  return new Chart(document.getElementById(canvasId).getContext('2d'), {
     type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        borderColor: color,
-        backgroundColor: color.replace('0.85','0.10'),
-        borderWidth: 1.5,
-        pointRadius: 3,
-        pointBackgroundColor: color,
-        fill: true,
-        tension: 0.35,
-        spanGaps: true,
-      }]
-    },
+    data: { labels, datasets: [{
+      data: values, borderColor: color, backgroundColor: color.replace('0.85','0.10'),
+      borderWidth: 1.5, pointRadius: 3, pointBackgroundColor: color,
+      fill: true, tension: 0.35, spanGaps: true,
+    }]},
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { ...tooltipStyle() } },
       scales: {
-        x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { family: 'Share Tech Mono', size: 10 } } },
-        y: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { family: 'Share Tech Mono', size: 10 } }, beginAtZero: false },
+        x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}} },
+        y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}}, beginAtZero:false },
       }
     }
   });
@@ -617,43 +276,29 @@ function buildSleepStagesChart(data, labels) {
   const light = data.map(d => d.sleep?.lightSleepHours ?? null);
   const awake = data.map(d => d.sleep?.awakeHours      ?? null);
   if ([...deep,...rem,...light].every(v => v == null)) return;
-
-  const ctx = document.getElementById('chart-sleepstages').getContext('2d');
-  charts['sleepstages'] = new Chart(ctx, {
+  charts['sleepstages'] = new Chart(document.getElementById('chart-sleepstages').getContext('2d'), {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label:'deep',  data: deep,  backgroundColor:'rgba(12,123,192,0.85)',  stack:'s' },
-        { label:'rem',   data: rem,   backgroundColor:'rgba(160,80,255,0.8)',   stack:'s' },
-        { label:'light', data: light, backgroundColor:'rgba(80,160,255,0.6)',   stack:'s' },
-        { label:'awake', data: awake, backgroundColor:'rgba(255,80,80,0.5)',    stack:'s' },
-      ]
-    },
+    data: { labels, datasets: [
+      { label:'deep',  data:deep,  backgroundColor:'rgba(12,123,192,0.85)', stack:'s' },
+      { label:'rem',   data:rem,   backgroundColor:'rgba(160,80,255,0.8)',  stack:'s' },
+      { label:'light', data:light, backgroundColor:'rgba(80,160,255,0.6)',  stack:'s' },
+      { label:'awake', data:awake, backgroundColor:'rgba(255,80,80,0.5)',   stack:'s' },
+    ]},
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, labels: { color: TICK_COLOR, font: { family: 'Share Tech Mono', size: 10 }, boxWidth: 10 } },
-        tooltip: { ...tooltipStyle() }
-      },
+      plugins: { legend: { display:true, labels:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10},boxWidth:10} }, tooltip:{...tooltipStyle()} },
       scales: {
-        x: { stacked: true, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { family: 'Share Tech Mono', size: 10 } } },
-        y: { stacked: true, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { family: 'Share Tech Mono', size: 10 } } },
+        x: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}} },
+        y: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}} },
       }
     }
   });
 }
 
 function tooltipStyle() {
-  return {
-    backgroundColor: 'rgba(4,6,18,0.97)',
-    borderColor: 'rgba(14,184,255,0.45)',
-    borderWidth: 1,
-    titleColor: '#0eb8ff',
-    bodyColor: 'rgba(14,184,255,0.65)',
-    titleFont: { family: 'Share Tech Mono' },
-    bodyFont:  { family: 'Share Tech Mono' },
-  };
+  return { backgroundColor:'rgba(4,6,18,0.97)', borderColor:'rgba(14,184,255,0.45)', borderWidth:1,
+    titleColor:'#0eb8ff', bodyColor:'rgba(14,184,255,0.65)',
+    titleFont:{family:'Share Tech Mono'}, bodyFont:{family:'Share Tech Mono'} };
 }
 
 function fmt(n) { return n != null ? Number(n).toLocaleString() : '—'; }
@@ -662,779 +307,7 @@ function triggerManualNote() {
   alert('To sync data, go to GitHub Actions → "Garmin → Firestore Sync" → Run workflow.\n\nData auto-syncs daily at 07:00 UTC.');
 }
 
-// ── Weather + Air Quality correlations ───────────────────────────────────────
-// State
-let corrWindow  = 30;
-let corrHistory = 0;
-let wxData      = null;  // { date → {tempMean, sunshine, daylight, precip} }
-let aqData      = null;  // { date → {pm2_5, pm10, no2, o3, aqi, uv} }
-let corrAllData = [];
-let correlCharts = {};
-
-// Colour per biometric (used in rolling charts)
-const H_COLORS = {
-  'HRV':          'rgba(160,80,255,0.85)',
-  'Sleep':        'rgba(80,160,255,0.85)',
-  'Stress':       'rgba(255,200,80,0.85)',
-  'Body Battery': 'rgba(80,220,160,0.85)',
-  'Steps':        'rgba(14,184,255,0.85)',
-  'Resting HR':   'rgba(255,80,140,0.85)',
-};
-
-// ── Weather archive (Open-Meteo, daily) ──────────────────────────
-async function fetchWeatherArchive(startDate) {
-  const endDate = new Date().toISOString().slice(0, 10);
-  const cKey = `health_wx_arch_${startDate}`;
-  try {
-    const c = JSON.parse(localStorage.getItem(cKey) || 'null');
-    if (c && Date.now() - c.t < 12 * 3600 * 1000) return c.d;
-  } catch(e) {}
-
-  const url = 'https://archive-api.open-meteo.com/v1/archive'
-    + '?latitude=48.2416&longitude=16.4442'
-    + '&daily=temperature_2m_mean,sunshine_duration,precipitation_sum,daylight_duration'
-    + `&start_date=${startDate}&end_date=${endDate}`
-    + '&timezone=Europe%2FVienna';
-
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('weather archive ' + resp.status);
-  const j = await resp.json();
-
-  const byDate = {};
-  (j.daily?.time || []).forEach((d, i) => {
-    byDate[d] = {
-      tempMean: j.daily.temperature_2m_mean[i],
-      sunshine: (j.daily.sunshine_duration[i] ?? 0) / 3600,
-      daylight: (j.daily.daylight_duration[i] ?? 0) / 3600,
-      precip:   j.daily.precipitation_sum[i] ?? 0,
-    };
-  });
-
-  try { localStorage.setItem(cKey, JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
-  return byDate;
-}
-
-// ── Air quality archive (Open-Meteo CAMS, hourly → daily) ────────
-async function fetchAirQualityArchive(startDate) {
-  const endDate = new Date().toISOString().slice(0, 10);
-  const cKey = `health_aq_arch_${startDate}`;
-  try {
-    const c = JSON.parse(localStorage.getItem(cKey) || 'null');
-    if (c && Date.now() - c.t < 12 * 3600 * 1000) return c.d;
-  } catch(e) {}
-
-  const url = 'https://air-quality-api.open-meteo.com/v1/air-quality'
-    + '?latitude=48.2416&longitude=16.4442'
-    + '&hourly=pm2_5,pm10,nitrogen_dioxide,ozone,european_aqi,uv_index'
-    + `&start_date=${startDate}&end_date=${endDate}`
-    + '&timezone=Europe%2FVienna';
-
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('air quality ' + resp.status);
-  const j = await resp.json();
-
-  // Aggregate hourly → daily (mean for pollutants, max for UV)
-  const acc = {};
-  (j.hourly?.time || []).forEach((ts, i) => {
-    const date = ts.slice(0, 10);
-    if (!acc[date]) acc[date] = { pm2_5:[], pm10:[], no2:[], o3:[], aqi:[], uv:[] };
-    const a = acc[date];
-    if (j.hourly.pm2_5?.[i]            != null) a.pm2_5.push(j.hourly.pm2_5[i]);
-    if (j.hourly.pm10?.[i]             != null) a.pm10.push(j.hourly.pm10[i]);
-    if (j.hourly.nitrogen_dioxide?.[i] != null) a.no2.push(j.hourly.nitrogen_dioxide[i]);
-    if (j.hourly.ozone?.[i]            != null) a.o3.push(j.hourly.ozone[i]);
-    if (j.hourly.european_aqi?.[i]     != null) a.aqi.push(j.hourly.european_aqi[i]);
-    if (j.hourly.uv_index?.[i]         != null) a.uv.push(j.hourly.uv_index[i]);
-  });
-
-  const mean = arr => arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : null;
-  const max  = arr => arr.length ? Math.max(...arr) : null;
-
-  const byDate = {};
-  for (const [date, a] of Object.entries(acc)) {
-    byDate[date] = {
-      pm2_5: mean(a.pm2_5),
-      pm10:  mean(a.pm10),
-      no2:   mean(a.no2),
-      o3:    mean(a.o3),
-      aqi:   mean(a.aqi),
-      uv:    max(a.uv),
-    };
-  }
-
-  try { localStorage.setItem(cKey, JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
-  return byDate;
-}
-
-// ── Pearson + rolling ─────────────────────────────────────────────
-function pearson(xs, ys) {
-  const pairs = xs.map((x,i) => [x, ys[i]]).filter(([x,y]) => x != null && y != null && !isNaN(x) && !isNaN(y));
-  if (pairs.length < 3) return null;
-  const n = pairs.length;
-  const mx = pairs.reduce((s,[x]) => s+x, 0) / n;
-  const my = pairs.reduce((s,[,y]) => s+y, 0) / n;
-  let num=0, dx2=0, dy2=0;
-  for (const [x,y] of pairs) { const a=x-mx, b=y-my; num+=a*b; dx2+=a*a; dy2+=b*b; }
-  const denom = Math.sqrt(dx2*dy2);
-  return denom < 1e-10 ? 0 : parseFloat((num/denom).toFixed(3));
-}
-
-function rollingCorr(dates, xs, ys, win) {
-  return dates.slice(win-1).map((_, i) => ({
-    date: dates[i+win-1],
-    r:    pearson(xs.slice(i, i+win), ys.slice(i, i+win)),
-  }));
-}
-
-function corrStyle(r) {
-  if (r == null) return 'color:rgba(14,184,255,0.45);border-left-color:rgba(14,184,255,0.2)';
-  const a = (0.55 + Math.abs(r) * 0.45).toFixed(2);
-  return r >= 0
-    ? `color:rgba(14,184,255,${a});border-left-color:rgba(14,184,255,${a})`
-    : `color:rgba(255,80,80,${a});border-left-color:rgba(255,80,80,${a})`;
-}
-
-// ── Slice of Garmin data honoring corrHistory ─────────────────────
-function getCorrelSlice() {
-  if (!corrAllData.length) return [];
-  const lim = (corrHistory > 0 && corrHistory < corrAllData.length)
-    ? corrHistory : corrAllData.length;
-  return corrAllData.slice(-lim);
-}
-
-// ── Build metric arrays ───────────────────────────────────────────
-function buildHW(data) {
-  const dates = data.map(d => d.date);
-  const H = {
-    'HRV':          data.map(d => d.hrv?.lastNight        ?? null),
-    'Sleep':        data.map(d => d.sleep?.durationHours  ?? null),
-    'Stress':       data.map(d => d.avgStress             ?? null),
-    'Body Battery': data.map(d => d.bodyBattery?.end      ?? null),
-    'Steps':        data.map(d => d.steps                 ?? null),
-    'Resting HR':   data.map(d => d.restingHR             ?? null),
-  };
-  const WX = {
-    'Temp °C':    dates.map(d => wxData?.[d]?.tempMean ?? null),
-    'Sunshine h': dates.map(d => wxData?.[d]?.sunshine ?? null),
-    'Daylight h': dates.map(d => wxData?.[d]?.daylight ?? null),
-    'Precip mm':  dates.map(d => wxData?.[d]?.precip   ?? null),
-  };
-  const AQ = {
-    'PM2.5':  dates.map(d => aqData?.[d]?.pm2_5 ?? null),
-    'PM10':   dates.map(d => aqData?.[d]?.pm10  ?? null),
-    'NO₂':    dates.map(d => aqData?.[d]?.no2   ?? null),
-    'O₃':     dates.map(d => aqData?.[d]?.o3    ?? null),
-    'AQI':    dates.map(d => aqData?.[d]?.aqi   ?? null),
-    'UV idx': dates.map(d => aqData?.[d]?.uv    ?? null),
-  };
-  return { dates, H, WX, AQ };
-}
-
-// ── Controls panel (rendered once, sliders mutate state) ─────────
-function renderCorrelControls() {
-  const total = corrAllData.length;
-  const maxH  = Math.max(30, total);
-  const curH  = (corrHistory > 0 && corrHistory < total) ? corrHistory : total;
-
-  const bioCov = [
-    ['HRV',          corrAllData.filter(d => (d.hrv?.lastNight        ?? null) != null).length],
-    ['Sleep',        corrAllData.filter(d => (d.sleep?.durationHours  ?? null) != null).length],
-    ['Stress',       corrAllData.filter(d => (d.avgStress             ?? null) != null).length],
-    ['Body Battery', corrAllData.filter(d => (d.bodyBattery?.end      ?? null) != null).length],
-    ['Steps',        corrAllData.filter(d => (d.steps                 ?? null) != null).length],
-    ['Resting HR',   corrAllData.filter(d => (d.restingHR             ?? null) != null).length],
-  ];
-  const wxN = corrAllData.filter(d => wxData?.[d.date] != null).length;
-  const aqN = corrAllData.filter(d => aqData?.[d.date] != null).length;
-
-  const covBar = (n, col) => {
-    const pct = total > 0 ? Math.round(n/total*100) : 0;
-    return `<div class="cov-bar-bg"><div class="cov-bar" style="width:${pct}%;background:${col}"></div></div>
-            <span class="cov-pct" style="color:${col}">${pct}% (${n}d)</span>`;
-  };
-
-  document.getElementById('correlControls').innerHTML = `
-    <div class="correl-controls">
-      <div class="ctrl-group">
-        <div class="ctrl-label">rolling window &nbsp;·&nbsp; <span class="ctrl-val" id="winVal">${corrWindow}</span> days</div>
-        <input type="range" class="correl-range" id="winSlider" min="6" max="180" step="1" value="${corrWindow}">
-        <div class="ctrl-sublabel">6 days &nbsp;→&nbsp; 6 months</div>
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">history &nbsp;·&nbsp; <span class="ctrl-val" id="histVal">${curH}</span> days</div>
-        <input type="range" class="correl-range" id="histSlider" min="30" max="${maxH}" step="1" value="${curH}">
-        <div class="ctrl-sublabel">30 days &nbsp;→&nbsp; all (${total})${total < 60
-          ? ' &nbsp;<span class="warn-hint">↑ run workflow sync_days=365</span>' : ''}</div>
-      </div>
-      <div class="ctrl-group ctrl-coverage">
-        <div class="ctrl-label">biometric coverage</div>
-        ${bioCov.map(([k, n]) => {
-          const pct = total > 0 ? Math.round(n/total*100) : 0;
-          const col = pct < 20 ? 'rgba(255,80,80,.9)' : pct < 60 ? 'rgba(255,200,80,.9)' : 'rgba(14,184,255,.9)';
-          return `<div class="cov-item"><span class="cov-name">${k}</span>${covBar(n, col)}</div>`;
-        }).join('')}
-      </div>
-      <div class="ctrl-group ctrl-coverage">
-        <div class="ctrl-label">environment coverage</div>
-        <div class="cov-item"><span class="cov-name" style="color:rgba(14,184,255,.85)">🌤 Weather</span>${covBar(wxN, 'rgba(14,184,255,.9)')}</div>
-        <div class="cov-item"><span class="cov-name" style="color:rgba(255,160,40,.9)">🏭 Air Quality</span>${covBar(aqN, 'rgba(255,160,40,.9)')}</div>
-      </div>
-    </div>`;
-
-  document.getElementById('winSlider').addEventListener('input', function() {
-    corrWindow = parseInt(this.value);
-    document.getElementById('winVal').textContent = corrWindow;
-    refreshCorrelCharts();
-  });
-  document.getElementById('histSlider').addEventListener('input', function() {
-    const v = parseInt(this.value);
-    corrHistory = v >= maxH ? 0 : v;
-    document.getElementById('histVal').textContent = corrHistory > 0 ? corrHistory : total;
-    refreshCorrelCharts();
-  });
-}
-
-// ── Matrix: 6 biometrics × (4 weather + 6 AQ) ────────────────────
-function renderCorrelMatrix() {
-  const el = document.getElementById('correlMatrix');
-  if (!el) return;
-  const data = getCorrelSlice();
-  const { dates, H, WX, AQ } = buildHW(data);
-  const hKeys  = Object.keys(H);
-  const wxKeys = Object.keys(WX);
-  const aqKeys = Object.keys(AQ);
-  const totalEnvCols = wxKeys.length + aqKeys.length;
-
-  // Compute all r values
-  const mat = {};
-  hKeys.forEach(hk => {
-    mat[hk] = {};
-    wxKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], WX[wk]); });
-    aqKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], AQ[wk]); });
-  });
-
-  // Grid template: label col + env cols
-  const gtc = `112px repeat(${totalEnvCols}, minmax(82px, 1fr))`;
-
-  el.innerHTML = `
-    <div class="chart-title">// pearson r · biometrics vs environment · ${dates.length} days //</div>
-    <div class="correl-matrix" style="grid-template-columns:${gtc}">
-      <!-- Group header row -->
-      <div></div>
-      <div class="correl-group-cell correl-group-wx" style="grid-column:span ${wxKeys.length}">🌤 weather</div>
-      <div class="correl-group-cell correl-group-aq" style="grid-column:span ${aqKeys.length}">🏭 air quality</div>
-      <!-- Column headers -->
-      <div></div>
-      ${wxKeys.map(wk => `<div class="correl-hdr-cell">${wk}</div>`).join('')}
-      ${aqKeys.map(wk => `<div class="correl-hdr-cell correl-hdr-aq">${wk}</div>`).join('')}
-      <!-- Data rows -->
-      ${hKeys.map(hk => `
-        <div class="correl-row-label">${hk}</div>
-        ${wxKeys.map(wk => {
-          const r = mat[hk][wk];
-          return `<div class="correl-cell" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r??'n/a'}">${r!=null?r:'n/a'}</div>`;
-        }).join('')}
-        ${aqKeys.map(wk => {
-          const r = mat[hk][wk];
-          return `<div class="correl-cell correl-cell-aq" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r??'n/a'}">${r!=null?r:'n/a'}</div>`;
-        }).join('')}`).join('')}
-    </div>
-    <div class="correl-legend">
-      <span style="color:rgba(255,80,80,.95)">■ negative</span>
-      <span style="color:rgba(14,184,255,.5)">■ near zero</span>
-      <span style="color:rgba(14,184,255,.98)">■ positive</span>
-      <span>&nbsp;· |r| = intensity · open-meteo · vienna 48.24°N</span>
-    </div>`;
-}
-
-// ── Rolling charts — every non-null pair, sorted by |r| ──────────
-function renderCorrelRolling() {
-  Object.values(correlCharts).forEach(c => c.destroy());
-  correlCharts = {};
-
-  const data = getCorrelSlice();
-  const grid = document.getElementById('correlRollingGrid');
-  if (!grid) return;
-
-  if (data.length < corrWindow + 1) {
-    grid.innerHTML = `<div class="no-data" style="grid-column:1/-1">
-      need at least ${corrWindow + 1} days to render a ${corrWindow}-day rolling window</div>`;
-    return;
-  }
-
-  const { dates, H, WX, AQ } = buildHW(data);
-  const allEnv = { ...WX, ...AQ };
-
-  // Build all pairs with valid r values, sort by |r| desc
-  const pairs = [];
-  for (const hk of Object.keys(H)) {
-    for (const wk of Object.keys(allEnv)) {
-      const r = pearson(H[hk], allEnv[wk]);
-      if (r != null) pairs.push({ h:hk, w:wk, r, absR:Math.abs(r), isAQ: wk in AQ });
-    }
-  }
-  pairs.sort((a,b) => b.absR - a.absR);
-
-  if (!pairs.length) {
-    grid.innerHTML = `<div class="no-data" style="grid-column:1/-1">
-      no overlapping data — run Garmin workflow with sync_days=365</div>`;
-    return;
-  }
-
-  grid.innerHTML = pairs.map((p, i) => `
-    <div class="chart-panel">
-      <div class="chart-title" style="color:${p.isAQ ? 'rgba(255,160,40,.88)' : 'rgba(14,184,255,.88)'}">
-        // ${corrWindow}d r · ${p.h.toLowerCase()} vs ${p.w.toLowerCase()} &nbsp;<span style="opacity:.65">(r=${p.r})</span> //
-      </div>
-      <div class="chart-wrap"><canvas id="cc-${i}"></canvas></div>
-    </div>`).join('');
-
-  pairs.forEach((p, i) => {
-    const el = document.getElementById(`cc-${i}`);
-    if (!el) return;
-    const roll = rollingCorr(dates, H[p.h], allEnv[p.w], corrWindow);
-    correlCharts[i] = new Chart(el.getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: roll.map(r => r.date.slice(5)),
-        datasets: [{
-          data: roll.map(r => r.r),
-          borderColor: H_COLORS[p.h],
-          backgroundColor: H_COLORS[p.h].replace('0.85','0.08'),
-          borderWidth: 1.5, pointRadius: 1.5, pointBackgroundColor: H_COLORS[p.h],
-          fill: true, tension: 0.35, spanGaps: true,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{...tooltipStyle()} },
-        scales: {
-          x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12},maxTicksLimit:8} },
-          y: {
-            grid:{color:GRID_COLOR}, min:-1, max:1,
-            afterBuildTicks: ax => { ax.ticks=[-1,-0.5,0,0.5,1].map(v=>({value:v})); },
-            ticks: { color:TICK_COLOR, font:{family:'Share Tech Mono',size:12}, callback:v=>v.toFixed(1) },
-          },
-        }
-      }
-    });
-  });
-}
-
-function refreshCorrelCharts() {
-  renderCorrelMatrix();
-  renderCorrelRolling();
-}
-
-// ── Entry point ───────────────────────────────────────────────────
-async function loadAndRenderCorrelations(rawDocs) {
-  corrAllData = rawDocs.filter(d => d.date).sort((a,b) => a.date.localeCompare(b.date));
-  const statusEl = document.getElementById('correlStatus');
-  if (!corrAllData.length) { statusEl.textContent = 'no garmin data yet'; return; }
-
-  const startDate = corrAllData[0].date;
-  statusEl.textContent = `fetching environment data for ${corrAllData.length} days...`;
-
-  try {
-    [wxData, aqData] = await Promise.all([
-      fetchWeatherArchive(startDate),
-      fetchAirQualityArchive(startDate),
-    ]);
-  } catch(e) {
-    statusEl.textContent = 'environment data unavailable — ' + e.message;
-    return;
-  }
-
-  // Static outer structure — correlRollingGrid rebuilt on each slider change
-  document.getElementById('correlGrid').innerHTML = `
-    <div class="chart-panel" style="grid-column:1/-1" id="correlMatrix"></div>
-    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px"
-         id="correlRollingGrid"></div>`;
-
-  renderCorrelControls();
-  renderCorrelMatrix();
-  renderCorrelRolling();
-
-  const wxN = Object.keys(wxData).filter(d => d >= startDate).length;
-  const aqN = Object.keys(aqData).filter(d => d >= startDate).length;
-  statusEl.textContent = `open-meteo · ${corrAllData.length} garmin · ${wxN} weather · ${aqN} AQ days · vienna 48.24°N`;
-}
-
-// ── Advanced Visualizations ──────────────────────────────────────────────────
-let advAllDocs     = [];
-let advLastDocCount = -1;
-let heatMetric     = 'HRV';
-let maMetric       = 'HRV';
-let maChartInst    = null;
-let heatCells      = [];   // {x,y,w,h,date,val} for hit-testing
-let plotlyReady    = false;
-
-const ADV_M = {
-  'HRV':          { fn:d=>d.hrv?.lastNight??null,       lb:false, color:'rgba(160,80,255,0.85)',  unit:'ms'  },
-  'Sleep':        { fn:d=>d.sleep?.durationHours??null,  lb:false, color:'rgba(80,160,255,0.85)',  unit:'h'   },
-  'Steps':        { fn:d=>d.steps??null,                 lb:false, color:'rgba(14,184,255,0.85)',  unit:''    },
-  'Resting HR':   { fn:d=>d.restingHR??null,             lb:true,  color:'rgba(255,80,140,0.85)',  unit:'bpm' },
-  'Stress':       { fn:d=>d.avgStress??null,             lb:true,  color:'rgba(255,200,80,0.85)',  unit:''    },
-  'Body Battery': { fn:d=>d.bodyBattery?.end??null,      lb:false, color:'rgba(80,220,160,0.85)',  unit:''    },
-};
-
-function getEnvVal(date, key) {
-  const m = {
-    'Temp °C':    ()=>wxData?.[date]?.tempMean??null,
-    'Sunshine h': ()=>wxData?.[date]?.sunshine??null,
-    'Precip mm':  ()=>wxData?.[date]?.precip??null,
-    'PM2.5':      ()=>aqData?.[date]?.pm2_5??null,
-    'PM10':       ()=>aqData?.[date]?.pm10??null,
-    'AQI':        ()=>aqData?.[date]?.aqi??null,
-    'UV idx':     ()=>aqData?.[date]?.uv??null,
-  };
-  return m[key]?.() ?? null;
-}
-
-function computeMA(vals, win) {
-  return vals.map((_, i) => {
-    const slice = vals.slice(Math.max(0, i - win + 1), i + 1).filter(v => v != null);
-    return slice.length >= Math.ceil(win / 2) ? slice.reduce((a,b)=>a+b,0)/slice.length : null;
-  });
-}
-
-// ── Calendar heatmap ─────────────────────────────────────────────
-function drawHeatmap(docs, metricKey) {
-  const canvas = document.getElementById('heatmapCanvas');
-  if (!canvas) return;
-  const m = ADV_M[metricKey];
-  const byDate = {};
-  docs.forEach(d => { const v = m.fn(d); if (v != null) byDate[d.date] = v; });
-  const vals = Object.values(byDate);
-
-  const CS = 13, GAP = 2, STEP = CS + GAP;
-  const ML = 22, MT = 22, MB = 36;
-
-  if (!vals.length) {
-    canvas.width = 400; canvas.height = 60;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,400,60);
-    ctx.fillStyle = 'rgba(14,184,255,0.4)';
-    ctx.font = '12px Share Tech Mono,monospace';
-    ctx.fillText('no ' + metricKey + ' data — run workflow with sync_days=365', 10, 35);
-    heatCells = [];
-    return;
-  }
-
-  const min = Math.min(...vals), max = Math.max(...vals), rng = max - min || 1;
-
-  // 53 weeks ending today, starting on a Monday
-  const today = new Date();
-  const start = new Date(today);
-  start.setDate(start.getDate() - 52 * 7);
-  const monOffset = (start.getDay() + 6) % 7;  // shift to Monday=0
-  start.setDate(start.getDate() - monOffset);
-
-  const totalDays = Math.round((today - start) / 86400000) + 1;
-  const weeks     = Math.ceil(totalDays / 7);
-
-  canvas.width  = ML + weeks * STEP + 4;
-  canvas.height = MT + 7 * STEP + MB;
-  heatCells = [];
-
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.font = '10px Share Tech Mono,monospace';
-
-  function cellColor(v) {
-    if (v == null) return null;
-    const t = (v - min) / rng;
-    const n = m.lb ? 1 - t : t;  // 0 = bad, 1 = good
-    // red → steel-blue → cyan-green
-    const r = n<.5 ? Math.round(200+(40-200)*(n*2))  : Math.round(40+(18-40)*((n-.5)*2));
-    const g = n<.5 ? Math.round(50+(100-50)*(n*2))   : Math.round(100+(210-100)*((n-.5)*2));
-    const b = n<.5 ? Math.round(50+(160-50)*(n*2))   : Math.round(160+(145-160)*((n-.5)*2));
-    const a = 0.30 + n * 0.65;
-    return `rgba(${r},${g},${b},${a})`;
-  }
-
-  // Month labels
-  ctx.fillStyle = 'rgba(14,184,255,0.45)';
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let lastMon = -1;
-  for (let w = 0; w < weeks; w++) {
-    const d = new Date(start.getTime() + w * 7 * 86400000);
-    if (d.getMonth() !== lastMon) { lastMon = d.getMonth(); ctx.fillText(MONTHS[d.getMonth()], ML + w*STEP, 13); }
-  }
-  // Day labels (M W F on Mon=0 Wed=2 Fri=4)
-  ['M','','W','','F','',''].forEach((lbl, i) => {
-    if (lbl) { ctx.fillStyle='rgba(14,184,255,0.4)'; ctx.fillText(lbl, 2, MT + i*STEP + CS - 2); }
-  });
-
-  // Draw cells
-  for (let w = 0; w < weeks; w++) {
-    for (let dow = 0; dow < 7; dow++) {
-      const d  = new Date(start.getTime() + (w*7+dow) * 86400000);
-      if (d > today) continue;
-      const ds = d.toISOString().slice(0,10);
-      const val = byDate[ds] ?? null;
-      const x = ML + w*STEP, y = MT + dow*STEP;
-      ctx.fillStyle = cellColor(val) ?? 'rgba(14,184,255,0.05)';
-      ctx.fillRect(x, y, CS, CS);
-      heatCells.push({ x, y, w:CS, h:CS, date:ds, val });
-    }
-  }
-
-  // Legend gradient bar
-  const lgW = 100, lgX = ML, lgY = MT + 7*STEP + 9;
-  const grad = ctx.createLinearGradient(lgX, 0, lgX+lgW, 0);
-  grad.addColorStop(0,   m.lb ? 'rgba(18,210,145,0.95)' : 'rgba(200,50,50,0.8)');
-  grad.addColorStop(0.5, 'rgba(40,100,160,0.7)');
-  grad.addColorStop(1,   m.lb ? 'rgba(200,50,50,0.8)' : 'rgba(18,210,145,0.95)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(lgX, lgY, lgW, 6);
-  ctx.fillStyle = 'rgba(14,184,255,0.45)';
-  ctx.fillText(m.lb?'best':'low',  lgX,        lgY+19);
-  ctx.fillText(m.lb?'worst':'high', lgX+lgW-28, lgY+19);
-  ctx.fillText(`range: ${min.toFixed(m.unit?1:0)}–${max.toFixed(m.unit?1:0)} ${m.unit}`, lgX+lgW+10, lgY+6);
-  ctx.fillText(`${vals.length} days of data`, lgX+lgW+10, lgY+19);
-}
-
-// Heatmap tooltip
-const heatTip = document.getElementById('heatmapTip');
-document.getElementById('heatmapCanvas')?.addEventListener('mousemove', function(e) {
-  const rect = this.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-  const cell = heatCells.find(c => mx>=c.x && mx<c.x+c.w && my>=c.y && my<c.y+c.h);
-  if (cell?.val != null) {
-    heatTip.style.display = 'block';
-    heatTip.style.left = (e.clientX + 14) + 'px';
-    heatTip.style.top  = (e.clientY - 32) + 'px';
-    const v = cell.val;
-    heatTip.textContent = `${cell.date}  ${heatMetric}: ${typeof v==='number'&&v<100 ? v.toFixed(1) : Math.round(v)} ${ADV_M[heatMetric].unit}`;
-  } else {
-    heatTip.style.display = 'none';
-  }
-});
-document.getElementById('heatmapCanvas')?.addEventListener('mouseleave', () => {
-  if (heatTip) heatTip.style.display = 'none';
-});
-
-// ── Moving averages ───────────────────────────────────────────────
-function renderMAChart(docs, metricKey) {
-  const m      = ADV_M[metricKey];
-  const sorted = [...docs].sort((a,b) => a.date.localeCompare(b.date));
-  const labels = sorted.map(d => d.date.slice(5));
-  const raw    = sorted.map(d => m.fn(d));
-
-  const MAS        = [7, 14, 30, 90];
-  const MA_COLORS  = [
-    'rgba(14,184,255,0.50)',
-    'rgba(80,220,160,0.80)',
-    'rgba(255,200,80,0.88)',
-    'rgba(255,90,80,0.90)',
-  ];
-  const MA_WIDTHS  = [1.5, 2, 2, 2.5];
-
-  const datasets = [
-    {
-      label: 'raw', data: raw,
-      borderColor: m.color.replace('0.85','0.15'),
-      backgroundColor: 'transparent',
-      borderWidth: 1, pointRadius: 0, tension: 0.2, spanGaps: true, order: 10,
-    },
-    ...MAS.map((win, i) => ({
-      label: `${win}d MA`,
-      data: computeMA(raw, win),
-      borderColor: MA_COLORS[i],
-      backgroundColor: 'transparent',
-      borderWidth: MA_WIDTHS[i],
-      pointRadius: 0, tension: 0.4, spanGaps: true, order: i,
-    })),
-  ];
-
-  const ctx = document.getElementById('maCanvas').getContext('2d');
-  if (maChartInst) { maChartInst.destroy(); maChartInst = null; }
-  maChartInst = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      animation: { duration: 500, easing: 'easeInOutQuart' },
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: {
-          display: true,
-          labels: { color:'rgba(14,184,255,0.75)', font:{family:'Share Tech Mono',size:10}, boxWidth:10,
-                    filter: item => item.datasetIndex > 0 },
-        },
-        tooltip: { ...tooltipStyle(), callbacks: {
-          label: c => `${c.dataset.label}: ${c.parsed.y?.toFixed(1) ?? '—'} ${m.unit}`
-        }},
-      },
-      scales: {
-        x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10},maxTicksLimit:8} },
-        y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}}, beginAtZero:false },
-      }
-    }
-  });
-}
-
-// ── 3D scatter via Plotly ─────────────────────────────────────────
-function loadPlotly() {
-  return new Promise((res, rej) => {
-    if (window.Plotly) { res(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdn.plot.ly/plotly-2.27.0.min.js';
-    s.onload = () => { plotlyReady = true; res(); };
-    s.onerror = () => rej(new Error('plotly CDN unavailable'));
-    document.head.appendChild(s);
-  });
-}
-
-async function render3DScatter(docs) {
-  const xSel = document.getElementById('sel3dx');
-  const ySel = document.getElementById('sel3dy');
-  const zSel = document.getElementById('sel3dz');
-  const statusEl = document.getElementById('scatter3dStatus');
-  if (!xSel) return;
-
-  // Populate selects once
-  if (!xSel.options.length) {
-    const bioKeys = Object.keys(ADV_M);
-    const envKeys = ['Temp °C','Sunshine h','Precip mm','PM2.5','PM10','AQI','UV idx'];
-    const defaults = ['HRV','Sleep','Steps'];   // biometric-only defaults — always have data
-    [xSel, ySel, zSel].forEach((sel, si) => {
-      const mk = document.createElement('optgroup'); mk.label = 'biometrics';
-      bioKeys.forEach(k => { const o=document.createElement('option'); o.value=k; o.textContent=k; if(k===defaults[si]) o.selected=true; mk.appendChild(o); });
-      const ek = document.createElement('optgroup'); ek.label = 'environment';
-      envKeys.forEach(k => { const o=document.createElement('option'); o.value=k; o.textContent=k; if(k===defaults[si]) o.selected=true; ek.appendChild(o); });
-      sel.appendChild(mk); sel.appendChild(ek);
-      sel.addEventListener('change', () => render3DScatter(advAllDocs));
-    });
-  }
-
-  const xKey = xSel.value, yKey = ySel.value, zKey = zSel.value;
-  const needsEnv = [xKey,yKey,zKey].some(k => !(k in ADV_M));
-
-  // Fetch env data if an env axis is selected and data isn't loaded yet
-  if (needsEnv && (!wxData || !aqData)) {
-    const sorted = [...docs].filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
-    const startDate = sorted[0]?.date;
-    if (startDate) {
-      if (statusEl) statusEl.textContent = 'fetching environment data...';
-      try {
-        [wxData, aqData] = await Promise.all([
-          fetchWeatherArchive(startDate),
-          fetchAirQualityArchive(startDate),
-        ]);
-      } catch(e) {
-        if (statusEl) statusEl.textContent = 'env data unavailable — ' + e.message;
-      }
-    }
-  }
-
-  function getVal(doc, key) {
-    return key in ADV_M ? ADV_M[key].fn(doc) : getEnvVal(doc.date, key);
-  }
-
-  const points = docs
-    .filter(d => d.date)
-    .map(d => ({ date:d.date, x:getVal(d,xKey), y:getVal(d,yKey), z:getVal(d,zKey) }))
-    .filter(p => p.x!=null && p.y!=null && p.z!=null)
-    .sort((a,b) => a.date.localeCompare(b.date));
-
-  if (!points.length) {
-    const hint = needsEnv
-      ? 'no garmin data overlaps with env data — run the sync workflow with sync_days=365'
-      : 'no data for selected axes — run the sync workflow to pull garmin data';
-    document.getElementById('scatter3dPlot').innerHTML = `<div class="no-data">${hint}</div>`;
-    if (statusEl) statusEl.textContent = 'no overlapping data';
-    return;
-  }
-
-  // Color gradient: oldest = dark purple, newest = bright cyan
-  const colors = points.map((_, i) => {
-    const t = points.length > 1 ? i / (points.length - 1) : 1;
-    return `rgb(${Math.round(80+(14-80)*t)},${Math.round(20+(184-20)*t)},${Math.round(120+(255-120)*t)})`;
-  });
-
-  if (statusEl) statusEl.textContent = 'loading plotly...';
-  try { await loadPlotly(); } catch(e) { if (statusEl) statusEl.textContent = 'plotly CDN unavailable'; return; }
-
-  const axStyle = {
-    gridcolor:'rgba(14,184,255,0.14)', linecolor:'rgba(14,184,255,0.18)',
-    tickcolor:'rgba(14,184,255,0.25)', titlefont:{color:'rgba(14,184,255,0.72)'},
-    tickfont:{color:'rgba(14,184,255,0.45)', family:'Share Tech Mono', size:10},
-  };
-
-  window.Plotly.react('scatter3dPlot', [{
-    type:'scatter3d', mode:'markers',
-    x:points.map(p=>p.x), y:points.map(p=>p.y), z:points.map(p=>p.z),
-    text:points.map(p=>`${p.date}<br>${xKey}: ${p.x.toFixed?.(1)??p.x}<br>${yKey}: ${p.y.toFixed?.(1)??p.y}<br>${zKey}: ${p.z.toFixed?.(1)??p.z}`),
-    hovertemplate:'%{text}<extra></extra>',
-    marker:{ size:4.5, color:colors, opacity:0.88, line:{color:'rgba(14,184,255,0.15)',width:0.5} },
-  }], {
-    paper_bgcolor:'rgba(6,9,24,0)',
-    font:{color:'rgba(14,184,255,0.72)', family:'Share Tech Mono', size:11},
-    scene:{
-      bgcolor:'rgba(6,9,24,0)',
-      xaxis:{title:xKey, ...axStyle},
-      yaxis:{title:yKey, ...axStyle},
-      zaxis:{title:zKey, ...axStyle},
-      camera:{eye:{x:1.5,y:1.5,z:1.2}},
-    },
-    margin:{l:0,r:0,b:0,t:0},
-    modebar:{bgcolor:'transparent',color:'rgba(14,184,255,0.4)',activecolor:'#0eb8ff'},
-  }, { responsive:true, displaylogo:false, displayModeBar:true });
-
-  if (statusEl) statusEl.textContent = `${points.length} days · drag to rotate · scroll to zoom`;
-}
-
-// ── Entry point ───────────────────────────────────────────────────
-function renderAdvancedViz(docs) {
-  advAllDocs = docs;
-  if (!docs.length) return;
-
-  // Heatmap metric tabs (build once)
-  const heatTabsEl = document.getElementById('heatmapTabs');
-  if (heatTabsEl && !heatTabsEl.children.length) {
-    Object.keys(ADV_M).forEach(key => {
-      const btn = document.createElement('button');
-      btn.className = 'viz-tab' + (key===heatMetric?' active':'');
-      btn.textContent = key;
-      btn.addEventListener('click', () => {
-        heatMetric = key;
-        document.querySelectorAll('#heatmapTabs .viz-tab').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        drawHeatmap(advAllDocs, heatMetric);
-      });
-      heatTabsEl.appendChild(btn);
-    });
-  }
-  drawHeatmap(docs, heatMetric);
-
-  // MA metric tabs (build once)
-  const maTabsEl = document.getElementById('maTabs');
-  if (maTabsEl && !maTabsEl.children.length) {
-    Object.keys(ADV_M).forEach(key => {
-      const btn = document.createElement('button');
-      btn.className = 'viz-tab' + (key===maMetric?' active':'');
-      btn.textContent = key;
-      btn.addEventListener('click', () => {
-        maMetric = key;
-        document.querySelectorAll('#maTabs .viz-tab').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        renderMAChart(advAllDocs, maMetric);
-      });
-      maTabsEl.appendChild(btn);
-    });
-  }
-  renderMAChart(docs, maMetric);
-
-  // 3D scatter (loads Plotly lazily, non-blocking)
-  render3DScatter(docs).catch(e => {
-    const s = document.getElementById('scatter3dStatus');
-    if (s) s.textContent = '3d unavailable — ' + e.message;
-  });
-}
-
-// ── MFA relay ─────────────────────────────────────────────────────────────────
+// ── MFA relay ─────────────────────────────────────────────────────
 const mfaRef   = db.collection('_config').doc('garmin_mfa_pending');
 const mfaPanel = document.getElementById('mfaPanel');
 const mfaInput = document.getElementById('mfaCode');
@@ -1451,7 +324,6 @@ mfaRef.onSnapshot(snap => {
   }
 });
 
-// auto-submit when 6 digits entered
 mfaInput.addEventListener('input', () => {
   if (mfaInput.value.replace(/\D/g,'').length === 6) submitMfa();
 });
@@ -1460,11 +332,10 @@ function submitMfa() {
   const code = mfaInput.value.replace(/\D/g,'');
   if (code.length !== 6) { document.getElementById('mfaStatus').textContent = 'enter 6-digit code'; return; }
   document.getElementById('mfaStatus').textContent = 'submitting...';
-  mfaRef.set({ status: 'submitted', code }, { merge: true })
+  mfaRef.set({ status:'submitted', code }, { merge:true })
     .then(() => { document.getElementById('mfaStatus').textContent = '✓ code sent — workflow resuming'; })
-    .catch(e => { document.getElementById('mfaStatus').textContent = 'error: ' + e.message; });
+    .catch(e  => { document.getElementById('mfaStatus').textContent = 'error: ' + e.message; });
 }
 </script>
-
 </body>
 </html>
