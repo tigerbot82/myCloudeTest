@@ -144,6 +144,11 @@ const col = db.collection("health_daily");
 <script>
 const GRID_COLOR = 'rgba(14,184,255,0.1)';
 const TICK_COLOR = 'rgba(14,184,255,0.65)';
+function tooltipStyle() {
+  return { backgroundColor:'rgba(4,6,18,0.97)', borderColor:'rgba(14,184,255,0.45)', borderWidth:1,
+    titleColor:'#0eb8ff', bodyColor:'rgba(14,184,255,0.65)',
+    titleFont:{family:'Share Tech Mono'}, bodyFont:{family:'Share Tech Mono'} };
+}
 
 // ── Weather + Air Quality (needed for 3D env axes) ────────────────────────────
 let wxData = null;
