@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health · Correlations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#c8e2f5;overflow-x:hidden;
+      background:#06091a;
+      background-image:radial-gradient(ellipse 90% 60% at 8% 8%,rgba(12,100,192,0.13) 0%,transparent 60%),
+        radial-gradient(ellipse 70% 50% at 92% 92%,rgba(14,184,255,0.07) 0%,transparent 60%);
+      background-attachment:fixed;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:radial-gradient(circle,rgba(14,184,255,0.05) 1px,transparent 1px);
+      background-size:30px 30px;}
+    .top-nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:16px;
+      padding:14px 28px;background:rgba(4,6,18,0.97);
+      border-bottom:1px solid rgba(14,184,255,0.14);box-shadow:0 1px 24px rgba(0,0,0,0.7);}
+    .nav-back{font-size:1em;letter-spacing:.06em;color:rgba(14,184,255,.9);text-decoration:none;transition:color .15s}
+    .nav-back:hover{color:#0eb8ff}
+    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:rgba(14,184,255,.72)}
+    .page-nav{position:fixed;top:53px;left:0;right:0;z-index:9;display:flex;padding:0 24px;
+      background:rgba(4,6,18,0.95);border-bottom:1px solid rgba(14,184,255,.08);}
+    .page-tab{font-size:.82em;letter-spacing:.12em;text-decoration:none;
+      padding:9px 16px;color:rgba(14,184,255,.48);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+    .page-tab:hover{color:rgba(14,184,255,.82);}
+    .page-tab.active{color:#0eb8ff;border-bottom-color:#0eb8ff;}
+    .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;
+      padding:108px 24px 60px;display:flex;flex-direction:column;gap:28px;}
+    .hdr{text-align:center;padding:8px 0}
+    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.78);margin-bottom:10px;text-transform:uppercase}
+    .hdr h1{font-size:1.9em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
+    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.72);margin-top:8px}
+    .chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px}
+    @media(max-width:520px){.chart-grid{grid-template-columns:1fr}}
+    .chart-panel{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.2);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
+    .chart-title{font-size:.94em;letter-spacing:.1em;text-transform:uppercase;
+      color:rgba(14,184,255,.88);padding-bottom:10px;margin-bottom:12px;
+      border-bottom:1px solid rgba(14,184,255,.14);}
+    .chart-wrap{position:relative;height:180px}
+    .no-data{text-align:center;padding:60px 20px;font-size:1em;letter-spacing:.08em;
+      color:rgba(14,184,255,.75);border:1px dashed rgba(14,184,255,.18);border-radius:4px;background:rgba(8,12,32,.8);}
+    .pg-status{font-size:.88em;letter-spacing:.06em;color:rgba(14,184,255,.65);text-align:center;margin-top:-12px}
+    #correlStatus{font-size:.88em;letter-spacing:.06em;color:rgba(14,184,255,.65);text-align:center}
+    .correl-matrix{display:grid;gap:3px;margin-bottom:12px;overflow-x:auto;min-width:max-content}
+    .correl-group-cell{text-align:center;font-size:.82em;letter-spacing:.08em;padding:5px 8px;border-radius:2px}
+    .correl-group-wx{color:rgba(14,184,255,.85);border-bottom:2px solid rgba(14,184,255,.4)}
+    .correl-group-aq{color:rgba(255,160,40,.92);border-bottom:2px solid rgba(255,160,40,.55);border-left:3px solid rgba(255,160,40,.4)}
+    .correl-hdr-cell{min-width:88px;padding:6px;font-size:.88em;letter-spacing:.05em;text-align:center;color:rgba(14,184,255,.9);text-transform:uppercase}
+    .correl-hdr-aq{color:rgba(255,160,40,.88);border-left:3px solid rgba(255,160,40,.35)}
+    .correl-row-label{min-width:112px;padding:10px 10px 10px 0;font-size:.9em;letter-spacing:.05em;text-align:right;color:#c8e2f5;display:flex;align-items:center;justify-content:flex-end}
+    .correl-cell{min-width:88px;padding:10px 6px;font-size:.92em;letter-spacing:.03em;text-align:center;border-radius:3px;border:1px solid rgba(14,184,255,.1);border-left-width:3px;background:rgba(6,9,24,0.99);cursor:default;transition:border-color .15s}
+    .correl-cell-aq{background:rgba(10,6,22,0.99);border-left:3px solid rgba(255,160,40,.25) !important}
+    .correl-cell:hover{border-color:rgba(14,184,255,.55)}
+    .correl-cell-aq:hover{border-color:rgba(255,160,40,.6) !important}
+    .correl-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.88em;letter-spacing:.05em;color:rgba(14,184,255,.82);margin-top:8px}
+    .correl-controls{display:flex;flex-wrap:wrap;gap:24px;padding:20px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
+    .ctrl-group{display:flex;flex-direction:column;gap:10px;flex:1;min-width:200px}
+    .ctrl-label{font-size:.92em;letter-spacing:.06em;color:rgba(14,184,255,.88)}
+    .ctrl-val{color:#0eb8ff;font-size:1em}
+    .ctrl-sublabel{font-size:.8em;letter-spacing:.05em;color:rgba(14,184,255,.55)}
+    .warn-hint{color:rgba(255,200,80,.9)}
+    input[type=range].correl-range{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;background:rgba(14,184,255,.18);}
+    input[type=range].correl-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#0eb8ff;cursor:pointer;box-shadow:0 0 10px rgba(14,184,255,.7);}
+    input[type=range].correl-range::-moz-range-thumb{width:18px;height:18px;border-radius:50%;border:none;background:#0eb8ff;cursor:pointer;box-shadow:0 0 10px rgba(14,184,255,.7);}
+    .ctrl-coverage{gap:6px}
+    .cov-item{display:flex;align-items:center;gap:8px}
+    .cov-name{font-size:.88em;color:rgba(14,184,255,.88);min-width:90px}
+    .cov-bar-bg{flex:1;height:5px;background:rgba(14,184,255,.12);border-radius:3px;overflow:hidden}
+    .cov-bar{height:100%;border-radius:3px;transition:width .3s}
+    .cov-pct{font-size:.82em;min-width:72px;text-align:right}
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a href="index.html" class="nav-back">← home</a>
+  <span class="nav-crumb">// health tracker //</span>
+</nav>
+<nav class="page-nav">
+  <a href="health.html"       class="page-tab">overview</a>
+  <a href="correlations.html" class="page-tab active">correlations</a>
+  <a href="viz.html"          class="page-tab">visualizations</a>
+</nav>
+
+<div class="page">
+  <div class="hdr">
+    <div class="hdr-pre">// natural environment //</div>
+    <h1>correlations</h1>
+    <div class="hdr-sub">biometrics vs weather &amp; air quality · vienna 48.24°N</div>
+  </div>
+  <div class="pg-status" id="pgStatus">loading data...</div>
+  <div id="correlStatus"></div>
+  <div id="correlControls"></div>
+  <div class="chart-grid" id="correlGrid"></div>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey:            "AIzaSyAnRbmN4bVSbegq4IDvQfCsMmlcc1nX3bs",
+  authDomain:        "time-tracker-df33b.firebaseapp.com",
+  projectId:         "time-tracker-df33b",
+  storageBucket:     "time-tracker-df33b.firebasestorage.app",
+  messagingSenderId: "1065069705605",
+  appId:             "1:1065069705605:web:2ea80cfcd7813dc3f26cec",
+});
+const db  = firebase.firestore();
+const col = db.collection("health_daily");
+</script>
+
+<script>
+const GRID_COLOR = 'rgba(14,184,255,0.1)';
+const TICK_COLOR = 'rgba(14,184,255,0.65)';
+function tooltipStyle() {
+  return { backgroundColor:'rgba(4,6,18,0.97)', borderColor:'rgba(14,184,255,0.45)', borderWidth:1,
+    titleColor:'#0eb8ff', bodyColor:'rgba(14,184,255,0.65)',
+    titleFont:{family:'Share Tech Mono'}, bodyFont:{family:'Share Tech Mono'} };
+}
+
+// ── Weather + Air Quality correlations ───────────────────────────────────────
+// State
+let corrWindow  = 30;
+let corrHistory = 0;
+let wxData      = null;  // { date → {tempMean, sunshine, daylight, precip} }
+let aqData      = null;  // { date → {pm2_5, pm10, no2, o3, aqi, uv} }
+let corrAllData = [];
+let correlCharts = {};
+
+// Colour per biometric (used in rolling charts)
+const H_COLORS = {
+  'HRV':          'rgba(160,80,255,0.85)',
+  'Sleep':        'rgba(80,160,255,0.85)',
+  'Stress':       'rgba(255,200,80,0.85)',
+  'Body Battery': 'rgba(80,220,160,0.85)',
+  'Steps':        'rgba(14,184,255,0.85)',
+  'Resting HR':   'rgba(255,80,140,0.85)',
+};
+
+// ── Weather archive (Open-Meteo, daily) ──────────────────────────
+async function fetchWeatherArchive(startDate) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const cKey = `health_wx_arch_${startDate}`;
+  try {
+    const c = JSON.parse(localStorage.getItem(cKey) || 'null');
+    if (c && Date.now() - c.t < 12 * 3600 * 1000) return c.d;
+  } catch(e) {}
+
+  const url = 'https://archive-api.open-meteo.com/v1/archive'
+    + '?latitude=48.2416&longitude=16.4442'
+    + '&daily=temperature_2m_mean,sunshine_duration,precipitation_sum,daylight_duration'
+    + `&start_date=${startDate}&end_date=${endDate}`
+    + '&timezone=Europe%2FVienna';
+
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('weather archive ' + resp.status);
+  const j = await resp.json();
+
+  const byDate = {};
+  (j.daily?.time || []).forEach((d, i) => {
+    byDate[d] = {
+      tempMean: j.daily.temperature_2m_mean[i],
+      sunshine: (j.daily.sunshine_duration[i] ?? 0) / 3600,
+      daylight: (j.daily.daylight_duration[i] ?? 0) / 3600,
+      precip:   j.daily.precipitation_sum[i] ?? 0,
+    };
+  });
+
+  try { localStorage.setItem(cKey, JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
+  return byDate;
+}
+
+// ── Air quality archive (Open-Meteo CAMS, hourly → daily) ────────
+async function fetchAirQualityArchive(startDate) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const cKey = `health_aq_arch_${startDate}`;
+  try {
+    const c = JSON.parse(localStorage.getItem(cKey) || 'null');
+    if (c && Date.now() - c.t < 12 * 3600 * 1000) return c.d;
+  } catch(e) {}
+
+  const url = 'https://air-quality-api.open-meteo.com/v1/air-quality'
+    + '?latitude=48.2416&longitude=16.4442'
+    + '&hourly=pm2_5,pm10,nitrogen_dioxide,ozone,european_aqi,uv_index'
+    + `&start_date=${startDate}&end_date=${endDate}`
+    + '&timezone=Europe%2FVienna';
+
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('air quality ' + resp.status);
+  const j = await resp.json();
+
+  // Aggregate hourly → daily (mean for pollutants, max for UV)
+  const acc = {};
+  (j.hourly?.time || []).forEach((ts, i) => {
+    const date = ts.slice(0, 10);
+    if (!acc[date]) acc[date] = { pm2_5:[], pm10:[], no2:[], o3:[], aqi:[], uv:[] };
+    const a = acc[date];
+    if (j.hourly.pm2_5?.[i]            != null) a.pm2_5.push(j.hourly.pm2_5[i]);
+    if (j.hourly.pm10?.[i]             != null) a.pm10.push(j.hourly.pm10[i]);
+    if (j.hourly.nitrogen_dioxide?.[i] != null) a.no2.push(j.hourly.nitrogen_dioxide[i]);
+    if (j.hourly.ozone?.[i]            != null) a.o3.push(j.hourly.ozone[i]);
+    if (j.hourly.european_aqi?.[i]     != null) a.aqi.push(j.hourly.european_aqi[i]);
+    if (j.hourly.uv_index?.[i]         != null) a.uv.push(j.hourly.uv_index[i]);
+  });
+
+  const mean = arr => arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : null;
+  const max  = arr => arr.length ? Math.max(...arr) : null;
+
+  const byDate = {};
+  for (const [date, a] of Object.entries(acc)) {
+    byDate[date] = {
+      pm2_5: mean(a.pm2_5),
+      pm10:  mean(a.pm10),
+      no2:   mean(a.no2),
+      o3:    mean(a.o3),
+      aqi:   mean(a.aqi),
+      uv:    max(a.uv),
+    };
+  }
+
+  try { localStorage.setItem(cKey, JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
+  return byDate;
+}
+
+// ── Pearson + rolling ─────────────────────────────────────────────
+function pearson(xs, ys) {
+  const pairs = xs.map((x,i) => [x, ys[i]]).filter(([x,y]) => x != null && y != null && !isNaN(x) && !isNaN(y));
+  if (pairs.length < 3) return null;
+  const n = pairs.length;
+  const mx = pairs.reduce((s,[x]) => s+x, 0) / n;
+  const my = pairs.reduce((s,[,y]) => s+y, 0) / n;
+  let num=0, dx2=0, dy2=0;
+  for (const [x,y] of pairs) { const a=x-mx, b=y-my; num+=a*b; dx2+=a*a; dy2+=b*b; }
+  const denom = Math.sqrt(dx2*dy2);
+  return denom < 1e-10 ? 0 : parseFloat((num/denom).toFixed(3));
+}
+
+function rollingCorr(dates, xs, ys, win) {
+  return dates.slice(win-1).map((_, i) => ({
+    date: dates[i+win-1],
+    r:    pearson(xs.slice(i, i+win), ys.slice(i, i+win)),
+  }));
+}
+
+function corrStyle(r) {
+  if (r == null) return 'color:rgba(14,184,255,0.45);border-left-color:rgba(14,184,255,0.2)';
+  const a = (0.55 + Math.abs(r) * 0.45).toFixed(2);
+  return r >= 0
+    ? `color:rgba(14,184,255,${a});border-left-color:rgba(14,184,255,${a})`
+    : `color:rgba(255,80,80,${a});border-left-color:rgba(255,80,80,${a})`;
+}
+
+// ── Slice of Garmin data honoring corrHistory ─────────────────────
+function getCorrelSlice() {
+  if (!corrAllData.length) return [];
+  const lim = (corrHistory > 0 && corrHistory < corrAllData.length)
+    ? corrHistory : corrAllData.length;
+  return corrAllData.slice(-lim);
+}
+
+// ── Build metric arrays ───────────────────────────────────────────
+function buildHW(data) {
+  const dates = data.map(d => d.date);
+  const H = {
+    'HRV':          data.map(d => d.hrv?.lastNight        ?? null),
+    'Sleep':        data.map(d => d.sleep?.durationHours  ?? null),
+    'Stress':       data.map(d => d.avgStress             ?? null),
+    'Body Battery': data.map(d => d.bodyBattery?.end      ?? null),
+    'Steps':        data.map(d => d.steps                 ?? null),
+    'Resting HR':   data.map(d => d.restingHR             ?? null),
+  };
+  const WX = {
+    'Temp °C':    dates.map(d => wxData?.[d]?.tempMean ?? null),
+    'Sunshine h': dates.map(d => wxData?.[d]?.sunshine ?? null),
+    'Daylight h': dates.map(d => wxData?.[d]?.daylight ?? null),
+    'Precip mm':  dates.map(d => wxData?.[d]?.precip   ?? null),
+  };
+  const AQ = {
+    'PM2.5':  dates.map(d => aqData?.[d]?.pm2_5 ?? null),
+    'PM10':   dates.map(d => aqData?.[d]?.pm10  ?? null),
+    'NO₂':    dates.map(d => aqData?.[d]?.no2   ?? null),
+    'O₃':     dates.map(d => aqData?.[d]?.o3    ?? null),
+    'AQI':    dates.map(d => aqData?.[d]?.aqi   ?? null),
+    'UV idx': dates.map(d => aqData?.[d]?.uv    ?? null),
+  };
+  return { dates, H, WX, AQ };
+}
+
+// ── Controls panel (rendered once, sliders mutate state) ─────────
+function renderCorrelControls() {
+  const total = corrAllData.length;
+  const maxH  = Math.max(30, total);
+  const curH  = (corrHistory > 0 && corrHistory < total) ? corrHistory : total;
+
+  const bioCov = [
+    ['HRV',          corrAllData.filter(d => (d.hrv?.lastNight        ?? null) != null).length],
+    ['Sleep',        corrAllData.filter(d => (d.sleep?.durationHours  ?? null) != null).length],
+    ['Stress',       corrAllData.filter(d => (d.avgStress             ?? null) != null).length],
+    ['Body Battery', corrAllData.filter(d => (d.bodyBattery?.end      ?? null) != null).length],
+    ['Steps',        corrAllData.filter(d => (d.steps                 ?? null) != null).length],
+    ['Resting HR',   corrAllData.filter(d => (d.restingHR             ?? null) != null).length],
+  ];
+  const wxN = corrAllData.filter(d => wxData?.[d.date] != null).length;
+  const aqN = corrAllData.filter(d => aqData?.[d.date] != null).length;
+
+  const covBar = (n, col) => {
+    const pct = total > 0 ? Math.round(n/total*100) : 0;
+    return `<div class="cov-bar-bg"><div class="cov-bar" style="width:${pct}%;background:${col}"></div></div>
+            <span class="cov-pct" style="color:${col}">${pct}% (${n}d)</span>`;
+  };
+
+  document.getElementById('correlControls').innerHTML = `
+    <div class="correl-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">rolling window &nbsp;·&nbsp; <span class="ctrl-val" id="winVal">${corrWindow}</span> days</div>
+        <input type="range" class="correl-range" id="winSlider" min="6" max="180" step="1" value="${corrWindow}">
+        <div class="ctrl-sublabel">6 days &nbsp;→&nbsp; 6 months</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">history &nbsp;·&nbsp; <span class="ctrl-val" id="histVal">${curH}</span> days</div>
+        <input type="range" class="correl-range" id="histSlider" min="30" max="${maxH}" step="1" value="${curH}">
+        <div class="ctrl-sublabel">30 days &nbsp;→&nbsp; all (${total})${total < 60
+          ? ' &nbsp;<span class="warn-hint">↑ run workflow sync_days=365</span>' : ''}</div>
+      </div>
+      <div class="ctrl-group ctrl-coverage">
+        <div class="ctrl-label">biometric coverage</div>
+        ${bioCov.map(([k, n]) => {
+          const pct = total > 0 ? Math.round(n/total*100) : 0;
+          const col = pct < 20 ? 'rgba(255,80,80,.9)' : pct < 60 ? 'rgba(255,200,80,.9)' : 'rgba(14,184,255,.9)';
+          return `<div class="cov-item"><span class="cov-name">${k}</span>${covBar(n, col)}</div>`;
+        }).join('')}
+      </div>
+      <div class="ctrl-group ctrl-coverage">
+        <div class="ctrl-label">environment coverage</div>
+        <div class="cov-item"><span class="cov-name" style="color:rgba(14,184,255,.85)">🌤 Weather</span>${covBar(wxN, 'rgba(14,184,255,.9)')}</div>
+        <div class="cov-item"><span class="cov-name" style="color:rgba(255,160,40,.9)">🏭 Air Quality</span>${covBar(aqN, 'rgba(255,160,40,.9)')}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('winSlider').addEventListener('input', function() {
+    corrWindow = parseInt(this.value);
+    document.getElementById('winVal').textContent = corrWindow;
+    refreshCorrelCharts();
+  });
+  document.getElementById('histSlider').addEventListener('input', function() {
+    const v = parseInt(this.value);
+    corrHistory = v >= maxH ? 0 : v;
+    document.getElementById('histVal').textContent = corrHistory > 0 ? corrHistory : total;
+    refreshCorrelCharts();
+  });
+}
+
+// ── Matrix: 6 biometrics × (4 weather + 6 AQ) ────────────────────
+function renderCorrelMatrix() {
+  const el = document.getElementById('correlMatrix');
+  if (!el) return;
+  const data = getCorrelSlice();
+  const { dates, H, WX, AQ } = buildHW(data);
+  const hKeys  = Object.keys(H);
+  const wxKeys = Object.keys(WX);
+  const aqKeys = Object.keys(AQ);
+  const totalEnvCols = wxKeys.length + aqKeys.length;
+
+  // Compute all r values
+  const mat = {};
+  hKeys.forEach(hk => {
+    mat[hk] = {};
+    wxKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], WX[wk]); });
+    aqKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], AQ[wk]); });
+  });
+
+  // Grid template: label col + env cols
+  const gtc = `112px repeat(${totalEnvCols}, minmax(82px, 1fr))`;
+
+  el.innerHTML = `
+    <div class="chart-title">// pearson r · biometrics vs environment · ${dates.length} days //</div>
+    <div class="correl-matrix" style="grid-template-columns:${gtc}">
+      <!-- Group header row -->
+      <div></div>
+      <div class="correl-group-cell correl-group-wx" style="grid-column:span ${wxKeys.length}">🌤 weather</div>
+      <div class="correl-group-cell correl-group-aq" style="grid-column:span ${aqKeys.length}">🏭 air quality</div>
+      <!-- Column headers -->
+      <div></div>
+      ${wxKeys.map(wk => `<div class="correl-hdr-cell">${wk}</div>`).join('')}
+      ${aqKeys.map(wk => `<div class="correl-hdr-cell correl-hdr-aq">${wk}</div>`).join('')}
+      <!-- Data rows -->
+      ${hKeys.map(hk => `
+        <div class="correl-row-label">${hk}</div>
+        ${wxKeys.map(wk => {
+          const r = mat[hk][wk];
+          return `<div class="correl-cell" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r??'n/a'}">${r!=null?r:'n/a'}</div>`;
+        }).join('')}
+        ${aqKeys.map(wk => {
+          const r = mat[hk][wk];
+          return `<div class="correl-cell correl-cell-aq" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r??'n/a'}">${r!=null?r:'n/a'}</div>`;
+        }).join('')}`).join('')}
+    </div>
+    <div class="correl-legend">
+      <span style="color:rgba(255,80,80,.95)">■ negative</span>
+      <span style="color:rgba(14,184,255,.5)">■ near zero</span>
+      <span style="color:rgba(14,184,255,.98)">■ positive</span>
+      <span>&nbsp;· |r| = intensity · open-meteo · vienna 48.24°N</span>
+    </div>`;
+}
+
+// ── Rolling charts — every non-null pair, sorted by |r| ──────────
+function renderCorrelRolling() {
+  Object.values(correlCharts).forEach(c => c.destroy());
+  correlCharts = {};
+
+  const data = getCorrelSlice();
+  const grid = document.getElementById('correlRollingGrid');
+  if (!grid) return;
+
+  if (data.length < corrWindow + 1) {
+    grid.innerHTML = `<div class="no-data" style="grid-column:1/-1">
+      need at least ${corrWindow + 1} days to render a ${corrWindow}-day rolling window</div>`;
+    return;
+  }
+
+  const { dates, H, WX, AQ } = buildHW(data);
+  const allEnv = { ...WX, ...AQ };
+
+  // Build all pairs with valid r values, sort by |r| desc
+  const pairs = [];
+  for (const hk of Object.keys(H)) {
+    for (const wk of Object.keys(allEnv)) {
+      const r = pearson(H[hk], allEnv[wk]);
+      if (r != null) pairs.push({ h:hk, w:wk, r, absR:Math.abs(r), isAQ: wk in AQ });
+    }
+  }
+  pairs.sort((a,b) => b.absR - a.absR);
+
+  if (!pairs.length) {
+    grid.innerHTML = `<div class="no-data" style="grid-column:1/-1">
+      no overlapping data — run Garmin workflow with sync_days=365</div>`;
+    return;
+  }
+
+  grid.innerHTML = pairs.map((p, i) => `
+    <div class="chart-panel">
+      <div class="chart-title" style="color:${p.isAQ ? 'rgba(255,160,40,.88)' : 'rgba(14,184,255,.88)'}">
+        // ${corrWindow}d r · ${p.h.toLowerCase()} vs ${p.w.toLowerCase()} &nbsp;<span style="opacity:.65">(r=${p.r})</span> //
+      </div>
+      <div class="chart-wrap"><canvas id="cc-${i}"></canvas></div>
+    </div>`).join('');
+
+  pairs.forEach((p, i) => {
+    const el = document.getElementById(`cc-${i}`);
+    if (!el) return;
+    const roll = rollingCorr(dates, H[p.h], allEnv[p.w], corrWindow);
+    correlCharts[i] = new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: roll.map(r => r.date.slice(5)),
+        datasets: [{
+          data: roll.map(r => r.r),
+          borderColor: H_COLORS[p.h],
+          backgroundColor: H_COLORS[p.h].replace('0.85','0.08'),
+          borderWidth: 1.5, pointRadius: 1.5, pointBackgroundColor: H_COLORS[p.h],
+          fill: true, tension: 0.35, spanGaps: true,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{display:false}, tooltip:{...tooltipStyle()} },
+        scales: {
+          x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12},maxTicksLimit:8} },
+          y: {
+            grid:{color:GRID_COLOR}, min:-1, max:1,
+            afterBuildTicks: ax => { ax.ticks=[-1,-0.5,0,0.5,1].map(v=>({value:v})); },
+            ticks: { color:TICK_COLOR, font:{family:'Share Tech Mono',size:12}, callback:v=>v.toFixed(1) },
+          },
+        }
+      }
+    });
+  });
+}
+
+function refreshCorrelCharts() {
+  renderCorrelMatrix();
+  renderCorrelRolling();
+}
+
+// ── Entry point ───────────────────────────────────────────────────
+async function loadAndRenderCorrelations(rawDocs) {
+  corrAllData = rawDocs.filter(d => d.date).sort((a,b) => a.date.localeCompare(b.date));
+  const statusEl = document.getElementById('correlStatus');
+  if (!corrAllData.length) { statusEl.textContent = 'no garmin data yet'; return; }
+
+  const startDate = corrAllData[0].date;
+  statusEl.textContent = `fetching environment data for ${corrAllData.length} days...`;
+
+  try {
+    [wxData, aqData] = await Promise.all([
+      fetchWeatherArchive(startDate),
+      fetchAirQualityArchive(startDate),
+    ]);
+  } catch(e) {
+    statusEl.textContent = 'environment data unavailable — ' + e.message;
+    return;
+  }
+
+  // Static outer structure — correlRollingGrid rebuilt on each slider change
+  document.getElementById('correlGrid').innerHTML = `
+    <div class="chart-panel" style="grid-column:1/-1" id="correlMatrix"></div>
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px"
+         id="correlRollingGrid"></div>`;
+
+  renderCorrelControls();
+  renderCorrelMatrix();
+  renderCorrelRolling();
+
+  const wxN = Object.keys(wxData).filter(d => d >= startDate).length;
+  const aqN = Object.keys(aqData).filter(d => d >= startDate).length;
+  statusEl.textContent = `open-meteo · ${corrAllData.length} garmin · ${wxN} weather · ${aqN} AQ days · vienna 48.24°N`;
+}
+
+
+
+col.orderBy('date', 'asc').onSnapshot(snap => {
+  const docs = snap.docs.map(d => d.data());
+  document.getElementById('pgStatus').textContent = docs.length + ' days of garmin data loaded';
+  loadAndRenderCorrelations(docs);
+}, err => {
+  document.getElementById('pgStatus').textContent = 'error: ' + err.message;
+});
+</script>
+</body>
+</html>
