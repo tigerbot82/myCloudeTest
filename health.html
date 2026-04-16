@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#c8e2f5;overflow-x:hidden;
+    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#ddeeff;font-size:15px;overflow-x:hidden;
       background:#06091a;
       background-image:radial-gradient(ellipse 90% 60% at 8% 8%,rgba(12,100,192,0.13) 0%,transparent 60%),
         radial-gradient(ellipse 70% 50% at 92% 92%,rgba(14,184,255,0.07) 0%,transparent 60%);
@@ -24,7 +24,7 @@
       border-bottom:1px solid rgba(14,184,255,0.14);box-shadow:0 1px 24px rgba(0,0,0,0.7);}
     .nav-back{font-size:1em;letter-spacing:.06em;color:rgba(14,184,255,.9);text-decoration:none;transition:color .15s}
     .nav-back:hover{color:#0eb8ff}
-    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:rgba(14,184,255,.72)}
+    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:rgba(14,184,255,.90)}
     .nav-sync{margin-left:auto;font-size:.94em;letter-spacing:.06em;
       padding:6px 16px;border:1px solid rgba(14,184,255,.35);border-radius:3px;
       background:transparent;color:rgba(14,184,255,.82);cursor:pointer;transition:all .15s;}
@@ -32,15 +32,15 @@
     .page-nav{position:fixed;top:53px;left:0;right:0;z-index:9;display:flex;padding:0 24px;
       background:rgba(4,6,18,0.95);border-bottom:1px solid rgba(14,184,255,.08);}
     .page-tab{font-size:.82em;letter-spacing:.12em;text-decoration:none;
-      padding:9px 16px;color:rgba(14,184,255,.48);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+      padding:9px 16px;color:rgba(14,184,255,.76);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
     .page-tab:hover{color:rgba(14,184,255,.82);}
     .page-tab.active{color:#0eb8ff;border-bottom-color:#0eb8ff;}
     .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;
       padding:108px 24px 60px;display:flex;flex-direction:column;gap:28px;}
     .hdr{text-align:center;padding:8px 0}
-    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.78);margin-bottom:10px;text-transform:uppercase}
+    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.92);margin-bottom:10px;text-transform:uppercase}
     .hdr h1{font-size:1.9em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
-    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.72);margin-top:8px}
+    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.88);margin-top:8px}
     .range-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
     .range-btn{font-family:inherit;font-size:.98em;letter-spacing:.06em;
       padding:8px 24px;border-radius:3px;cursor:pointer;
@@ -52,30 +52,30 @@
       border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
       border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:5px;}
     .stat-icon{font-size:1.3em;line-height:1;opacity:.95}
-    .stat-label{font-size:.88em;letter-spacing:.08em;color:rgba(14,184,255,.85);text-transform:uppercase;margin-top:2px}
-    .stat-value{font-size:1.65em;color:#0eb8ff;letter-spacing:.02em}
-    .stat-unit{font-size:.85em;color:rgba(14,184,255,.75)}
-    .stat-date{font-size:.82em;color:rgba(14,184,255,.65);margin-top:2px}
+    .stat-label{font-size:.9em;letter-spacing:.08em;color:rgba(14,184,255,.96);text-transform:uppercase;margin-top:2px}
+    .stat-value{font-size:2em;color:#0eb8ff;letter-spacing:.02em}
+    .stat-unit{font-size:.88em;color:rgba(14,184,255,.90)}
+    .stat-date{font-size:.86em;color:rgba(14,184,255,.82);margin-top:2px}
     .chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px}
     @media(max-width:520px){.chart-grid{grid-template-columns:1fr}}
     .chart-panel{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
       border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.2);
       border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
-    .chart-title{font-size:.94em;letter-spacing:.1em;text-transform:uppercase;
-      color:rgba(14,184,255,.88);padding-bottom:10px;margin-bottom:12px;
+    .chart-title{font-size:1em;letter-spacing:.1em;text-transform:uppercase;
+      color:rgba(14,184,255,1);padding-bottom:10px;margin-bottom:12px;
       border-bottom:1px solid rgba(14,184,255,.14);}
     .chart-wrap{position:relative;height:180px}
     .sleep-bar-wrap{margin-top:14px}
     .sleep-bar{height:8px;border-radius:2px;display:flex;overflow:hidden;margin-bottom:6px}
     .sleep-seg{height:100%;transition:width .4s}
     .sleep-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
-    .sleep-key{font-size:.88em;color:rgba(14,184,255,.85);display:flex;align-items:center;gap:5px}
+    .sleep-key{font-size:.92em;color:rgba(14,184,255,.95);display:flex;align-items:center;gap:5px}
     .sleep-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
     .no-data{text-align:center;padding:60px 20px;font-size:1em;letter-spacing:.08em;
       color:rgba(14,184,255,.75);border:1px dashed rgba(14,184,255,.18);border-radius:4px;background:rgba(8,12,32,.8);}
     .no-data a{color:rgba(14,184,255,.85);text-decoration:none}
     .no-data a:hover{color:#0eb8ff}
-    #status{font-size:.92em;letter-spacing:.06em;color:rgba(14,184,255,.75);text-align:center;margin-top:-12px}
+    #status{font-size:.94em;letter-spacing:.06em;color:rgba(14,184,255,.90);text-align:center;margin-top:-12px}
     #mfaPanel{display:none;position:fixed;bottom:24px;right:24px;z-index:100;
       padding:20px 22px;background:rgba(4,6,18,0.99);
       border:1px solid rgba(14,184,255,.35);border-top:2px solid #0eb8ff;
@@ -93,6 +93,43 @@
       border:1px solid rgba(14,184,255,.3);color:#0eb8ff;transition:all .15s;}
     #mfaSubmit:hover{background:rgba(14,184,255,.2)}
     #mfaStatus{font-size:.64em;color:rgba(14,184,255,.38);min-height:1em}
+
+    /* ── lifestyle log ── */
+    .log-panel{padding:20px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
+    .log-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+    .log-title{font-size:1em;letter-spacing:.1em;text-transform:uppercase;color:rgba(14,184,255,1)}
+    .log-date-nav{display:flex;align-items:center;gap:8px;margin-left:auto}
+    .log-date-btn{font-family:inherit;font-size:.85em;padding:4px 10px;border-radius:2px;cursor:pointer;
+      background:transparent;border:1px solid rgba(14,184,255,.25);color:rgba(14,184,255,.82);transition:all .15s;}
+    .log-date-btn:hover{background:rgba(14,184,255,.08);color:#0eb8ff;border-color:rgba(14,184,255,.55)}
+    .log-date-label{font-size:.9em;letter-spacing:.06em;color:#0eb8ff;min-width:90px;text-align:center}
+    .log-vars{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:16px}
+    .log-var{display:flex;flex-direction:column;gap:4px}
+    .log-var-label{font-size:.82em;letter-spacing:.1em;text-transform:uppercase;color:rgba(14,184,255,.90)}
+    .log-var-row{display:flex;align-items:center;gap:6px}
+    .log-var-input{font-family:inherit;font-size:1em;width:80px;padding:5px 8px;
+      background:rgba(14,184,255,.04);border:1px solid rgba(14,184,255,.22);border-radius:3px;
+      color:#0eb8ff;outline:none;text-align:right;}
+    .log-var-input:focus{border-color:rgba(14,184,255,.55)}
+    .log-var-unit{font-size:.82em;color:rgba(14,184,255,.72)}
+    .log-var-del{font-size:.8em;padding:2px 6px;border-radius:2px;cursor:pointer;margin-left:auto;
+      background:transparent;border:1px solid rgba(255,80,80,.2);color:rgba(255,80,80,.55);
+      font-family:inherit;transition:all .15s;}
+    .log-var-del:hover{background:rgba(255,80,80,.08);border-color:rgba(255,80,80,.5);color:rgba(255,80,80,.9)}
+    .log-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .log-btn{font-family:inherit;font-size:.85em;letter-spacing:.08em;padding:7px 18px;border-radius:3px;cursor:pointer;transition:all .15s}
+    .log-save{background:rgba(14,184,255,.1);border:1px solid rgba(14,184,255,.35);color:#0eb8ff;}
+    .log-save:hover{background:rgba(14,184,255,.2);border-color:rgba(14,184,255,.7)}
+    .log-add-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .log-new-input{font-family:inherit;font-size:.88em;padding:5px 10px;
+      background:rgba(14,184,255,.04);border:1px solid rgba(14,184,255,.22);border-radius:3px;
+      color:#ddeeff;outline:none;width:130px;}
+    .log-new-input:focus{border-color:rgba(14,184,255,.55)}
+    .log-add-btn{background:rgba(14,184,255,.06);border:1px solid rgba(14,184,255,.22);color:rgba(14,184,255,.88);}
+    .log-add-btn:hover{background:rgba(14,184,255,.14);border-color:rgba(14,184,255,.5);color:#0eb8ff}
+    .log-status{font-size:.82em;letter-spacing:.04em;color:rgba(14,184,255,.70);margin-left:auto}
   </style>
 </head>
 <body>
@@ -134,6 +171,28 @@
   <div id="status">loading data...</div>
   <div class="stat-grid" id="statGrid"></div>
   <div class="chart-grid" id="chartGrid"></div>
+
+  <!-- ── Lifestyle Log ── -->
+  <div class="log-panel">
+    <div class="log-header">
+      <div class="log-title">// lifestyle log //</div>
+      <div class="log-date-nav">
+        <button class="log-date-btn" id="logPrev" onclick="logNavDay(-1)">&#8592;</button>
+        <div class="log-date-label" id="logDateLabel"></div>
+        <button class="log-date-btn" id="logNext" onclick="logNavDay(1)">&#8594;</button>
+      </div>
+    </div>
+    <div class="log-vars" id="logVars"></div>
+    <div class="log-actions">
+      <button class="log-btn log-save" onclick="saveLog()">save log</button>
+      <div class="log-add-form">
+        <input class="log-new-input" id="logNewName" placeholder="variable name" maxlength="24">
+        <input class="log-new-input" id="logNewUnit" placeholder="unit (e.g. /10)" maxlength="12" style="width:100px">
+        <button class="log-btn log-add-btn" onclick="addLogVar()">+ add</button>
+      </div>
+      <div class="log-status" id="logStatus"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -155,7 +214,7 @@ let allDocs    = [];
 let charts     = {};
 
 const GRID_COLOR = 'rgba(14,184,255,0.1)';
-const TICK_COLOR = 'rgba(14,184,255,0.65)';
+const TICK_COLOR = 'rgba(200,230,255,0.82)';
 
 document.getElementById('rangeRow').addEventListener('click', e => {
   const btn = e.target.closest('.range-btn');
@@ -200,15 +259,21 @@ function render(docs) {
 function renderStats(data) {
   const today = data[data.length - 1];
   const cards = [
-    { icon:'👣', label:'steps',        value: fmt(today.steps),              unit:'steps' },
-    { icon:'🔥', label:'calories',     value: fmt(today.calories),           unit:'kcal'  },
-    { icon:'💓', label:'resting hr',   value: today.restingHR ?? '—',        unit:'bpm'   },
-    { icon:'⚡', label:'body battery', value: today.bodyBattery?.end ?? '—', unit:'/ 100' },
-    { icon:'😰', label:'avg stress',   value: today.avgStress ?? '—',        unit:'/ 100' },
-    { icon:'🌊', label:'hrv',          value: today.hrv?.lastNight ?? '—',   unit:'ms'    },
-    { icon:'😴', label:'sleep',        value: today.sleep?.durationHours ?? '—', unit:'hrs' },
-    { icon:'🩸', label:'spo2',         value: today.spo2?.avg ?? '—',        unit:'%'     },
-  ];
+    { icon:'👣', label:'steps',         value: fmt(today.steps),                    unit:'steps' },
+    { icon:'🔥', label:'calories',      value: fmt(today.calories),                 unit:'kcal'  },
+    { icon:'💓', label:'resting hr',    value: today.restingHR ?? '—',              unit:'bpm'   },
+    { icon:'⚡', label:'body battery',  value: today.bodyBattery?.end ?? '—',       unit:'/ 100' },
+    { icon:'😰', label:'avg stress',    value: today.avgStress ?? '—',              unit:'/ 100' },
+    { icon:'🌊', label:'hrv',           value: today.hrv?.lastNight ?? '—',         unit:'ms'    },
+    { icon:'😴', label:'sleep',         value: today.sleep?.durationHours ?? '—',   unit:'hrs'   },
+    { icon:'🩸', label:'spo2',          value: today.spo2?.avg ?? '—',              unit:'%'     },
+    { icon:'🏃', label:'distance',      value: today.distanceKm ?? '—',             unit:'km'    },
+    { icon:'⏱', label:'intensity',     value: today.intensityMinutes ?? '—',        unit:'min'   },
+    { icon:'🫁', label:'breathing',     value: today.respiration?.avg ?? '—',       unit:'br/min'},
+    { icon:'❤️', label:'vo2max',        value: today.vo2max ?? '—',                 unit:'ml/kg/min'},
+    { icon:'🏋️', label:'readiness',    value: today.trainingReadiness ?? '—',      unit:'/ 100' },
+    { icon:'⚖️', label:'weight',        value: today.weight?.kg ?? '—',             unit:'kg'    },
+  ].filter(c => c.value !== '—' || ['steps','sleep','resting hr','hrv','body battery','avg stress'].includes(c.label));
   document.getElementById('statGrid').innerHTML = cards.map(c => `
     <div class="stat-card">
       <div class="stat-icon">${c.icon}</div>
@@ -297,7 +362,7 @@ function buildSleepStagesChart(data, labels) {
 
 function tooltipStyle() {
   return { backgroundColor:'rgba(4,6,18,0.97)', borderColor:'rgba(14,184,255,0.45)', borderWidth:1,
-    titleColor:'#0eb8ff', bodyColor:'rgba(14,184,255,0.65)',
+    titleColor:'#0eb8ff', bodyColor:'rgba(200,230,255,0.82)',
     titleFont:{family:'Share Tech Mono'}, bodyFont:{family:'Share Tech Mono'} };
 }
 
@@ -336,6 +401,103 @@ function submitMfa() {
     .then(() => { document.getElementById('mfaStatus').textContent = '✓ code sent — workflow resuming'; })
     .catch(e  => { document.getElementById('mfaStatus').textContent = 'error: ' + e.message; });
 }
+
+// ── Lifestyle Log ──────────────────────────────────────────────────────────
+const customVarsRef = db.collection('_config').doc('custom_vars');
+let logVarDefs = [];   // [{name, unit}]
+let logDate    = new Date().toISOString().slice(0, 10);
+let logValues  = {};   // name → current value for logDate
+
+function fmtLogDate(ds) {
+  const [y,m,d] = ds.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function logNavDay(delta) {
+  const dt = new Date(logDate);
+  dt.setDate(dt.getDate() + delta);
+  const newDate = dt.toISOString().slice(0, 10);
+  if (newDate > new Date().toISOString().slice(0, 10)) return; // don't go to future
+  logDate = newDate;
+  document.getElementById('logNext').disabled = logDate >= new Date().toISOString().slice(0, 10);
+  loadLogForDate(logDate);
+}
+
+function renderLogVars() {
+  const container = document.getElementById('logVars');
+  if (!logVarDefs.length) {
+    container.innerHTML = '<div style="font-size:.88em;color:rgba(14,184,255,.60);grid-column:1/-1">no variables defined yet — add one below</div>';
+    return;
+  }
+  container.innerHTML = logVarDefs.map(v => `
+    <div class="log-var">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="log-var-label">${v.name}</div>
+        <button class="log-var-del" onclick="deleteLogVar('${v.name}')" title="remove variable">✕</button>
+      </div>
+      <div class="log-var-row">
+        <input class="log-var-input" id="logval-${v.name.replace(/\s/g,'_')}"
+          type="number" step="0.1" placeholder="—"
+          value="${logValues[v.name] != null ? logValues[v.name] : ''}">
+        <span class="log-var-unit">${v.unit}</span>
+      </div>
+    </div>`).join('');
+}
+
+function loadLogForDate(date) {
+  document.getElementById('logDateLabel').textContent = fmtLogDate(date);
+  col.doc(date).get().then(snap => {
+    logValues = (snap.exists && snap.data().custom) ? {...snap.data().custom} : {};
+    renderLogVars();
+  });
+}
+
+function addLogVar() {
+  const nameEl = document.getElementById('logNewName');
+  const unitEl = document.getElementById('logNewUnit');
+  const name   = nameEl.value.trim();
+  const unit   = unitEl.value.trim();
+  if (!name) { setLogStatus('enter a variable name'); return; }
+  if (logVarDefs.some(v => v.name.toLowerCase() === name.toLowerCase())) {
+    setLogStatus('variable already exists'); return;
+  }
+  logVarDefs.push({ name, unit });
+  nameEl.value = ''; unitEl.value = '';
+  saveVarDefs().then(() => { renderLogVars(); setLogStatus(`added: ${name}`); });
+}
+
+function deleteLogVar(name) {
+  logVarDefs = logVarDefs.filter(v => v.name !== name);
+  saveVarDefs().then(() => { renderLogVars(); setLogStatus(`removed: ${name}`); });
+}
+
+function saveVarDefs() {
+  return customVarsRef.set({ vars: logVarDefs }, { merge: false });
+}
+
+function saveLog() {
+  const custom = {};
+  logVarDefs.forEach(v => {
+    const el = document.getElementById('logval-' + v.name.replace(/\s/g,'_'));
+    if (el && el.value !== '') custom[v.name] = parseFloat(el.value);
+  });
+  if (!Object.keys(custom).length) { setLogStatus('nothing to save'); return; }
+  setLogStatus('saving...');
+  col.doc(logDate).set({ custom }, { merge: true })
+    .then(() => setLogStatus('✓ saved for ' + fmtLogDate(logDate)))
+    .catch(e => setLogStatus('error: ' + e.message));
+}
+
+function setLogStatus(msg) {
+  const el = document.getElementById('logStatus');
+  if (el) { el.textContent = msg; clearTimeout(el._t); el._t = setTimeout(() => el.textContent = '', 4000); }
+}
+
+// Bootstrap log panel
+customVarsRef.get().then(snap => {
+  logVarDefs = (snap.exists && snap.data().vars) ? snap.data().vars : [];
+  loadLogForDate(logDate);
+}).catch(() => { loadLogForDate(logDate); });
 </script>
 </body>
 </html>
