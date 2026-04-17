@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health · Gym Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#ddeeff;font-size:15px;overflow-x:hidden;
+      background:#06091a;
+      background-image:radial-gradient(ellipse 90% 60% at 8% 8%,rgba(12,100,192,0.13) 0%,transparent 60%),
+        radial-gradient(ellipse 70% 50% at 92% 92%,rgba(14,184,255,0.07) 0%,transparent 60%);
+      background-attachment:fixed;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:radial-gradient(circle,rgba(14,184,255,0.05) 1px,transparent 1px);
+      background-size:30px 30px;}
+    .top-nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:16px;
+      padding:14px 28px;background:rgba(4,6,18,0.97);
+      border-bottom:1px solid rgba(14,184,255,0.14);box-shadow:0 1px 24px rgba(0,0,0,0.7);}
+    .nav-back{font-size:1em;letter-spacing:.06em;color:rgba(14,184,255,.9);text-decoration:none;transition:color .15s}
+    .nav-back:hover{color:#0eb8ff}
+    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:rgba(14,184,255,.90)}
+    .page-nav{position:fixed;top:53px;left:0;right:0;z-index:9;display:flex;padding:0 24px;
+      background:rgba(4,6,18,0.95);border-bottom:1px solid rgba(14,184,255,.08);}
+    .page-tab{font-size:.82em;letter-spacing:.12em;text-decoration:none;
+      padding:9px 16px;color:rgba(14,184,255,.76);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+    .page-tab:hover{color:rgba(14,184,255,.82);}
+    .page-tab.active{color:#0eb8ff;border-bottom-color:#0eb8ff;}
+    .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;
+      padding:108px 24px 60px;display:flex;flex-direction:column;gap:28px;}
+    .hdr{text-align:center;padding:8px 0}
+    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.92);margin-bottom:10px;text-transform:uppercase}
+    .hdr h1{font-size:1.9em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
+    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.88);margin-top:8px}
+    .panel{padding:20px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
+    .panel-title{font-size:1em;letter-spacing:.1em;text-transform:uppercase;
+      color:rgba(14,184,255,1);padding-bottom:10px;margin-bottom:16px;
+      border-bottom:1px solid rgba(14,184,255,.14);display:flex;align-items:center;gap:12px}
+    .workout-badge{font-size:.8em;padding:3px 10px;border-radius:2px;letter-spacing:.1em;
+      background:rgba(14,184,255,.1);border:1px solid rgba(14,184,255,.35);color:#0eb8ff;}
+    .workout-badge.b{background:rgba(160,80,255,.1);border-color:rgba(160,80,255,.35);color:rgba(160,80,255,1);}
+    /* workout toggle */
+    .wt-row{display:flex;gap:8px;margin-bottom:18px;align-items:center}
+    .wt-btn{font-family:inherit;font-size:.88em;letter-spacing:.1em;padding:6px 20px;
+      border-radius:3px;cursor:pointer;border:1px solid rgba(14,184,255,.25);
+      background:transparent;color:rgba(14,184,255,.70);transition:all .15s;}
+    .wt-btn.active-a{background:rgba(14,184,255,.12);border-color:rgba(14,184,255,.6);color:#0eb8ff;}
+    .wt-btn.active-b{background:rgba(160,80,255,.12);border-color:rgba(160,80,255,.6);color:rgba(160,80,255,1);}
+    .wt-date{font-family:inherit;font-size:.9em;padding:5px 10px;
+      background:rgba(14,184,255,.04);border:1px solid rgba(14,184,255,.22);border-radius:3px;
+      color:#ddeeff;outline:none;margin-left:auto;}
+    /* exercise cards */
+    .ex-grid{display:flex;flex-direction:column;gap:10px}
+    .ex-card{background:rgba(6,9,24,.99);border:1px solid rgba(14,184,255,.1);
+      border-radius:4px;padding:14px 16px;}
+    .ex-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .ex-name{font-size:.96em;letter-spacing:.06em;color:#ddeeff;flex:1}
+    .ex-prev{font-size:.82em;color:rgba(14,184,255,.55);letter-spacing:.03em}
+    .ex-inputs{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .ex-field{display:flex;flex-direction:column;gap:3px}
+    .ex-lbl{font-size:.75em;letter-spacing:.1em;color:rgba(14,184,255,.65);text-transform:uppercase}
+    .ex-inp{font-family:inherit;font-size:1em;width:68px;padding:6px 8px;text-align:center;
+      background:rgba(14,184,255,.04);border:1px solid rgba(14,184,255,.2);border-radius:3px;
+      color:#0eb8ff;outline:none;transition:border-color .15s;}
+    .ex-inp:focus{border-color:rgba(14,184,255,.6)}
+    .ex-inp.wide{width:90px}
+    .ex-unit{font-size:.8em;color:rgba(14,184,255,.60);align-self:flex-end;padding-bottom:7px}
+    .flag-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+    .flag-btn{font-family:inherit;font-size:.78em;padding:3px 9px;border-radius:2px;cursor:pointer;
+      border:1px solid rgba(14,184,255,.18);background:transparent;color:rgba(14,184,255,.60);transition:all .12s;}
+    .flag-btn:hover{background:rgba(14,184,255,.08);color:rgba(14,184,255,.95)}
+    .flag-btn.sel{background:rgba(14,184,255,.15);border-color:rgba(14,184,255,.6);color:#0eb8ff;}
+    .flag-btn.sel.bad{background:rgba(255,80,80,.1);border-color:rgba(255,80,80,.5);color:rgba(255,120,120,1);}
+    .flag-btn.sel.warn{background:rgba(255,200,80,.1);border-color:rgba(255,200,80,.5);color:rgba(255,220,100,1);}
+    .flag-btn.sel.good{background:rgba(80,220,160,.1);border-color:rgba(80,220,160,.5);color:rgba(80,220,160,1);}
+    .ex-notes{font-family:inherit;font-size:.86em;width:100%;margin-top:8px;padding:5px 8px;
+      background:rgba(14,184,255,.03);border:1px solid rgba(14,184,255,.14);border-radius:3px;
+      color:rgba(14,184,255,.82);outline:none;resize:none;}
+    .ex-notes:focus{border-color:rgba(14,184,255,.4)}
+    /* session notes + save */
+    .session-footer{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+    .session-notes{font-family:inherit;font-size:.9em;width:100%;padding:8px 12px;
+      background:rgba(14,184,255,.03);border:1px solid rgba(14,184,255,.16);border-radius:3px;
+      color:#ddeeff;outline:none;resize:vertical;min-height:60px;}
+    .session-notes:focus{border-color:rgba(14,184,255,.4)}
+    .session-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn-save{font-family:inherit;font-size:.9em;letter-spacing:.08em;padding:8px 24px;
+      border-radius:3px;cursor:pointer;background:rgba(14,184,255,.1);
+      border:1px solid rgba(14,184,255,.4);color:#0eb8ff;transition:all .15s;}
+    .btn-save:hover{background:rgba(14,184,255,.22);border-color:rgba(14,184,255,.75)}
+    .btn-seed{font-family:inherit;font-size:.82em;letter-spacing:.06em;padding:6px 16px;
+      border-radius:3px;cursor:pointer;background:transparent;
+      border:1px solid rgba(14,184,255,.18);color:rgba(14,184,255,.55);transition:all .15s;}
+    .btn-seed:hover{border-color:rgba(14,184,255,.4);color:rgba(14,184,255,.85)}
+    .save-status{font-size:.84em;color:rgba(14,184,255,.70);margin-left:auto}
+    /* progress charts */
+    .chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:14px}
+    @media(max-width:520px){.chart-grid{grid-template-columns:1fr}}
+    .chart-panel{padding:16px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.2);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
+    .chart-title{font-size:.94em;letter-spacing:.08em;text-transform:uppercase;
+      color:rgba(14,184,255,1);padding-bottom:8px;margin-bottom:10px;
+      border-bottom:1px solid rgba(14,184,255,.14);}
+    .chart-wrap{position:relative;height:160px}
+    .pg-status{font-size:.9em;letter-spacing:.06em;color:rgba(14,184,255,.88);text-align:center;margin-top:-12px}
+  </style>
+</head>
+<body>
+<nav class="top-nav">
+  <a href="index.html" class="nav-back">&larr; home</a>
+  <span class="nav-crumb">// health tracker //</span>
+</nav>
+<nav class="page-nav">
+  <a href="health.html"       class="page-tab">overview</a>
+  <a href="correlations.html" class="page-tab">correlations</a>
+  <a href="viz.html"          class="page-tab">visualizations</a>
+  <a href="gym.html"          class="page-tab active">gym</a>
+</nav>
+
+<div class="page">
+  <div class="hdr">
+    <div class="hdr-pre">// strength training //</div>
+    <h1>gym tracker</h1>
+    <div class="hdr-sub" id="gymSubtitle">loading...</div>
+  </div>
+  <div class="pg-status" id="pgStatus">loading sessions...</div>
+
+  <!-- Log panel -->
+  <div class="panel" id="logPanel">
+    <div class="panel-title">
+      // log session //
+      <span class="workout-badge" id="workoutBadge">A</span>
+    </div>
+    <div class="wt-row">
+      <button class="wt-btn active-a" id="btnA" onclick="selectWorkout('A')">workout A</button>
+      <button class="wt-btn" id="btnB" onclick="selectWorkout('B')">workout B</button>
+      <input type="date" class="wt-date" id="sessionDate">
+    </div>
+    <div class="ex-grid" id="exGrid"></div>
+    <div class="session-footer">
+      <textarea class="session-notes" id="sessionNotes" rows="2" placeholder="session notes..."></textarea>
+      <div class="session-actions">
+        <button class="btn-save" onclick="saveSession()">save session</button>
+        <button class="btn-seed" onclick="seedHistorical()" id="btnSeed">import PDF history</button>
+        <span class="save-status" id="saveStatus"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress charts -->
+  <div class="panel">
+    <div class="panel-title">// progress //</div>
+    <div class="chart-grid" id="chartGrid"></div>
+  </div>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey:            "AIzaSyAnRbmN4bVSbegq4IDvQfCsMmlcc1nX3bs",
+  authDomain:        "time-tracker-df33b.firebaseapp.com",
+  projectId:         "time-tracker-df33b",
+  storageBucket:     "time-tracker-df33b.firebasestorage.app",
+  messagingSenderId: "1065069705605",
+  appId:             "1:1065069705605:web:2ea80cfcd7813dc3f26cec",
+});
+const db     = firebase.firestore();
+const gymCol = db.collection("gym_sessions");
+</script>
+<script id="gymScript">
+const WORKOUTS = {
+  A: {
+    label: 'Workout A',
+    exercises: [
+      { id:'bench_press',   name:'Bench Press',          unit:'kg',      bilateral:false },
+      { id:'rowing_machine',name:'Rowing Machine',        unit:'kg',      bilateral:false },
+      { id:'squat',         name:'Squat / Bent Over Row', unit:'kg',      bilateral:false },
+      { id:'db_row',        name:'DB Row',                unit:'kg/hand', bilateral:true  },
+      { id:'incline_db',    name:'Incline DB Press',      unit:'kg/hand', bilateral:true  },
+      { id:'lateral_raise', name:'Lateral Raise / Cable', unit:'kg',      bilateral:false },
+    ]
+  },
+  B: {
+    label: 'Workout B',
+    exercises: [
+      { id:'lat_pulldown',  name:'Lat Pulldown',          unit:'kg',      bilateral:false },
+      { id:'cable_row',     name:'Cable Row / Deadlift',  unit:'kg',      bilateral:false },
+      { id:'deadlift_db',   name:'Deadlift DB',           unit:'kg/hand', bilateral:true  },
+      { id:'lunges',        name:'Lunges',                unit:'kg/hand', bilateral:true  },
+      { id:'bicep_curl',    name:'Bicep Curl / LR',       unit:'kg/hand', bilateral:true  },
+      { id:'core',          name:'Crunch / Core',         unit:'kg',      bilateral:false },
+    ]
+  }
+};
+
+const FLAGS = [
+  { key:'++',      label:'++',      cls:'good' },
+  { key:'+',       label:'+',       cls:'good' },
+  { key:'-',       label:'-',       cls:'bad'  },
+  { key:'--',      label:'--',      cls:'bad'  },
+  { key:'!!',      label:'!!',      cls:'good' },
+  { key:'!',       label:'!',       cls:'good' },
+  { key:'NXT',     label:'NXT',     cls:''     },
+  { key:'??',      label:'??',      cls:'warn' },
+  { key:'injured', label:'injured', cls:'warn' },
+];
+
+// Seed data parsed from GymLog.pdf (2025-2026)
+const SEED_A = [
+  { date:'2025-11-03', exercises:{ bench_press:{s:3,r:12,w:45,f:'-'},   rowing_machine:{s:3,r:15,w:60,f:'++'},  squat:{s:3,r:24,w:60,f:'++'},  db_row:{s:3,r:12,w:12.5,f:''},   incline_db:{s:3,r:12,w:12.5,f:''},   lateral_raise:{s:3,r:12,w:20,f:''} },  notes:'' },
+  { date:'2025-11-11', exercises:{ bench_press:{s:3,r:12,w:45,f:'-'},   rowing_machine:{s:3,r:15,w:60,f:''},    squat:{s:3,r:24,w:60,f:'++'},  db_row:{s:3,r:12,w:12.5,f:''},   incline_db:{s:3,r:12,w:12.5,f:''},   lateral_raise:{s:3,r:12,w:20,f:''} },  notes:'' },
+  { date:'2025-11-18', exercises:{ bench_press:{s:3,r:12,w:45,f:'!'},   rowing_machine:{s:3,r:15,w:60,f:'!'},   squat:{s:3,r:24,w:70,f:'++'},  db_row:{s:3,r:12,w:15,f:'-'},    incline_db:{s:3,r:12,w:15,f:'-'},    lateral_raise:{s:3,r:12,w:20,f:''} },  notes:'' },
+  { date:'2025-11-25', exercises:{ bench_press:{s:3,r:12,w:45,f:''},    rowing_machine:{s:3,r:15,w:60,f:''},    squat:{s:3,r:12,w:80,f:''},    db_row:{s:3,r:12,w:15,f:'-'},    incline_db:{s:3,r:12,w:15,f:'-'},    lateral_raise:{s:3,r:12,w:20,f:'-'} }, notes:'' },
+  { date:'2025-12-02', exercises:{ bench_press:{s:3,r:12,w:45,f:''},    rowing_machine:{s:3,r:15,w:60,f:''},    squat:{s:3,r:12,w:90,f:''},    db_row:{s:3,r:12,w:15,f:'-'},    incline_db:{s:3,r:12,w:15,f:'-'},    lateral_raise:{s:3,r:12,w:20,f:''} },  notes:'' },
+  { date:'2025-12-08', exercises:{ bench_press:{s:3,r:12,w:45,f:'+'},   rowing_machine:{s:3,r:15,w:60,f:'+'},   squat:{s:3,r:12,w:100,f:''},   db_row:{s:3,r:12,w:15,f:'-'},    incline_db:{s:3,r:12,w:15,f:'-'},    lateral_raise:{s:3,r:12,w:20,f:''} },  notes:'' },
+  { date:'2025-12-15', exercises:{ bench_press:{s:3,r:12,w:50,f:'-'},   rowing_machine:{s:3,r:15,w:65,f:'-'},   squat:{s:3,r:12,w:100,f:''},   db_row:{s:3,r:12,w:15,f:'-'},    incline_db:{s:3,r:12,w:15,f:'-'},    lateral_raise:{s:3,r:12,w:22.5,f:''} }, notes:'' },
+  { date:'2025-12-23', exercises:{ bench_press:{s:3,r:12,w:50,f:'-'},   rowing_machine:{s:3,r:15,w:65,f:'+'},   squat:{s:3,r:12,w:100,f:'++'},  db_row:{s:3,r:12,w:15,f:'-'},    incline_db:{s:3,r:12,w:15,f:'-'},    lateral_raise:{s:3,r:12,w:22.5,f:'-'} }, notes:'' },
+  { date:'2026-01-06', exercises:{ bench_press:{s:3,r:12,w:50,f:'-'},   rowing_machine:{s:3,r:15,w:65,f:'+'},   squat:{s:3,r:12,w:100,f:'++'} }, notes:'' },
+  { date:'2026-01-11', exercises:{ bench_press:{s:3,r:12,w:50,f:'-'},   rowing_machine:{s:3,r:15,w:65,f:'+'},   squat:{s:3,r:12,w:100,f:'NXT'}, db_row:{s:3,r:12,w:15,f:'-'},    incline_db:{s:3,r:12,w:15,f:''},     lateral_raise:{s:3,r:12,w:22.5,f:''} }, notes:'' },
+  { date:'2026-01-20', exercises:{ bench_press:{s:3,r:12,w:52.5,f:'-'}, rowing_machine:{s:3,r:15,w:70,f:'-'},   squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:15,f:'-'},    incline_db:{s:3,r:12,w:15,f:''},     lateral_raise:{s:3,r:12,w:22.5,f:'-'} }, notes:'Gains-gains-gains!! Creatine saturation?' },
+  { date:'2026-01-27', exercises:{ bench_press:{s:3,r:12,w:45,f:'-'},   rowing_machine:{s:3,r:15,w:60,f:'-'},   squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:12.5,f:'-'},  incline_db:{s:3,r:12,w:12.5,f:'-'},  lateral_raise:{s:3,r:12,w:20,f:'--'} }, notes:'Shifting to metcon, hernia concerns, low VO2max and HRV' },
+  { date:'2026-02-05', exercises:{ bench_press:{s:3,r:12,w:45,f:'-'},   rowing_machine:{s:3,r:15,w:55,f:'-'},   squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:12.5,f:''},   incline_db:{s:3,r:12,w:10,f:''},     lateral_raise:{s:3,r:12,w:20,f:''} },  notes:'Getting out of sickness, recalibrating for perfect form x12' },
+  { date:'2026-02-12', exercises:{ bench_press:{s:3,r:12,w:52.5,f:''},  rowing_machine:{s:3,r:15,w:50,f:''},    squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:10,f:''},     incline_db:{s:3,r:12,w:10,f:''},     lateral_raise:{s:3,r:12,w:20,f:''} },  notes:'Switched to dumbbell incline press and lateral raise' },
+  { date:'2026-02-24', exercises:{ bench_press:{s:3,r:12,w:45,f:'-'},   rowing_machine:{s:3,r:15,w:55,f:'-'},   squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:10,f:''},     incline_db:{s:3,r:12,w:10,f:''},     lateral_raise:{s:3,r:12,w:17.5,f:''} }, notes:'Back after skiing, no ego, perfect form' },
+  { date:'2026-03-02', exercises:{ bench_press:{s:3,r:12,w:45,f:''},    rowing_machine:{s:3,r:15,w:55,f:''},    squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:12.5,f:''},   incline_db:{s:3,r:12,w:10,f:''},     lateral_raise:{s:3,r:12,w:17.5,f:''} }, notes:'' },
+  { date:'2026-03-18', exercises:{ bench_press:{s:3,r:12,w:45,f:'+'},   rowing_machine:{s:3,r:15,w:55,f:'+'},   squat:{s:3,r:12,w:110,f:'+'},  db_row:{s:3,r:12,w:12.5,f:'-'},  incline_db:{s:3,r:12,w:10,f:'+'},    lateral_raise:{s:3,r:12,w:17.5,f:''} }, notes:'Back from US trip, jet lag, 4 dates before gym — felt strong!' },
+  { date:'2026-03-24', exercises:{ bench_press:{s:3,r:12,w:47.5,f:'-'}, rowing_machine:{s:3,r:15,w:60,f:'-'},   squat:{s:3,r:12,w:80,f:'++'},  db_row:{s:3,r:12,w:12.5,f:''},   incline_db:{s:3,r:12,w:12.5,f:'-'},  lateral_raise:{s:3,r:12,w:20,f:'-'} }, notes:'Felt strong, cutting + marathon training' },
+  { date:'2026-03-31', exercises:{ bench_press:{s:3,r:12,w:47.5,f:'-'}, rowing_machine:{s:3,r:15,w:60,f:'-'},   squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:12.5,f:'-'},  incline_db:{s:3,r:12,w:12.5,f:'-'},  lateral_raise:{s:3,r:12,w:20,f:'-'} }, notes:'After Budapest, calibrating perfect form no momentum' },
+  { date:'2026-04-08', exercises:{ bench_press:{s:3,r:12,w:47.5,f:''},  rowing_machine:{s:3,r:15,w:60,f:''},    squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:12.5,f:''},   incline_db:{s:3,r:12,w:12.5,f:'-'},  lateral_raise:{s:3,r:12,w:20,f:'-'} }, notes:'' },
+  { date:'2026-04-14', exercises:{ bench_press:{s:3,r:12,w:50,f:'-'},   rowing_machine:{s:3,r:15,w:60,f:''},    squat:{s:3,r:12,w:110,f:''},   db_row:{s:3,r:12,w:12.5,f:'-'},  incline_db:{s:3,r:12,w:12.5,f:'-'},  lateral_raise:{s:3,r:12,w:20,f:'-'} }, notes:'Slight drop, perhaps 3 days without creatine' },
+];
+
+const SEED_B = [
+  { date:'2025-11-07', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:''},  cable_row:{s:3,r:12,w:60,f:''},    deadlift_db:{s:3,r:12,w:22.5,f:'!'},  lunges:{s:2,r:15,w:12.5,f:''},   bicep_curl:{s:2,r:12,w:22.5,f:'!!'}, core:{s:3,r:12,w:27.5,f:'!!'} }, notes:'NEXT on all — great session' },
+  { date:'2025-11-11', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:'-'}, cable_row:{s:3,r:12,w:60,f:'-'},   deadlift_db:{s:3,r:12,w:22.5,f:'!!'}, lunges:{s:2,r:15,w:12.5,f:'-'},  bicep_curl:{s:2,r:12,w:22.5,f:'!!'}, core:{s:3,r:12,w:27.5,f:'!!'} }, notes:'NEXT' },
+  { date:'2025-11-21', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:'-'}, cable_row:{s:3,r:12,w:60,f:''},    deadlift_db:{s:3,r:12,w:22.5,f:'!!'}, lunges:{s:2,r:15,w:12.5,f:''},   bicep_curl:{s:2,r:12,w:22.5,f:''},   core:{s:3,r:12,w:27.5,f:'!!'} }, notes:'NEXT' },
+  { date:'2025-11-28', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:'-'}, cable_row:{s:3,r:12,w:60,f:'-'},   deadlift_db:{s:3,r:12,w:22.5,f:'!!'}, lunges:{s:2,r:15,w:12.5,f:'-'},  bicep_curl:{s:2,r:12,w:22.5,f:'-'},  core:{s:3,r:12,w:27.5,f:'!!'} }, notes:'Whole family flu, creatine stopped a week ago' },
+  { date:'2025-12-02', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:'-'}, cable_row:{s:3,r:12,w:60,f:'-'},   deadlift_db:{s:3,r:12,w:22.5,f:'!!'}, lunges:{s:2,r:15,w:12.5,f:'-'},  bicep_curl:{s:2,r:12,w:22.5,f:'++'}, core:{s:3,r:18,w:27.5,f:''} },  notes:'' },
+  { date:'2025-12-09', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:'++'}, cable_row:{s:3,r:12,w:60,f:''},   deadlift_db:{s:3,r:12,w:22.5,f:'++'}, lunges:{s:2,r:15,w:12.5,f:''},   bicep_curl:{s:2,r:12,w:22.5,f:''},   core:{s:3,r:18,w:27.5,f:'++'} }, notes:'Mediocre sleep, lot of growth!! NXT' },
+  { date:'2025-12-15', exercises:{ lat_pulldown:{s:3,r:12,w:25,f:'-'},   cable_row:{s:3,r:12,w:65,f:'-'},   deadlift_db:{s:3,r:12,w:25,f:''},     lunges:{s:2,r:12,w:12.5,f:''},   bicep_curl:{s:2,r:12,w:25,f:'-'},    core:{s:3,r:18,w:27.5,f:''} },  notes:'' },
+  { date:'2025-12-29', exercises:{ lat_pulldown:{s:3,r:12,w:25,f:'-'},   cable_row:{s:3,r:12,w:65,f:'-'},   deadlift_db:{s:3,r:12,w:25,f:''},     lunges:{s:2,r:12,w:12.5,f:''},   bicep_curl:{s:2,r:12,w:25,f:'-'},    core:{s:3,r:18,w:27.5,f:''} },  notes:'After Christmas, shitty sleep, lot of stress' },
+  { date:'2026-01-09', exercises:{ lat_pulldown:{s:3,r:12,w:25,f:'-'},   cable_row:{s:3,r:12,w:65,f:'-'},   deadlift_db:{s:3,r:12,w:25,f:''},     lunges:{s:2,r:12,w:12.5,f:'-'},  bicep_curl:{s:2,r:12,w:25,f:'-'},    core:{s:3,r:24,w:27.5,f:''} },  notes:'Felt little sick this week' },
+  { date:'2026-01-13', exercises:{ lat_pulldown:{s:3,r:12,w:25,f:'-'},   cable_row:{s:3,r:12,w:65,f:'!'},   deadlift_db:{s:3,r:12,w:25,f:''},     lunges:{s:2,r:12,w:12.5,f:'+'},  bicep_curl:{s:2,r:12,w:25,f:''},     core:{s:3,r:24,w:27.5,f:''} },  notes:'Some growth' },
+  { date:'2026-01-23', exercises:{ lat_pulldown:{s:3,r:12,w:25,f:'-'},   cable_row:{s:3,r:12,w:65,f:'-'},   deadlift_db:{s:3,r:12,w:25,f:'!!'}, lunges:{s:2,r:12,w:12.5,f:'-'},  bicep_curl:{s:2,r:12,w:25,f:''},     core:{s:3,r:24,w:27.5,f:''} },  notes:'Drop, lack of motivation, less cheating' },
+  { date:'2026-02-06', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:''},  cable_row:{s:3,r:12,w:65,f:'-'},   deadlift_db:{s:3,r:12,w:25,f:'!!'}, lunges:{s:2,r:12,w:12.5,f:'-'},  bicep_curl:{s:2,r:12,w:25,f:''},     core:{s:3,r:24,w:27.5,f:''} },  notes:'Recalibrating to perfect form 3x12' },
+  { date:'2026-02-26', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:'-'}, cable_row:{s:5,r:5,w:55,f:'-'},    deadlift_db:{s:3,r:12,w:22.5,f:''},  lunges:{s:2,r:12,w:10,f:''},     bicep_curl:{s:2,r:12,w:22.5,f:'-'}, core:{s:3,r:18,w:25,f:''} },    notes:'48h after last training, major abs cramp' },
+  { date:'2026-03-06', exercises:{ lat_pulldown:{s:3,r:12,w:22.5,f:'-'}, cable_row:{s:5,r:5,w:55,f:'-'},    deadlift_db:{s:3,r:12,w:22.5,f:''},  lunges:{s:2,r:12,w:10,f:''},     bicep_curl:{s:2,r:12,w:22.5,f:''},  core:{s:3,r:18,w:25,f:''} },    notes:'Still recalibrating x12 perfect form' },
+  { date:'2026-03-20', exercises:{ lat_pulldown:{s:3,r:12,w:20,f:''},    cable_row:{s:5,r:5,w:50,f:''},     deadlift_db:{s:3,r:12,w:20,f:''},    lunges:{s:2,r:12,w:10,f:''},     bicep_curl:{s:2,r:12,w:22.5,f:''},  core:{s:3,r:18,w:0,f:''} },     notes:'Heavy training week, 48h after last gym' },
+  { date:'2026-03-26', exercises:{ lat_pulldown:{s:3,r:12,w:20,f:'-'},   cable_row:{s:5,r:5,w:50,f:'-'},    deadlift_db:{s:3,r:12,w:20,f:''},    lunges:{s:2,r:12,w:10,f:'-'},    bicep_curl:{s:2,r:12,w:0,f:''},     core:{s:3,r:18,w:0,f:''} },     notes:'Heavy training week' },
+  { date:'2026-04-02', exercises:{ lat_pulldown:{s:3,r:12,w:20,f:''},    cable_row:{s:5,r:5,w:50,f:'-'},    deadlift_db:{s:3,r:12,w:20,f:''},    lunges:{s:2,r:12,w:10,f:'-'},    bicep_curl:{s:2,r:12,w:0,f:''},     core:{s:3,r:18,w:25,f:''} },    notes:'Heavy training week' },
+  { date:'2026-04-10', exercises:{ lat_pulldown:{s:3,r:12,w:20,f:''},    cable_row:{s:5,r:5,w:50,f:'-'},    deadlift_db:{s:3,r:12,w:20,f:''},    lunges:{s:2,r:12,w:10,f:''},     bicep_curl:{s:2,r:12,w:0,f:''},     core:{s:3,r:18,w:25,f:''} },    notes:'Heavy training week, 48h after gym, good health, thin improvement' },
+];
+
+let currentWorkout = 'A';
+let allSessions    = [];
+let prevSession    = null;
+let flagState      = {};   // exId → selected flag key
+let charts         = {};
+
+const GRID_COLOR = 'rgba(14,184,255,0.1)';
+const TICK_COLOR = 'rgba(200,230,255,0.82)';
+
+// ── Init ─────────────────────────────────────────────────────────
+document.getElementById('sessionDate').value = new Date().toISOString().slice(0,10);
+
+gymCol.orderBy('date','asc').onSnapshot(snap => {
+  allSessions = snap.docs.map(d => d.data()).filter(d => d.date);
+  document.getElementById('pgStatus').textContent =
+    allSessions.length + ' sessions logged';
+  detectNextWorkout();
+  renderForm();
+  renderCharts();
+}, err => {
+  document.getElementById('pgStatus').textContent = 'error: ' + err.message;
+});
+
+function detectNextWorkout() {
+  if (!allSessions.length) return;
+  const last = allSessions[allSessions.length - 1];
+  const next = last.workout === 'A' ? 'B' : 'A';
+  selectWorkout(next, false);
+  // update subtitle
+  const daysAgo = Math.round((Date.now() - new Date(last.date)) / 86400000);
+  document.getElementById('gymSubtitle').textContent =
+    `last: ${last.workout} on ${last.date} (${daysAgo}d ago) · next: ${next}`;
+}
+
+function selectWorkout(w, renderNow = true) {
+  currentWorkout = w;
+  flagState = {};
+  document.getElementById('btnA').className = 'wt-btn' + (w==='A' ? ' active-a' : '');
+  document.getElementById('btnB').className = 'wt-btn' + (w==='B' ? ' active-b' : '');
+  document.getElementById('workoutBadge').textContent = w;
+  document.getElementById('workoutBadge').className = 'workout-badge' + (w==='B' ? ' b' : '');
+  // find previous session of this workout type
+  prevSession = [...allSessions].reverse().find(s => s.workout === w) || null;
+  if (renderNow) renderForm();
+}
+
+function renderForm() {
+  const exs = WORKOUTS[currentWorkout].exercises;
+  document.getElementById('exGrid').innerHTML = exs.map(ex => {
+    const prev  = prevSession?.exercises?.[ex.id];
+    const prevTxt = prev
+      ? `${prev.s}×${prev.r}×${prev.w}${ex.bilateral?' /hand':''}${prev.f?' '+prev.f:''}`
+      : 'no history';
+    const flagBtns = FLAGS.map(fl => {
+      const sel = flagState[ex.id] === fl.key;
+      return `<button class="flag-btn${sel?' sel '+fl.cls:''}" onclick="toggleFlag('${ex.id}','${fl.key}',this)">${fl.label}</button>`;
+    }).join('');
+    return `
+    <div class="ex-card">
+      <div class="ex-header">
+        <div class="ex-name">${ex.name}</div>
+        <div class="ex-prev">prev: ${prevTxt}</div>
+      </div>
+      <div class="ex-inputs">
+        <div class="ex-field"><div class="ex-lbl">sets</div>
+          <input class="ex-inp" id="${ex.id}_s" type="number" min="1" step="1"
+            value="${prev?.s ?? 3}" placeholder="3"></div>
+        <div class="ex-field"><div class="ex-lbl">reps</div>
+          <input class="ex-inp" id="${ex.id}_r" type="number" min="1" step="1"
+            value="${prev?.r ?? 12}" placeholder="12"></div>
+        <div class="ex-field"><div class="ex-lbl">weight</div>
+          <input class="ex-inp wide" id="${ex.id}_w" type="number" min="0" step="2.5"
+            value="${prev?.w ?? ''}" placeholder="—"></div>
+        <div class="ex-unit">${ex.unit}</div>
+      </div>
+      <div class="flag-row">${flagBtns}</div>
+      <textarea class="ex-notes" id="${ex.id}_n" rows="1" placeholder="notes..."></textarea>
+    </div>`;
+  }).join('');
+}
+
+function toggleFlag(exId, key, btn) {
+  const already = flagState[exId] === key;
+  flagState[exId] = already ? null : key;
+  renderForm();   // re-render to update button states
+}
+
+function saveSession() {
+  const date = document.getElementById('sessionDate').value;
+  if (!date) { setSaveStatus('pick a date first'); return; }
+  const exs = WORKOUTS[currentWorkout].exercises;
+  const exercises = {};
+  exs.forEach(ex => {
+    const s = parseFloat(document.getElementById(ex.id+'_s').value);
+    const r = parseFloat(document.getElementById(ex.id+'_r').value);
+    const w = parseFloat(document.getElementById(ex.id+'_w').value);
+    const n = document.getElementById(ex.id+'_n').value.trim();
+    const f = flagState[ex.id] || '';
+    if (!isNaN(s) && !isNaN(r)) {
+      exercises[ex.id] = { s, r, w: isNaN(w) ? 0 : w, f, n };
+    }
+  });
+  const doc = {
+    date, workout: currentWorkout,
+    exercises,
+    notes: document.getElementById('sessionNotes').value.trim(),
+    syncedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  setSaveStatus('saving...');
+  gymCol.doc(date).set(doc).then(() => {
+    setSaveStatus('✓ saved ' + date);
+    document.getElementById('sessionNotes').value = '';
+    flagState = {};
+  }).catch(e => setSaveStatus('error: ' + e.message));
+}
+
+function setSaveStatus(msg) {
+  const el = document.getElementById('saveStatus');
+  el.textContent = msg;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.textContent = '', 5000);
+}
+
+async function seedHistorical() {
+  const btn = document.getElementById('btnSeed');
+  btn.textContent = 'seeding...';
+  btn.disabled = true;
+  let count = 0;
+  const batch = db.batch();
+  for (const s of [...SEED_A, ...SEED_B]) {
+    const ref = gymCol.doc(s.date);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      const workout = SEED_A.includes(s) ? 'A' : 'B';
+      batch.set(ref, { date: s.date, workout, exercises: s.exercises, notes: s.notes,
+        syncedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      count++;
+    }
+  }
+  await batch.commit();
+  btn.textContent = count ? `✓ imported ${count} sessions` : '✓ already up to date';
+  setTimeout(() => { btn.textContent = 'import PDF history'; btn.disabled = false; }, 4000);
+}
+
+function renderCharts() {
+  const all = [...WORKOUTS.A.exercises, ...WORKOUTS.B.exercises];
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+  const grid = document.getElementById('chartGrid');
+  grid.innerHTML = all.map(ex => `
+    <div class="chart-panel">
+      <div class="chart-title">${ex.name}</div>
+      <div class="chart-wrap"><canvas id="gc-${ex.id}"></canvas></div>
+    </div>`).join('');
+
+  all.forEach(ex => {
+    const sessions = allSessions
+      .filter(s => s.exercises?.[ex.id]?.w > 0)
+      .sort((a,b) => a.date.localeCompare(b.date));
+    if (!sessions.length) return;
+    const labels = sessions.map(s => s.date.slice(5));
+    const weights = sessions.map(s => s.exercises[ex.id].w);
+    const flags   = sessions.map(s => s.exercises[ex.id].f || '');
+    const ptColors = flags.map(f =>
+      ['++','!!','+','!'].includes(f) ? 'rgba(80,220,160,0.9)' :
+      ['--','-'].includes(f)          ? 'rgba(255,80,80,0.85)' :
+      f === 'injured'                 ? 'rgba(255,200,80,0.9)' :
+                                        'rgba(14,184,255,0.85)');
+    const ctx = document.getElementById('gc-'+ex.id);
+    if (!ctx) return;
+    charts[ex.id] = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets: [{
+        data: weights,
+        borderColor: 'rgba(14,184,255,0.5)',
+        backgroundColor: 'rgba(14,184,255,0.06)',
+        pointBackgroundColor: ptColors,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 1.5,
+        fill: true, tension: 0.3, spanGaps: true,
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor:'rgba(4,6,18,0.97)',
+            borderColor:'rgba(14,184,255,0.45)', borderWidth:1,
+            titleColor:'#0eb8ff', bodyColor:'rgba(200,230,255,0.82)',
+            titleFont:{family:'Share Tech Mono'}, bodyFont:{family:'Share Tech Mono'},
+            callbacks: {
+              label: ctx => {
+                const s = sessions[ctx.dataIndex];
+                const ex2 = s.exercises[ex.id];
+                return `${ex2.s}×${ex2.r}×${ex2.w}kg  ${ex2.f||''}`;
+              },
+              afterLabel: ctx => {
+                const s = sessions[ctx.dataIndex];
+                return s.notes ? s.notes.slice(0,60) : '';
+              }
+            }
+          }
+        },
+        scales: {
+          x:{ grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10},maxRotation:45} },
+          y:{ grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}}, beginAtZero:false }
+        }
+      }
+    });
+  });
+}
+
+</script>
+</body>
+</html>
