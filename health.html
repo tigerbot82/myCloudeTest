@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#ddeeff;font-size:15px;overflow-x:hidden;
+    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#ddeeff;font-size:16px;overflow-x:hidden;
       background:#06091a;
       background-image:radial-gradient(ellipse 90% 60% at 8% 8%,rgba(12,100,192,0.13) 0%,transparent 60%),
         radial-gradient(ellipse 70% 50% at 92% 92%,rgba(14,184,255,0.07) 0%,transparent 60%);
@@ -24,27 +24,27 @@
       border-bottom:1px solid rgba(14,184,255,0.14);box-shadow:0 1px 24px rgba(0,0,0,0.7);}
     .nav-back{font-size:1em;letter-spacing:.06em;color:rgba(14,184,255,.9);text-decoration:none;transition:color .15s}
     .nav-back:hover{color:#0eb8ff}
-    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:rgba(14,184,255,.90)}
+    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:#ddeeff;}
     .nav-sync{margin-left:auto;font-size:.94em;letter-spacing:.06em;
       padding:6px 16px;border:1px solid rgba(14,184,255,.35);border-radius:3px;
       background:transparent;color:rgba(14,184,255,.82);cursor:pointer;transition:all .15s;}
     .nav-sync:hover{background:rgba(14,184,255,.1);color:#0eb8ff;border-color:rgba(14,184,255,.7)}
     .page-nav{position:fixed;top:53px;left:0;right:0;z-index:9;display:flex;padding:0 24px;
       background:rgba(4,6,18,0.95);border-bottom:1px solid rgba(14,184,255,.08);}
-    .page-tab{font-size:.82em;letter-spacing:.12em;text-decoration:none;
-      padding:9px 16px;color:rgba(14,184,255,.76);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+    .page-tab{font-size:.9em;letter-spacing:.1em;text-decoration:none;
+      padding:9px 18px;color:rgba(14,184,255,.88);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
     .page-tab:hover{color:rgba(14,184,255,.82);}
     .page-tab.active{color:#0eb8ff;border-bottom-color:#0eb8ff;}
     .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;
       padding:108px 24px 60px;display:flex;flex-direction:column;gap:28px;}
     .hdr{text-align:center;padding:8px 0}
-    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.92);margin-bottom:10px;text-transform:uppercase}
-    .hdr h1{font-size:1.9em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
-    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.88);margin-top:8px}
+    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.98);margin-bottom:10px;text-transform:uppercase}
+    .hdr h1{font-size:2.2em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
+    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.95);margin-top:8px}
     .range-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
     .range-btn{font-family:inherit;font-size:.98em;letter-spacing:.06em;
       padding:8px 24px;border-radius:3px;cursor:pointer;
-      border:1px solid rgba(14,184,255,.3);background:transparent;color:rgba(14,184,255,.82);transition:all .15s;}
+      border:1px solid rgba(14,184,255,.3);background:transparent;color:#ddeeff;transition:all .15s;}
     .range-btn:hover{background:rgba(14,184,255,.07);color:rgba(14,184,255,.95)}
     .range-btn.active{background:rgba(14,184,255,.12);color:#0eb8ff;border-color:rgba(14,184,255,.65)}
     .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
@@ -52,10 +52,10 @@
       border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
       border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:5px;}
     .stat-icon{font-size:1.3em;line-height:1;opacity:.95}
-    .stat-label{font-size:.9em;letter-spacing:.08em;color:rgba(14,184,255,.96);text-transform:uppercase;margin-top:2px}
-    .stat-value{font-size:2em;color:#0eb8ff;letter-spacing:.02em}
-    .stat-unit{font-size:.88em;color:rgba(14,184,255,.90)}
-    .stat-date{font-size:.86em;color:rgba(14,184,255,.82);margin-top:2px}
+    .stat-label{font-size:.9em;letter-spacing:.08em;color:#ddeeff;text-transform:uppercase;margin-top:2px}
+    .stat-value{font-size:2.2em;color:#0eb8ff;letter-spacing:.02em}
+    .stat-unit{font-size:.9em;color:#c8e2f5;}
+    .stat-date{font-size:.88em;color:rgba(14,184,255,.90);margin-top:2px}
     .chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px}
     @media(max-width:520px){.chart-grid{grid-template-columns:1fr}}
     .chart-panel{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
@@ -72,10 +72,10 @@
     .sleep-key{font-size:.92em;color:rgba(14,184,255,.95);display:flex;align-items:center;gap:5px}
     .sleep-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
     .no-data{text-align:center;padding:60px 20px;font-size:1em;letter-spacing:.08em;
-      color:rgba(14,184,255,.75);border:1px dashed rgba(14,184,255,.18);border-radius:4px;background:rgba(8,12,32,.8);}
+      color:#c8e2f5;border:1px dashed rgba(14,184,255,.18);border-radius:4px;background:rgba(8,12,32,.8);}
     .no-data a{color:rgba(14,184,255,.85);text-decoration:none}
     .no-data a:hover{color:#0eb8ff}
-    #status{font-size:.94em;letter-spacing:.06em;color:rgba(14,184,255,.90);text-align:center;margin-top:-12px}
+    #status{font-size:.94em;letter-spacing:.06em;color:#c8e2f5;text-align:center;margin-top:-12px}
     #mfaPanel{display:none;position:fixed;bottom:24px;right:24px;z-index:100;
       padding:20px 22px;background:rgba(4,6,18,0.99);
       border:1px solid rgba(14,184,255,.35);border-top:2px solid #0eb8ff;
@@ -102,12 +102,12 @@
     .log-title{font-size:1em;letter-spacing:.1em;text-transform:uppercase;color:rgba(14,184,255,1)}
     .log-date-nav{display:flex;align-items:center;gap:8px;margin-left:auto}
     .log-date-btn{font-family:inherit;font-size:.85em;padding:4px 10px;border-radius:2px;cursor:pointer;
-      background:transparent;border:1px solid rgba(14,184,255,.25);color:rgba(14,184,255,.82);transition:all .15s;}
+      background:transparent;border:1px solid rgba(14,184,255,.25);color:#ddeeff;transition:all .15s;}
     .log-date-btn:hover{background:rgba(14,184,255,.08);color:#0eb8ff;border-color:rgba(14,184,255,.55)}
     .log-date-label{font-size:.9em;letter-spacing:.06em;color:#0eb8ff;min-width:90px;text-align:center}
     .log-vars{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:16px}
     .log-var{display:flex;flex-direction:column;gap:4px}
-    .log-var-label{font-size:.82em;letter-spacing:.1em;text-transform:uppercase;color:rgba(14,184,255,.90)}
+    .log-var-label{font-size:.82em;letter-spacing:.1em;text-transform:uppercase;color:#ddeeff;}
     .log-var-row{display:flex;align-items:center;gap:6px}
     .log-var-input{font-family:inherit;font-size:1em;width:80px;padding:5px 8px;
       background:rgba(14,184,255,.04);border:1px solid rgba(14,184,255,.22);border-radius:3px;
@@ -215,7 +215,7 @@ let allDocs    = [];
 let charts     = {};
 
 const GRID_COLOR = 'rgba(14,184,255,0.1)';
-const TICK_COLOR = 'rgba(200,230,255,0.82)';
+const TICK_COLOR = 'rgba(220,240,255,0.95)';
 
 document.getElementById('rangeRow').addEventListener('click', e => {
   const btn = e.target.closest('.range-btn');
@@ -329,8 +329,8 @@ function makeLineChart(canvasId, labels, values, color) {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { ...tooltipStyle() } },
       scales: {
-        x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}} },
-        y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}}, beginAtZero:false },
+        x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}} },
+        y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}}, beginAtZero:false },
       }
     }
   });
@@ -352,10 +352,10 @@ function buildSleepStagesChart(data, labels) {
     ]},
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display:true, labels:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10},boxWidth:10} }, tooltip:{...tooltipStyle()} },
+      plugins: { legend: { display:true, labels:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12},boxWidth:10} }, tooltip:{...tooltipStyle()} },
       scales: {
-        x: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}} },
-        y: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}} },
+        x: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}} },
+        y: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}} },
       }
     }
   });

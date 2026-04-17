@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#ddeeff;font-size:15px;overflow-x:hidden;
+    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#ddeeff;font-size:16px;overflow-x:hidden;
       background:#06091a;
       background-image:radial-gradient(ellipse 90% 60% at 8% 8%,rgba(12,100,192,0.13) 0%,transparent 60%),
         radial-gradient(ellipse 70% 50% at 92% 92%,rgba(14,184,255,0.07) 0%,transparent 60%);
@@ -24,27 +24,27 @@
       border-bottom:1px solid rgba(14,184,255,0.14);box-shadow:0 1px 24px rgba(0,0,0,0.7);}
     .nav-back{font-size:1em;letter-spacing:.06em;color:rgba(14,184,255,.9);text-decoration:none;transition:color .15s}
     .nav-back:hover{color:#0eb8ff}
-    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:rgba(14,184,255,.90)}
+    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:#ddeeff;}
     .page-nav{position:fixed;top:53px;left:0;right:0;z-index:9;display:flex;padding:0 24px;
       background:rgba(4,6,18,0.95);border-bottom:1px solid rgba(14,184,255,.08);}
-    .page-tab{font-size:.82em;letter-spacing:.12em;text-decoration:none;
-      padding:9px 16px;color:rgba(14,184,255,.76);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+    .page-tab{font-size:.9em;letter-spacing:.1em;text-decoration:none;
+      padding:9px 18px;color:rgba(14,184,255,.88);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
     .page-tab:hover{color:rgba(14,184,255,.82);}
     .page-tab.active{color:#0eb8ff;border-bottom-color:#0eb8ff;}
     .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;
       padding:108px 24px 60px;display:flex;flex-direction:column;gap:28px;}
     .hdr{text-align:center;padding:8px 0}
-    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.92);margin-bottom:10px;text-transform:uppercase}
-    .hdr h1{font-size:1.9em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
-    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.88);margin-top:8px}
+    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.98);margin-bottom:10px;text-transform:uppercase}
+    .hdr h1{font-size:2.2em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
+    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.95);margin-top:8px}
     .panel{padding:20px;background:rgba(8,12,32,0.97);
       border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
       border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
     .panel-title{font-size:1em;letter-spacing:.1em;text-transform:uppercase;
       color:rgba(14,184,255,1);padding-bottom:10px;margin-bottom:16px;
       border-bottom:1px solid rgba(14,184,255,.14);display:flex;align-items:center;gap:12px}
-    .workout-badge{font-size:.8em;padding:3px 10px;border-radius:2px;letter-spacing:.1em;
-      background:rgba(14,184,255,.1);border:1px solid rgba(14,184,255,.35);color:#0eb8ff;}
+    .workout-badge{font-size:.86em;padding:4px 12px;border-radius:2px;letter-spacing:.1em;
+      background:rgba(14,184,255,.1);border:1px solid rgba(14,184,255,.5);color:#0eb8ff;}
     .workout-badge.b{background:rgba(160,80,255,.1);border-color:rgba(160,80,255,.35);color:rgba(160,80,255,1);}
     /* workout toggle */
     .wt-row{display:flex;gap:8px;margin-bottom:18px;align-items:center}
@@ -61,20 +61,20 @@
     .ex-card{background:rgba(6,9,24,.99);border:1px solid rgba(14,184,255,.1);
       border-radius:4px;padding:14px 16px;}
     .ex-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-    .ex-name{font-size:.96em;letter-spacing:.06em;color:#ddeeff;flex:1}
-    .ex-prev{font-size:.82em;color:rgba(14,184,255,.55);letter-spacing:.03em}
+    .ex-name{font-size:1em;letter-spacing:.05em;color:#fff;flex:1}
+    .ex-prev{font-size:.86em;color:rgba(14,184,255,.85);letter-spacing:.03em}
     .ex-inputs{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .ex-field{display:flex;flex-direction:column;gap:3px}
-    .ex-lbl{font-size:.75em;letter-spacing:.1em;color:rgba(14,184,255,.65);text-transform:uppercase}
+    .ex-lbl{font-size:.8em;letter-spacing:.08em;color:rgba(14,184,255,.92);text-transform:uppercase}
     .ex-inp{font-family:inherit;font-size:1em;width:68px;padding:6px 8px;text-align:center;
       background:rgba(14,184,255,.04);border:1px solid rgba(14,184,255,.2);border-radius:3px;
       color:#0eb8ff;outline:none;transition:border-color .15s;}
     .ex-inp:focus{border-color:rgba(14,184,255,.6)}
     .ex-inp.wide{width:90px}
-    .ex-unit{font-size:.8em;color:rgba(14,184,255,.60);align-self:flex-end;padding-bottom:7px}
+    .ex-unit{font-size:.84em;color:rgba(14,184,255,.88);align-self:flex-end;padding-bottom:7px}
     .flag-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
-    .flag-btn{font-family:inherit;font-size:.78em;padding:3px 9px;border-radius:2px;cursor:pointer;
-      border:1px solid rgba(14,184,255,.18);background:transparent;color:rgba(14,184,255,.60);transition:all .12s;}
+    .flag-btn{font-family:inherit;font-size:.84em;padding:4px 10px;border-radius:2px;cursor:pointer;
+      border:1px solid rgba(14,184,255,.25);background:transparent;color:rgba(14,184,255,.85);transition:all .12s;}
     .flag-btn:hover{background:rgba(14,184,255,.08);color:rgba(14,184,255,.95)}
     .flag-btn.sel{background:rgba(14,184,255,.15);border-color:rgba(14,184,255,.6);color:#0eb8ff;}
     .flag-btn.sel.bad{background:rgba(255,80,80,.1);border-color:rgba(255,80,80,.5);color:rgba(255,120,120,1);}
@@ -82,7 +82,7 @@
     .flag-btn.sel.good{background:rgba(80,220,160,.1);border-color:rgba(80,220,160,.5);color:rgba(80,220,160,1);}
     .ex-notes{font-family:inherit;font-size:.86em;width:100%;margin-top:8px;padding:5px 8px;
       background:rgba(14,184,255,.03);border:1px solid rgba(14,184,255,.14);border-radius:3px;
-      color:rgba(14,184,255,.82);outline:none;resize:none;}
+      color:#c8e2f5;outline:none;resize:none;}
     .ex-notes:focus{border-color:rgba(14,184,255,.4)}
     /* session notes + save */
     .session-footer{margin-top:18px;display:flex;flex-direction:column;gap:10px}
@@ -99,18 +99,18 @@
       border-radius:3px;cursor:pointer;background:transparent;
       border:1px solid rgba(14,184,255,.18);color:rgba(14,184,255,.55);transition:all .15s;}
     .btn-seed:hover{border-color:rgba(14,184,255,.4);color:rgba(14,184,255,.85)}
-    .save-status{font-size:.84em;color:rgba(14,184,255,.70);margin-left:auto}
+    .save-status{font-size:.88em;color:#c8e2f5;margin-left:auto}
     /* progress charts */
     .chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:14px}
     @media(max-width:520px){.chart-grid{grid-template-columns:1fr}}
     .chart-panel{padding:16px;background:rgba(8,12,32,0.97);
       border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.2);
       border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
-    .chart-title{font-size:.94em;letter-spacing:.08em;text-transform:uppercase;
-      color:rgba(14,184,255,1);padding-bottom:8px;margin-bottom:10px;
+    .chart-title{font-size:1em;letter-spacing:.08em;text-transform:uppercase;
+      color:#0eb8ff;padding-bottom:8px;margin-bottom:10px;
       border-bottom:1px solid rgba(14,184,255,.14);}
     .chart-wrap{position:relative;height:160px}
-    .pg-status{font-size:.9em;letter-spacing:.06em;color:rgba(14,184,255,.88);text-align:center;margin-top:-12px}
+    .pg-status{font-size:.9em;letter-spacing:.06em;color:#c8e2f5;text-align:center;margin-top:-12px}
   </style>
 </head>
 <body>
@@ -265,7 +265,7 @@ let flagState      = {};   // exId → selected flag key
 let charts         = {};
 
 const GRID_COLOR = 'rgba(14,184,255,0.1)';
-const TICK_COLOR = 'rgba(200,230,255,0.82)';
+const TICK_COLOR = 'rgba(220,240,255,0.95)';
 
 // ── Init ─────────────────────────────────────────────────────────
 document.getElementById('sessionDate').value = new Date().toISOString().slice(0,10);
@@ -463,8 +463,8 @@ function renderCharts() {
           }
         },
         scales: {
-          x:{ grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10},maxRotation:45} },
-          y:{ grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:10}}, beginAtZero:false }
+          x:{ grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12},maxRotation:45} },
+          y:{ grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}}, beginAtZero:false }
         }
       }
     });

@@ -16,7 +16,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #c2e4ff;
+      color: #ddeeff;
+      font-size: 16px;
       overflow-x: hidden;
       background: #06091a;
       background-image:
@@ -41,13 +42,13 @@
 
     /* ── Title ── */
     .title-wrap { text-align: center; }
-    .title-pre  { font-size: 0.72em; letter-spacing: 0.25em; color: rgba(14,184,255,0.4); margin-bottom: 10px; }
+    .title-pre  { font-size: 0.9em; letter-spacing: 0.22em; color: rgba(14,184,255,0.82); margin-bottom: 10px; }
     h1 {
-      font-size: 2em; letter-spacing: 0.12em; text-transform: uppercase;
+      font-size: 2.4em; letter-spacing: 0.12em; text-transform: uppercase;
       color: #0eb8ff;
       text-shadow: 0 0 24px rgba(14,184,255,0.4);
     }
-    .title-sub { font-size: 0.75em; letter-spacing: 0.15em; color: rgba(14,184,255,0.3); margin-top: 8px; }
+    .title-sub { font-size: 0.9em; letter-spacing: 0.15em; color: rgba(14,184,255,0.72); margin-top: 8px; }
 
     /* ── Project grid ── */
     .projects {
@@ -85,18 +86,18 @@
     }
     .project-card.coming-soon:hover { transform: none; box-shadow: 0 4px 20px rgba(0,0,0,0.55); }
 
-    .card-icon { font-size: 2em; line-height: 1; }
+    .card-icon { font-size: 2.4em; line-height: 1; }
 
     .card-title {
-      font-size: 0.95em; letter-spacing: 0.12em;
+      font-size: 1.05em; letter-spacing: 0.1em;
       text-transform: uppercase; color: #0eb8ff;
     }
 
-    .card-tagline { font-size: 0.75em; color: rgba(14,184,255,0.5); line-height: 1.5; }
+    .card-tagline { font-size: 0.88em; color: rgba(14,184,255,0.80); line-height: 1.5; }
 
     .card-status {
       display: inline-flex; align-items: center; gap: 6px;
-      font-size: 0.68em; letter-spacing: 0.12em;
+      font-size: 0.82em; letter-spacing: 0.1em;
       padding: 3px 10px; border-radius: 2px;
       margin-top: auto; align-self: flex-start;
     }
@@ -106,9 +107,9 @@
       background: rgba(80,220,160,0.08);
     }
     .card-status.soon {
-      color: rgba(14,184,255,0.4);
-      border: 1px solid rgba(14,184,255,0.15);
-      background: rgba(14,184,255,0.04);
+      color: rgba(14,184,255,0.72);
+      border: 1px solid rgba(14,184,255,0.25);
+      background: rgba(14,184,255,0.05);
     }
   </style>
 </head>
@@ -141,6 +142,13 @@
       <div class="card-icon">📡</div>
       <div class="card-title">Event Radar</div>
       <div class="card-tagline">scan vienna's music scene — parent-friendly electronic events, ranked by taste</div>
+      <div class="card-status live">● live</div>
+    </a>
+
+    <a href="gym.html" class="project-card">
+      <div class="card-icon">🏋️</div>
+      <div class="card-title">Gym Tracker</div>
+      <div class="card-tagline">strength sessions, progress charts, workout A/B — imported from your training log</div>
       <div class="card-status live">● live</div>
     </a>
 
