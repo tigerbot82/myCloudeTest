@@ -177,9 +177,17 @@ if api is None:
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+SYNC_DEBUG = os.environ.get("SYNC_DEBUG", "").lower() in ("1", "true", "yes")
+
+
 def safe(fn, *args, **kwargs):
     try:
-        return fn(*args, **kwargs)
+        result = fn(*args, **kwargs)
+        if SYNC_DEBUG:
+            import json as _json
+            preview = _json.dumps(result, default=str)[:400]
+            print(f"  [debug] {fn.__name__}: {preview}")
+        return result
     except Exception as e:
         print(f"  warning: {fn.__name__} failed — {e}")
         return None
@@ -241,7 +249,7 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     hrv = {
         "lastNight": hrv_sum.get("lastNight"),
         "weeklyAvg": hrv_sum.get("weeklyAvg"),
-        "status":    hrv_sum.get("hrvStatus"),
+        "status":    hrv_sum.get("status") or hrv_sum.get("hrvStatus"),
     } if hrv_sum else None
 
     spo2_raw = safe(api.get_spo2_data, ds) or {}
@@ -262,12 +270,16 @@ for i in range(SYNC_DAYS - 1, -1, -1):
             vo2max = round(float(v), 1)
             break
 
-    tr_raw    = safe(api.get_training_status, ds) or {}
-    tr_score  = None
-    if isinstance(tr_raw, dict):
-        tr_score = tr_raw.get("trainingReadinessScore") or tr_raw.get("score")
-    elif isinstance(tr_raw, list) and tr_raw:
-        tr_score = tr_raw[0].get("trainingReadinessScore") or tr_raw[0].get("score")
+    tr_raw   = safe(api.get_training_readiness, ds) or []
+    tr_score = None
+    tr_list  = tr_raw if isinstance(tr_raw, list) else ([tr_raw] if tr_raw else [])
+    for entry in tr_list:
+        if not isinstance(entry, dict):
+            continue
+        s = entry.get("score") or entry.get("trainingReadinessScore")
+        if s is not None:
+            tr_score = int(s)
+            break
 
     body_raw  = safe(api.get_body_composition, ds) or {}
     weight_kg = None
@@ -304,6 +316,6 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     doc = {k: v for k, v in doc.items() if v is not None}
 
     col.document(ds).set(doc, merge=True)
-    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}, vo2max={vo2max}, resp={resp_avg}")
+    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}, resp={resp_avg}, vo2={vo2max}, readiness={tr_score}, spo2={spo2 and spo2.get('avg')}")
 
 print(f"\nSync complete — {SYNC_DAYS} days written to Firestore `health_daily`.")
