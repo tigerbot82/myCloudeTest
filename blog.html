@@ -1,149 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Book Blog</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #c2e4ff;
-      overflow-x: hidden;
-      background: #06091a;
-      background-image:
-        radial-gradient(ellipse 90% 60% at 8% 8%,  rgba(12,100,192,0.13) 0%, transparent 60%),
-        radial-gradient(ellipse 70% 50% at 92% 92%, rgba(14,184,255,0.07) 0%, transparent 60%);
-      background-attachment: fixed;
-    }
-
-    body::before {
-      content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background-image: radial-gradient(circle, rgba(14,184,255,0.05) 1px, transparent 1px);
-      background-size: 30px 30px;
-    }
-
-    .top-nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
-      display: flex; align-items: center; gap: 16px;
-      padding: 14px 28px;
-      background: rgba(4,6,18,0.97);
-      border-bottom: 1px solid rgba(14,184,255,0.14);
-      box-shadow: 0 1px 24px rgba(0,0,0,0.7);
-    }
-    .nav-back {
-      font-size: 0.78em; letter-spacing: 0.12em;
-      color: rgba(14,184,255,0.6); text-decoration: none;
-      transition: color 0.15s;
-    }
-    .nav-back:hover { color: #0eb8ff; }
-    .nav-crumb {
-      font-size: 0.72em; letter-spacing: 0.2em;
-      color: rgba(14,184,255,0.22);
-    }
-
-    .page {
-      position: relative; z-index: 1;
-      display: flex; flex-direction: column;
-      align-items: center; gap: 40px;
-      padding: 100px 20px 40px;
-      width: 100%; max-width: 640px;
-      text-align: center;
-    }
-
-    .title-wrap { text-align: center; }
-    .title-pre  { font-size: 0.72em; letter-spacing: 0.25em; color: rgba(14,184,255,0.4); margin-bottom: 10px; }
-    h1 {
-      font-size: 2em; letter-spacing: 0.12em; text-transform: uppercase;
-      color: #0eb8ff;
-      text-shadow: 0 0 24px rgba(14,184,255,0.4);
-    }
-    .title-sub { font-size: 0.75em; letter-spacing: 0.15em; color: rgba(14,184,255,0.3); margin-top: 8px; }
-
-    .coming-soon-panel {
-      display: flex; flex-direction: column; align-items: center; gap: 24px;
-      padding: 48px 40px;
-      background: rgba(8,12,32,0.97);
-      border: 1px solid rgba(14,184,255,0.12);
-      border-top: 2px solid rgba(14,184,255,0.28);
-      border-radius: 4px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.55);
-      width: 100%;
-    }
-
-    .big-icon { font-size: 4em; line-height: 1; }
-
-    .cs-title {
-      font-size: 1em; letter-spacing: 0.18em; text-transform: uppercase;
-      color: rgba(14,184,255,0.6);
-    }
-
-    .cs-desc {
-      font-size: 0.78em; color: rgba(14,184,255,0.4);
-      line-height: 1.8; max-width: 380px;
-    }
-
-    .cs-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 0.72em; letter-spacing: 0.14em;
-      padding: 6px 16px; border-radius: 2px;
-      color: rgba(14,184,255,0.4);
-      border: 1px solid rgba(14,184,255,0.15);
-      background: rgba(14,184,255,0.04);
-    }
-
-    .features {
-      display: flex; flex-direction: column; gap: 10px;
-      width: 100%; text-align: left;
-    }
-    .feature-item {
-      font-size: 0.73em; color: rgba(14,184,255,0.35);
-      letter-spacing: 0.1em;
-      padding: 8px 12px;
-      border-left: 2px solid rgba(14,184,255,0.12);
-    }
-    .feature-item::before { content: '// '; opacity: 0.5; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Book Blog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#ddeeff;font-size:16px;overflow-x:hidden;background:#06091a;background-image:radial-gradient(ellipse 90% 60% at 8% 8%,rgba(12,100,192,0.13) 0%,transparent 60%),radial-gradient(ellipse 70% 50% at 92% 92%,rgba(14,184,255,0.07) 0%,transparent 60%);background-attachment:fixed;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(circle,rgba(14,184,255,0.05) 1px,transparent 1px);background-size:30px 30px;}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:16px;padding:14px 28px;background:rgba(4,6,18,0.97);border-bottom:1px solid rgba(14,184,255,0.14);box-shadow:0 1px 24px rgba(0,0,0,0.7);}
+.nav-back{font-size:1em;letter-spacing:.06em;color:rgba(14,184,255,.9);text-decoration:none;}
+.nav-back:hover{color:#0eb8ff}
+.nav-crumb{font-size:.94em;letter-spacing:.1em;color:#ddeeff;}
+.page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:80px 20px 60px;display:flex;flex-direction:column;gap:22px;}
+.hdr{text-align:center;}
+.hdr-pre{font-size:.9em;letter-spacing:.2em;color:rgba(14,184,255,.88);margin-bottom:10px;text-transform:uppercase}
+.hdr h1{font-size:2.2em;letter-spacing:.12em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
+.hdr-sub{font-size:.9em;letter-spacing:.1em;color:rgba(14,184,255,.82);margin-top:8px}
+.stats-bar{display:flex;gap:12px;flex-wrap:wrap;}
+.sstat{background:rgba(8,12,32,0.97);border:1px solid rgba(14,184,255,.14);border-top:2px solid rgba(14,184,255,.28);padding:14px 20px;flex:1;min-width:110px;text-align:center;}
+.sstat-v{font-size:1.8em;color:#0eb8ff;}
+.sstat-l{font-size:.78em;letter-spacing:.1em;text-transform:uppercase;color:#ddeeff;margin-top:4px}
+.filters{background:rgba(8,12,32,0.97);border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.2);padding:16px 20px;display:flex;flex-direction:column;gap:11px;}
+.filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.flabel{font-size:.78em;letter-spacing:.1em;text-transform:uppercase;color:rgba(14,184,255,.9);min-width:68px;}
+.sinput{font-family:inherit;font-size:.9em;background:rgba(14,184,255,.05);border:1px solid rgba(14,184,255,.2);color:#ddeeff;padding:6px 12px;outline:none;flex:1;max-width:340px;}
+.sinput::placeholder{color:rgba(14,184,255,.4)}
+.fb{font-family:inherit;font-size:.76em;letter-spacing:.08em;text-transform:uppercase;background:rgba(14,184,255,.05);border:1px solid rgba(14,184,255,.16);color:rgba(14,184,255,.82);padding:4px 10px;cursor:pointer;transition:all .15s;}
+.fb:hover,.fb.on{background:rgba(14,184,255,.16);border-color:rgba(14,184,255,.5);color:#0eb8ff;}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));}
+.card{background:rgba(8,12,32,0.97);border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.22);padding:18px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s;}
+.card:hover{border-color:rgba(14,184,255,.38);}
+.ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.ctitle{font-size:.95em;letter-spacing:.04em;color:#0eb8ff;line-height:1.35;flex:1;}
+.cauthor{font-size:.78em;color:rgba(14,184,255,.82);margin-top:2px;}
+.cstars{font-size:.95em;color:#0eb8ff;white-space:nowrap;flex-shrink:0;}
+.cdim{opacity:.2;}
+.meta{display:flex;gap:7px;flex-wrap:wrap;}
+.byear{font-size:.7em;padding:2px 7px;border:1px solid rgba(14,184,255,.22);color:rgba(14,184,255,.88);}
+.bst{font-size:.7em;padding:2px 7px;}
+.bst.finished{color:rgba(80,220,160,.9);border:1px solid rgba(80,220,160,.28);background:rgba(80,220,160,.06);}
+.bst.reading{color:rgba(14,184,255,.9);border:1px solid rgba(14,184,255,.28);background:rgba(14,184,255,.06);}
+.bst.gave-up{color:rgba(255,120,80,.82);border:1px solid rgba(255,120,80,.22);background:rgba(255,120,80,.05);}
+.bst.planning{color:rgba(255,200,80,.82);border:1px solid rgba(255,200,80,.22);background:rgba(255,200,80,.05);}
+.tag{font-size:.66em;padding:2px 6px;background:rgba(14,184,255,.05);border:1px solid rgba(14,184,255,.13);color:rgba(14,184,255,.78);}
+.comment{font-size:.8em;color:rgba(220,240,255,.9);line-height:1.5;font-style:italic;}
+.ntog{font-family:inherit;font-size:.74em;letter-spacing:.08em;text-transform:uppercase;background:none;border:none;color:rgba(14,184,255,.65);cursor:pointer;padding:0;}
+.ntog:hover{color:#0eb8ff}
+.nbody{font-size:.78em;color:rgba(220,240,255,.88);line-height:1.65;white-space:pre-wrap;background:rgba(14,184,255,.04);border-left:2px solid rgba(14,184,255,.18);padding:10px 14px;margin-top:2px;display:none;}
+.nbody.open{display:block;}
+.cline{font-size:.8em;color:rgba(14,184,255,.8);letter-spacing:.08em;}
+.nores{grid-column:1/-1;text-align:center;padding:60px 20px;color:rgba(14,184,255,.5);}
+</style>
 </head>
 <body>
-
 <nav class="top-nav">
-  <a href="index.html" class="nav-back">← home</a>
-  <span class="nav-crumb">// book blog //</span>
+  <a href="index.html" class="nav-back">&#8592; home</a>
+  <span class="nav-crumb">// neural library //</span>
 </nav>
-
 <div class="page">
-  <div class="title-wrap">
-    <div class="title-pre">// neural library //</div>
-    <h1>book blog</h1>
-    <div class="title-sub">what you read shapes the pathways</div>
+  <div class="hdr">
+    <div class="hdr-pre">// book blog //</div>
+    <h1>neural library</h1>
+    <div class="hdr-sub">what you read shapes the pathways</div>
   </div>
-
-  <div class="coming-soon-panel">
-    <div class="big-icon">📚</div>
-    <div class="cs-title">module initializing</div>
-    <div class="cs-desc">
-      log every book that rewires your neural architecture.<br>
-      track reading progress, capture insights, and map the ideas that shape your thinking.
+  <div class="stats-bar">
+    <div class="sstat"><div class="sstat-v" id="st0">0</div><div class="sstat-l">books logged</div></div>
+    <div class="sstat"><div class="sstat-v" id="st1">0</div><div class="sstat-l">finished</div></div>
+    <div class="sstat"><div class="sstat-v" id="st2">0</div><div class="sstat-l">reading now</div></div>
+    <div class="sstat"><div class="sstat-v" id="st3">&#8212;</div><div class="sstat-l">avg rating</div></div>
+  </div>
+  <div class="filters">
+    <div class="filter-row"><span class="flabel">search</span><input class="sinput" id="srch" placeholder="title, author&#8230;" oninput="render()"></div>
+    <div class="filter-row"><span class="flabel">status</span>
+      <button class="fb on" data-f="s" data-v="" onclick="pick(this)">all</button>
+      <button class="fb" data-f="s" data-v="finished" onclick="pick(this)">finished</button>
+      <button class="fb" data-f="s" data-v="reading" onclick="pick(this)">reading</button>
+      <button class="fb" data-f="s" data-v="gave up" onclick="pick(this)">gave up</button>
     </div>
-    <div class="cs-badge">◌ coming soon</div>
-    <div class="features">
-      <div class="feature-item">reading list &amp; progress tracking</div>
-      <div class="feature-item">notes &amp; highlight capture</div>
-      <div class="feature-item">rating &amp; review system</div>
-      <div class="feature-item">genre tags &amp; reading stats</div>
-      <div class="feature-item">reading streak &amp; goal tracking</div>
+    <div class="filter-row"><span class="flabel">min &#9733;</span>
+      <button class="fb on" data-f="r" data-v="0" onclick="pick(this)">all</button>
+      <button class="fb" data-f="r" data-v="3" onclick="pick(this)">&#9733;&#9733;&#9733;+</button>
+      <button class="fb" data-f="r" data-v="4" onclick="pick(this)">&#9733;&#9733;&#9733;&#9733;+</button>
+      <button class="fb" data-f="r" data-v="5" onclick="pick(this)">&#9733;&#9733;&#9733;&#9733;&#9733;</button>
+    </div>
+    <div class="filter-row"><span class="flabel">topic</span>
+      <button class="fb on" data-f="t" data-v="" onclick="pick(this)">all</button>
+      <button class="fb" data-f="t" data-v="investing" onclick="pick(this)">investing</button>
+      <button class="fb" data-f="t" data-v="tech/product" onclick="pick(this)">tech/product</button>
+      <button class="fb" data-f="t" data-v="parenting" onclick="pick(this)">parenting</button>
+      <button class="fb" data-f="t" data-v="mindfulness" onclick="pick(this)">mindfulness</button>
+      <button class="fb" data-f="t" data-v="science/health" onclick="pick(this)">science/health</button>
+      <button class="fb" data-f="t" data-v="history/society" onclick="pick(this)">history/society</button>
+      <button class="fb" data-f="t" data-v="psychology" onclick="pick(this)">psychology</button>
+      <button class="fb" data-f="t" data-v="fiction/other" onclick="pick(this)">fiction/other</button>
+    </div>
+    <div class="filter-row"><span class="flabel">year</span>
+      <button class="fb on" data-f="y" data-v="0" onclick="pick(this)">all</button>
+      <button class="fb" data-f="y" data-v="2025" onclick="pick(this)">2025</button>
+      <button class="fb" data-f="y" data-v="2024" onclick="pick(this)">2024</button>
+      <button class="fb" data-f="y" data-v="2023" onclick="pick(this)">2023</button>
+      <button class="fb" data-f="y" data-v="2022" onclick="pick(this)">2022</button>
+      <button class="fb" data-f="y" data-v="2021" onclick="pick(this)">2021</button>
+      <button class="fb" data-f="y" data-v="2020" onclick="pick(this)">2020</button>
+      <button class="fb" data-f="y" data-v="2019" onclick="pick(this)">2019</button>
+      <button class="fb" data-f="y" data-v="2018" onclick="pick(this)">2018</button>
+      <button class="fb" data-f="y" data-v="2017" onclick="pick(this)">2017</button>
+      <button class="fb" data-f="y" data-v="2015" onclick="pick(this)">2015</button>
+      <button class="fb" data-f="y" data-v="2014" onclick="pick(this)">&le;2014</button>
     </div>
   </div>
+  <div class="cline" id="cl"></div>
+  <div class="grid" id="grid"></div>
 </div>
+<script>
+const BOOKS = [
+{year:2025,title:"Siblings Without Rivalry",author:"Adele Faber & Elaine Mazlish",rating:3,status:"finished",tags:["parenting"],comment:"Really good.",notes:"1. Don't compare siblings. 2. Treat them individually. 3. Acknowledge feelings before solving. 4. Describe problems without taking sides. 5. Coach instead of referee. 6. Stop labeling children. 7. Encourage cooperation not competition. 8. Jealousy is normal \u2014 address with empathy. 9. Intervene only as much as necessary."},{year:2025,title:"A New Earth: Awakening Your Life's Purpose",author:"Eckhart Tolle",rating:3,status:"finished",tags:["mindfulness"],comment:"A little repetitive after The Power of Now.",notes:"1. Most suffering comes from identifying with thoughts. 2. The ego is a false identity built from roles. 3. The pain-body is old emotion that activates under stress. 4. Presence dissolves ego reaction. 5. Watch thoughts instead of believing them. 6. Don't identify with roles. 7. Accept the present moment as it is."},{year:2025,title:"The Power of Now",author:"Eckhart Tolle",rating:5,status:"finished",tags:["mindfulness"],comment:"I have not had a book that had such a profound intellectual effect on me. Comparable to the peace of a 10-day silent retreat, reached by purely logical tools. Heals depression.",notes:"1. Most suffering comes from past and future thinking. 2. The present moment is the only real place life happens. 3. You are not your thoughts \u2014 you can observe them. 4. The pain-body is old emotional baggage. 5. Acceptance stops internal resistance. 6. Use clock time for practical tasks, not rumination. 7. Shift attention to your inner body to return to presence. 8. In relationships, presence breaks the trigger-reaction cycle."},{year:2025,title:"How to Talk So Little Kids Will Listen",author:"Joanna Faber & Julie King",rating:0,status:"",tags:["parenting"],comment:"",notes:"Acknowledge feelings and empathize before correcting. Write it down to acknowledge. Give in fantasy what you cannot give in reality. Keep it playful. Name the issue, not the behaviour. Give descriptive praises not generic ones. Avoid labels. Give choices, engage in cooperation rather than command. Brainstorm solutions together."},{year:2025,title:"Fierce Intimacy",author:"Terrence Real",rating:4,status:"finished",tags:["parenting", "psychology"],comment:"Very practical, no nonsense approach to relationships.",notes:"Recognize your adaptive child. Relationship grid: one-up (grandiosity) vs one-down (shame). Avoid 5 losing strategies: being right, controlling partner, unbridled self-expression, retaliation, withdrawal. Implement 5 winning strategies: complaint to request, listening with compassion, empowering, cherishing. Repair is more important than harmony."},{year:2025,title:"Good Inside",author:"Becky Kennedy",rating:0,status:"",tags:["parenting"],comment:"",notes:""},{year:2025,title:"Getting the Love You Want",author:"Harville Hendrix & Helen LaKelly Hunt",rating:0,status:"",tags:["parenting", "psychology"],comment:"",notes:""},{year:2025,title:"The Anxious Generation",author:"Jonathan Haidt",rating:0,status:"",tags:["history/society", "parenting"],comment:"",notes:""},{year:2025,title:"Secrets of Sand Hill Road",author:"Scott Kupor",rating:0,status:"",tags:["tech/product", "investing"],comment:"",notes:""},{year:2025,title:"Jhana Consciousness",author:"Paul Dennison",rating:0,status:"",tags:["mindfulness"],comment:"",notes:""},{year:2024,title:"Outlive: The Science and Art of Longevity",author:"Peter Attia MD",rating:0,status:"",tags:["science/health"],comment:"",notes:"Medicine 1.0: observations. Medicine 2.0: evidence-based but treats not prevents. Medicine 3.0: preventive, personalized, digital. Rapamycin targets mTOR \u2014 first drug to increase mammal lifespan ~10%. Centenarians age slower, markers 10-20 years behind even without healthy lifestyle. APOB more predictive than LDL for cardiovascular risk."},{year:2024,title:"The Awakened Family",author:"Shefali Tsabary PhD",rating:0,status:"",tags:["parenting"],comment:"",notes:"Parents and children primarily have a time zone issue \u2014 parents live in the future, kids want to focus on the moment. Parents need to recognize we should not try to fix children; parents need to grow more than the kids."},{year:2024,title:"Nexus: A Brief History of Information Networks",author:"",rating:0,status:"",tags:["history/society"],comment:"",notes:""},{year:2024,title:"The Singularity Is Nearer",author:"Ray Kurzweil",rating:0,status:"",tags:["tech/product", "science/health"],comment:"",notes:""},{year:2024,title:"The Power Law: Venture Capital",author:"Sebastian Mallaby",rating:0,status:"",tags:["investing", "tech/product"],comment:"",notes:""},{year:2023,title:"Elon Musk: Tesla, SpaceX, and the Quest for a Fantastic Future",author:"Ashlee Vance",rating:4,status:"finished",tags:["tech/product"],comment:"One of the best biographies I have ever read, more analytical than chronical, super inspiring.",notes:"Die-hard work ethic to everything he was interested in. Sets epic schedules and expects hourly plans. Makes huge decisions alone and fast. Tesla Model S around 2012 was selected best car of the year in front of all other types. Companies built not on a business model but a world view to attract the best talent. Musk is the ultimate long-term thinker."},{year:2023,title:"The Permanent Portfolio",author:"Craig Rowland",rating:4,status:"finished",tags:["investing"],comment:"Really good introductory lesson about portfolio theory in practice, and an incredibly simple but effective way to implement it.",notes:"Rules of Harry Browne: nobody can predict the future, market timing is impossible, no leverage, no third party managing your money, bulletproof portfolio for every economic environment. 4 basic economic environments: prosperity, deflation, recession, inflation. Hold 25% stocks, 25% gold, 25% long bonds, 25% cash."},{year:2023,title:"The Montessori Toddler",author:"Simone Davies",rating:3,status:"finished",tags:["parenting"],comment:"Tons of good anecdotal examples with a rather simple theory.",notes:"Don't test the kids unless you know they can answer \u2014 it's discouraging. Follow the child, encourage hands-on learning, involve in daily activities. Cultivate internal motivation instead of external praises. Avoid threats, bribes and punishment."},{year:2023,title:"Trillion Dollar Coach",author:"Eric Schmidt, Jonathan Rosenberg & Alan Eagle",rating:0,status:"finished",tags:["tech/product"],comment:"",notes:""},{year:2023,title:"The Hard Thing About Hard Things",author:"Ben Horowitz",rating:0,status:"reading",tags:["tech/product"],comment:"",notes:""},{year:2022,title:"Lifespan: Why We Age and Why We Don't Have To",author:"David A. Sinclair",rating:5,status:"finished",tags:["science/health"],comment:"Very insightful, sometimes overly optimistic, but a hugely important journey as I turned 40.",notes:"Aging hallmarks: genetic instability, telomere attrition, epigenome alteration, proteostasis loss, deregulated nutrient-sensing, mitochondrial dysfunction, senescent cells, stem cell exhaustion. Aging is information loss. Calorie restriction is one of the most powerful mechanisms. HIIT, cold and heat exposure. Key compounds: Rapamycin (targets mTOR), Metformin, Resveratrol, NMN."},{year:2022,title:"A Random Walk Down Wall Street",author:"Burton Malkiel",rating:4,status:"finished",tags:["investing"],comment:"Best and most up to date investment book. Covers everything I learned in 10 years \u2014 should have been my first book.",notes:"Long term expected return = yield + growth + multiple change. Smart beta strategies have been arbitraged away after publication. 5 rules to select stocks: 5 years above avg earnings growth, GARP, psychological story, trade as little as possible, sell losers for tax loss harvesting."},{year:2022,title:"No Bad Kids: Toddler Discipline Without Shame",author:"Janet Julian",rating:4,status:"finished",tags:["parenting"],comment:"My first book on toddlers, I learned a lot. Very anecdotal but practical and dense.",notes:"Deal with your toddler like a CEO deals with a respected employee. Set limits early and clearly. Acknowledge the toddler's feelings and difficulty. Consistent, predictable and calm response \u2014 not punishment. Don't let the kid push your buttons."},{year:2022,title:"INSPIRED: How to Create Tech Products Customers Love",author:"Marty Cagan",rating:4,status:"finished",tags:["tech/product"],comment:"A must read and starting point for IT product management.",notes:"Half to two-thirds of ideas will not bring value. Prototypes need 1/10th of the work to test a hypothesis. Product Vision is for 2-10 years. Product discovery eliminates: value risk, usability risk, feasibility risk, business risk. Good teams: compelling vision, inspired by observing customers, running tests all the time, engineers involved in discovery."},{year:2022,title:"Team Topologies",author:"Manuel Pais & Matthew Skelton",rating:4,status:"finished",tags:["tech/product"],comment:"A very pragmatic model on how to think about engineering team topologies.",notes:"Conway's law vs reverse Conway maneuver. Four fundamental team types: stream-aligned, platform, enabling, complicated-subsystem. DevOps teams should be temporary enabling teams \u2014 a permanent DevOps team is an antipattern. Platform team enables stream-aligned teams with the Thinnest Viable Platform."},{year:2022,title:"The Changing World Order",author:"Ray Dalio",rating:4,status:"finished",tags:["history/society", "investing"],comment:"An outstanding bird's eye view on empires and history with a reflection on the current world order.",notes:"Cycles of nations repeat every ~150 years, rooted in human psychology. Three big cycles: debt cycle, internal order cycle, external order cycle. Determinants: education, innovation, military, trade, financial centers, reserve currency status. About 5-10 years till the big cycles reach a more unstable phase."},{year:2022,title:"Common Stocks and Uncommon Profits",author:"Philip Arthur Fisher",rating:4,status:"finished",tags:["investing"],comment:"A great summary on conservative growth investing.",notes:"Scuttlebutt: 15 factors including market potential, management determination, R&D effectiveness, sales org, profit margin, employee relations. Growth investing is a bet on long-term compounding. Time to sell is almost never. Don't overstress diversification \u2014 min 10 with variety of industries."},{year:2022,title:"Little Book of Common Sense Investing",author:"John C. Bogle",rating:4,status:"finished",tags:["investing"],comment:"Convincing evidence that indexing is really the most rational approach. Even 99%+ of professionals never beat it over 10-20 years.",notes:"Largest enemies of investors: expenses, emotions, taxes. Expected returns = earnings growth + dividend yield + P/E change. Graham admitted late in his career that the principles of Intelligent Investor don't work much anymore as market efficiency improved."},{year:2022,title:"The Intelligent Investor",author:"Benjamin Graham",rating:3,status:"finished",tags:["investing"],comment:"Very outdated from 50+ years ago, but extremely powerful to see the big picture and learn to invest like a business not a casino.",notes:"'Investing is most intelligent when it is most business like.' Margin of safety. Defensive investor rules: 10-30 stocks, large and conservatively financed companies, long dividend record, max 20-25x P/E. Focus on pricing: buy low, sell high compared to fair value."},{year:2022,title:"Mastering the Market Cycles",author:"Howard Marks",rating:3,status:"finished",tags:["investing"],comment:"Super repetitive and very anecdotal but some good insights.",notes:"Oaktree raised cash 2 years before 2008 crash, started buying in autumn 2008. Bull/bear trends have 3 stages: only a few believe it; majority sees it; bubble/panic when valuation doesn't matter. Markets fluctuate between overly positive and negative because investors follow the herd."},{year:2022,title:"The Most Important Thing",author:"Howard Marks",rating:3,status:"finished",tags:["investing"],comment:"A huge brain dump of common sense insights on investing.",notes:"Second level thinking: what do I know that others don't? Risk is not volatility \u2014 risk can be many types. Risk paradox: quality stocks can be overpriced and thus very risky, cheap ugly stocks can be safe. Focus on businesses not macro."},{year:2022,title:"The Little Book That Beats the Market",author:"Joel Greenblatt",rating:3,status:"finished",tags:["investing"],comment:"Very short, well written, well tested.",notes:"Rank stocks by earnings yield and return on capital. Buy top 30-50, hold a year, sell, repeat. The formula has close results to very complex 70+ factor systems. Might underperform for max 1-3 years but beats market long term."},{year:2022,title:"Escaping the Build Trap",author:"Melissa Perri",rating:3,status:"finished",tags:["tech/product"],comment:"Good collection of product management best practices.",notes:"Build trap: org focuses on output rather than outcomes. Product-led organization required for long-term success. Strategy is not a plan but a framework to make decisions. Innovation can only happen if leaders actively say no to certain things."},{year:2022,title:"Wealth, War and Wisdom",author:"Barton Biggs",rating:3,status:"finished",tags:["investing", "history/society"],comment:"Good historic overview of what worked in the past.",notes:"Gold stores value long term. Real estate often confiscated or bombed in war but farmland works. Bonds often worst in crisis. Stocks produce real return but exchanges can close. Jewelry proved excellent to exchange for anything."},{year:2022,title:"The Little Book of Common Sense Investing",author:"John C. Bogle",rating:4,status:"finished",tags:["investing"],comment:"",notes:""},{year:2022,title:"Hold Me Tight",author:"Sue Johnson",rating:0,status:"reading",tags:["psychology", "parenting"],comment:"",notes:""},{year:2022,title:"Principles for Navigating Big Debt Crises",author:"Ray Dalio",rating:0,status:"reading",tags:["investing"],comment:"Not an easy read.",notes:""},{year:2021,title:"Range: Why Generalists Triumph",author:"David Epstein",rating:3,status:"finished",tags:["psychology", "history/society"],comment:"Many anecdotes to make a few interesting points.",notes:"Kind vs wicked learning environments need very different approaches. The most successful problem solvers first categorize the problem type to find a good analogue. Exceptional achievers are not afraid of changing often until they find a great quality match. Delaying specialization leads to better fits later."},{year:2021,title:"The Snowball: Warren Buffett and the Business of Life",author:"Peter Lynch",rating:3,status:"finished",tags:["investing"],comment:"Too long and detail oriented, but deep insights.",notes:"'Praise by name, criticize by category.' 'Don't ask a barber if you need a haircut.' Compounding. Margin of safety. Protecting principal."},{year:2021,title:"Measure What Matters: OKRs",author:"John Doerr",rating:3,status:"finished",tags:["tech/product"],comment:"",notes:"Inspirational OKRs vs Committed OKRs. Quality and Quantity OKRs must go in pairs."},{year:2021,title:"The Motley Fool Investment Guide",author:"Tom Gardner",rating:4,status:"finished",tags:["investing"],comment:"",notes:""},{year:2021,title:"One Up On Wall Street",author:"Peter Lynch",rating:4,status:"finished",tags:["investing"],comment:"",notes:""},{year:2021,title:"100 Baggers",author:"Christopher W. Mayer",rating:0,status:"finished",tags:["investing"],comment:"",notes:"1. Look for them. 2. Growth, growth and more growth. 3. Lower multiples preferred. 4. Economic moats are a necessity. 5. Smaller companies preferred. 6. Owner-operators preferred. 7. You need time \u2014 Coffee-Can approach. 8. Good filter. 9. Luck helps. 10. Be a reluctant seller."},{year:2021,title:"Cribsheet: A Data-Driven Guide to Parenting",author:"Emily Oster",rating:4,status:"reading",tags:["parenting", "science/health"],comment:"Finally a new type of guide: data driven, not anecdote.",notes:""},{year:2021,title:"Secrets of the Baby Whisperer",author:"Melinda Blau & Tracy Hogg",rating:2,status:"finished",tags:["parenting"],comment:"A little old-school and anecdote driven. Probably there are many better books.",notes:""},{year:2020,title:"Why We Sleep",author:"Matthew Walker PhD",rating:5,status:"finished",tags:["science/health"],comment:"",notes:"Human circadian cycle averages 24h 15min. Melatonin triggers sleep; adenosine accumulates sleep pressure \u2014 completely disconnected. Every aspect of athletic performance drops below 8 hours. 15-20 hours awake equals drunk driving in terms of reaction time. WHO categorises night shift jobs as carcinogenic. Alcohol is the most disruptive substance for REM sleep. REM is like overnight therapy: the only time the brain has no noradrenaline, allowing processing without emotional charge."},{year:2020,title:"How to Change Your Mind",author:"Michael Pollan",rating:4,status:"finished",tags:["science/health", "psychology"],comment:"History, medical background, and self exploration on psychedelic compounds (LSD, psilocybin, DMT). Very entertaining and comprehensive.",notes:"psilocybin reduces activity of the default mode network (DMN). The DMN acts as an orchestrator with inhibitory influence over lower brain areas. Entropic brain theory: suppressing the DMN allows brain domains to connect without the orchestrator. Terminally ill patients have an overactive DMN \u2014 temporarily suppressing it helps enormously."},{year:2020,title:"Breath: The New Science of a Lost Art",author:"James Nestor",rating:3,status:"finished",tags:["science/health"],comment:"Really good for summarizing all different breathing schools and techniques.",notes:"Mouth breathing is very bad for overall health. Most beneficial seems to be breathing less in general intentionally but occasionally hyperventilating."},{year:2020,title:"The Wim Hof Method",author:"Wim Hof",rating:3,status:"finished",tags:["science/health"],comment:"Too much charismatic bullshit, but the cold exposure and breathing techniques are simple and powerful.",notes:"Cold exposure and hyperventilation do medical miracles: altitude sickness, immune response, heat regulation. Simple cold exposure for beginners: 1-2 minutes cold shower a day."},{year:2020,title:"I Contain Multitudes",author:"Ed Yong",rating:4,status:"reading",tags:["science/health"],comment:"Amazing stories on the heterogeneous impacts of microbes.",notes:""},{year:2020,title:"Narrative Economics",author:"Robert J. Shiller",rating:3,status:"reading",tags:["history/society", "investing"],comment:"Not that many original insights.",notes:"Economic memes have super-spreaders like pandemics. It is a chaotic and random process which narratives emerge."},{year:2020,title:"The Expectant Father",author:"Armin A. Brott & Jennifer Ash",rating:3,status:"finished",tags:["parenting"],comment:"A pregnancy book written for fathers.",notes:""},{year:2020,title:"Ten Drugs",author:"Thomas Hager",rating:3,status:"finished",tags:["science/health"],comment:"A few entertaining stories.",notes:"Opium, vaccination, antibiotics, antipsychotic, Viagra, statin, monoclonal antibodies."},{year:2019,title:"Factfulness",author:"Hans Rosling, Ola Rosling & Anna Rosling Ronnlund",rating:5,status:"finished",tags:["history/society"],comment:"Highlights some important macro trends really well.",notes:""},{year:2019,title:"The Culture Map",author:"Erin Meyer",rating:5,status:"finished",tags:["psychology", "history/society"],comment:"A very practical model to view cross-cultural leadership and organisations.",notes:"With Asian cultures: confirm the message 3 times. Feedback: blur through longer time, leave the negative out. Multiculture for innovation, monoculture for speed. In Japan attacking an idea and attacking a person is the same. Meetings are for publicizing decisions already made. Linear time focused vs event based flexible."},{year:2019,title:"Enlightenment Now",author:"Steven Pinker",rating:4,status:"finished",tags:["history/society"],comment:"Great book, very long, many notes.",notes:""},{year:2019,title:"Four Futures",author:"Peter Frase",rating:4,status:"finished",tags:["history/society"],comment:"Four very different but not impossible futures. More of a study than science fiction.",notes:""},{year:2019,title:"The Headspace Guide to Meditation",author:"Andy Puddicombe",rating:4,status:"reading",tags:["mindfulness"],comment:"Super good light reading on becoming a monk and back.",notes:""},{year:2019,title:"Educated",author:"Tara Westover",rating:3,status:"finished",tags:["fiction/other"],comment:"The story is dramatic, poetic, psychologically and sociologically very interesting.",notes:""},{year:2019,title:"Gut",author:"Giulia Enders",rating:0,status:"reading",tags:["science/health"],comment:"",notes:""},{year:2018,title:"21 Lessons for the 21st Century",author:"Yuval Noah Harari",rating:5,status:"finished",tags:["history/society"],comment:"",notes:"Social pressures visible in populism result from a class that is not needed anymore. We should not compare a single human to a single AI but whole systems \u2014 all AI doctors can be upgraded at once. Besides nuclear warfare, the global ecological crisis and technology disruption are the other two big problems requiring global solutions."},{year:2018,title:"Sapiens: A Brief History of Humankind",author:"Yuval Noah Harari",rating:5,status:"finished",tags:["history/society"],comment:"A number one international best seller.",notes:""},{year:2018,title:"Homo Deus: A Brief History of Tomorrow",author:"Yuval Noah Harari",rating:5,status:"finished",tags:["history/society"],comment:"Brilliant book on how AI and data sciences will reshape civilisation, culture, religions, ethics. Very readable.",notes:"In 2010 famine killed 1M whereas obesity killed 3M. In ancient times 15% of deaths were violence-related, now under 1%. Sugar is more dangerous than gunpowder. Satisfaction = expectation minus reality, but expectations always increase. The ability to collaborate in large numbers was and is the key to human superiority. Modernity deal: humans give up meaning in exchange for power."},{year:2018,title:"Why We Sleep",author:"Matthew Walker PhD",rating:5,status:"finished",tags:["science/health"],comment:"",notes:"Human circadian cycle averages 24h 15min. Every aspect of athletic performance drops below 8 hours sleep. WHO categorises night shift jobs as carcinogenic. Only one night of 4 hours sleep makes 70% of natural killer cells disappear. Alcohol is the most disruptive substance for REM sleep. REM is overnight therapy \u2014 the only time the brain has no noradrenaline."},{year:2018,title:"Why Buddhism Is True",author:"Robert Wright",rating:4,status:"finished",tags:["mindfulness", "psychology"],comment:"From one of America's greatest minds, a journey through psychology and philosophy to show how Buddhism holds the key to moral clarity.",notes:"Natural selection did not design the mind to see the world clearly \u2014 it designed to take care of the genes. Default mode network: active when doing nothing \u2014 fantasizing about the future, never experiencing the present. RAIN: Recognize, Accept, Investigate, Non-identify. Thoughts actually think themselves \u2014 generated by brain modules, the strongest hijacks consciousness."},{year:2018,title:"The Book of Why",author:"Judea Pearl",rating:4,status:"finished",tags:["science/health", "psychology"],comment:"Turing-prize winning mathematician explains the causal revolution. For non-mathematicians, human readable.",notes:"Ladder of Causation: 1. Association (pattern recognition). 2. Intervention (doing). 3. Counterfactuals (imagination). Strong AI is not possible without level 3 reasoning. Our brains are wired to do causal problems, not probability problems \u2014 causeless correlations feel incomprehensible."},{year:2018,title:"The Phoenix Project",author:"Gene Kim",rating:4,status:"finished",tags:["tech/product"],comment:"DevOps bible. Fiction story of an IT VP and permanent fire fighting. More adrenalin than an action movie.",notes:"4 types of work: business projects, internal projects, change management, unplanned work. Knowledge monopolization by one key person creates a bottleneck for the whole company. Throughput of the business is at its bottleneck."},{year:2018,title:"Bad Blood",author:"John Carreyrou",rating:3,status:"finished",tags:["tech/product"],comment:"The full inside story of the breathtaking rise and shocking collapse of Theranos.",notes:""},{year:2018,title:"Principles: Life and Work",author:"Ray Dalio",rating:3,status:"finished",tags:["tech/product", "investing"],comment:"The founder of Bridgewater Associates explains his life and work principles. Sometimes dry, sometimes trivial... but overall worth reading.",notes:"For your life: meaningful work and meaningful relationships. For your job: radical transparency and thoughtful disagreement. Write down your own principles."},{year:2018,title:"Scale",author:"Geoffrey West",rating:3,status:"finished",tags:["science/health", "history/society"],comment:"A dazzling exploration of the hidden laws that govern the life cycle of everything.",notes:"Finite time singularity: accelerating growth cannot be sustained without regular paradigm shifts. Companies scale at 0.9, city infrastructure at 0.85, organisms at 0.75. 1 hour max daily commute time has been invariant for thousands of years. Innovation lifecycle is now shorter than human life."},{year:2018,title:"Foundation",author:"Isaac Asimov",rating:3,status:"finished",tags:["fiction/other"],comment:"Entertaining science fiction with some inspirational messages.",notes:"'Violence is the last refuge of the incompetent.'"},{year:2018,title:"Saturnin",author:"Zdenek Jirotka",rating:3,status:"finished",tags:["fiction/other"],comment:"Czech classic from 1942. Absurd dry Czech humour.",notes:"You are never too old to play."},{year:2017,title:"Homo Deus",author:"Yuval Noah Harari",rating:5,status:"finished",tags:["history/society"],comment:"",notes:""},{year:2017,title:"The Lessons of History",author:"Will Durant",rating:4,status:"finished",tags:["history/society"],comment:"A history professor summarised his learnings from 'The Story of Civilization'. Really worth the time!",notes:"The most important historic factor for prosperity is accessibility to trade routes. It is not the race that makes the civilization but the civilization makes the people. Periodic concentration of wealth alleviated by violent partial redistribution is just a heartbeat of the social organism."},{year:2017,title:"The Hero with a Thousand Faces",author:"Joseph Campbell",rating:0,status:"gave up",tags:["psychology", "fiction/other"],comment:"The topic is really interesting but the language is very difficult for a non-native speaker.",notes:""},{year:2015,title:"Reinventing Organizations",author:"Frederic Laloux",rating:5,status:"finished",tags:["tech/product"],comment:"Eye opening but a bit of pseudoscience.",notes:"Teal organisation concept: self-organising vs hierarchical systems in nature, economy and human organization."},{year:2015,title:"How Google Works",author:"Eric Schmidt",rating:4,status:"finished",tags:["tech/product"],comment:"A startup scaled up, the real lean enterprise. Easy to read, very important concepts.",notes:"Two pizza rule, kill the HIPPOs, 70/20/10 time allocation, interviewing is the most important skill."},{year:2015,title:"The Singularity Is Near",author:"Ray Kurzweil",rating:5,status:"finished",tags:["tech/product", "science/health"],comment:"Eye opening but a bit of pseudoscience.",notes:"How to think about IT, biotech, nanotech in 40 years. The world as we know it will change around 2045 because of exponential trends in many areas."},{year:2015,title:"Turn the Ship Around!",author:"L. David Marquet",rating:4,status:"finished",tags:["tech/product"],comment:"Great story on leadership. More story than practical guide but many clear principles.",notes:"Distributing leadership from leader-follower to leader-leader model in a strictly hierarchical organisation led to extreme success. Culture hack: change mindset from waiting for orders to being very transparent on long-term goals and owning problem solving."},{year:2015,title:"Collective Genius",author:"Linda A. Hill",rating:4,status:"finished",tags:["tech/product"],comment:"Great book from a Harvard Business School Prof on innovation.",notes:"Capabilities of innovation: creative abrasion, agility, resolution."},{year:2015,title:"The Psychedelic Explorer's Guide",author:"James Fadiman",rating:4,status:"finished",tags:["science/health"],comment:"Stanford professor explaining controlled experiments on problem solving with psychedelic agents.",notes:""},{year:2015,title:"Fooled by Randomness",author:"Nassim Nicholas Taleb",rating:3,status:"finished",tags:["investing", "psychology"],comment:"Interesting if you did not study this before.",notes:"Successful people are very often just the tail distribution from large numbers \u2014 even with random decisions there would be many successful ones."},{year:2015,title:"Meditations",author:"Marcus Aurelius",rating:3,status:"reading",tags:["mindfulness", "psychology"],comment:"Difficult reading, but most important lessons in life and one of the most practical books on philosophy ever.",notes:"Stoicism is more of an operating system for life than a philosophical system. Focus on what you can control, face and practise your fears."},{year:2015,title:"Lean Enterprise",author:"Jez Humble",rating:3,status:"finished",tags:["tech/product"],comment:"The most important lean/agile/enterprise best practices merged in one.",notes:"Lean = visualising value stream, increasing feedback, empowering teams, reducing waste, limiting WIP, continuous improvement. Dissociate funding from annual budget cycle."},{year:2015,title:"Man's Search for Meaning",author:"Viktor Frankl",rating:3,status:"finished",tags:["mindfulness", "psychology"],comment:"Many top lists rank it among the top 10 most important books of all time.",notes:""},{year:2015,title:"The Fourth Paradigm",author:"Tony Hey",rating:3,status:"finished",tags:["science/health", "tech/product"],comment:"A couple of distinct articles from great thinkers.",notes:"Scientific discovery paradigms: 1. Experimental (Hippocrates). 2. Theoretical (Newton). 3. Computational (evidence based). 4. Data-Intensive (today)."},{year:2015,title:"The Innovator's Dilemma",author:"Clayton M. Christensen",rating:0,status:"reading",tags:["tech/product"],comment:"",notes:""},{year:2014,title:"Influence: The Psychology of Persuasion",author:"Robert B. Cialdini",rating:5,status:"finished",tags:["psychology"],comment:"If you read only one book on influencing techniques, this should be the one. Very practical and professional.",notes:"Top ~10 influencing mechanisms."},{year:2014,title:"The Art of the Start",author:"Guy Kawasaki",rating:3,status:"gave up",tags:["tech/product"],comment:"Did not finish, too many known things.",notes:"Startup basics."},{year:2014,title:"The Obstacle Is the Way",author:"Ryan Holiday",rating:2,status:"finished",tags:["mindfulness"],comment:"For the masses, the American way of stoicism.",notes:"Stoic philosophy \u2014 the title tells everything."},{year:2014,title:"The Art of Learning",author:"Josh Waitzkin",rating:2,status:"finished",tags:["psychology"],comment:"Interesting journey, although not too practical.",notes:"Learning techniques from a chess prodigy and BJJ master."},{year:2014,title:"Vagabonding",author:"Rolf Potts",rating:2,status:"finished",tags:["fiction/other"],comment:"If you travel a lot you feel this. If not, that is your book.",notes:""},{year:2013,title:"Flow: The Psychology of Optimal Experience",author:"Mihaly Csikszentmihalyi",rating:4,status:"finished",tags:["psychology"],comment:"Lengthy but easy to read.",notes:""},{year:2013,title:"The Lean Startup",author:"Eric Ries",rating:5,status:"finished",tags:["tech/product"],comment:"Pseudoscience, superficial concepts, but they are too fundamental to miss.",notes:""},{year:2013,title:"Business Model Generation",author:"Alexander Osterwalder",rating:4,status:"finished",tags:["tech/product"],comment:"A cartoon book but very practical.",notes:"How to think visually about business models and find new ways systematically."},{year:2013,title:"The Hitchhiker's Guide to the Galaxy",author:"Douglas Adams",rating:3,status:"finished",tags:["fiction/other"],comment:"Very readable, very funny.",notes:"Absurd sci-fi story on life."},{year:2012,title:"No: The Only Negotiating System",author:"Jim Camp",rating:4,status:"finished",tags:["psychology"],comment:"",notes:"Important strategies to negotiate with a clear head."},{year:2012,title:"The Fine Art of Small Talk",author:"Debra Fine",rating:2,status:"finished",tags:["psychology"],comment:"Short, nothing extremely new, but covers the topic well.",notes:""},{year:2012,title:"Losing My Virginity",author:"Richard Branson",rating:1,status:"gave up",tags:["fiction/other"],comment:"Boring chronological book without too many insights about one of the most interesting humans on Earth.",notes:""},{year:2010,title:"Getting Things Done",author:"David Allen",rating:5,status:"finished",tags:["tech/product", "psychology"],comment:"",notes:"A classic on how to work with 50+ mails/tasks a day. A system for knowledge workers in the IT era."},{year:2010,title:"The Happiness Hypothesis",author:"Jonathan Haidt",rating:5,status:"finished",tags:["psychology", "mindfulness"],comment:"",notes:"Positive psychology: how to have a happy and fulfilling life in different religions and cultures."},{year:2010,title:"The 4-Hour Workweek",author:"Timothy Ferriss",rating:5,status:"finished",tags:["tech/product", "psychology"],comment:"",notes:"Productivity, values in life, how to achieve, how to focus, how to be happy. Superficial but extremely powerful unconventional ideas, very inspiring."},{year:2010,title:"Good to Great",author:"Jim Collins",rating:4,status:"finished",tags:["tech/product"],comment:"",notes:"What makes a difference when it comes to success of companies."},{year:2010,title:"Tribal Leadership",author:"Dave Logan",rating:4,status:"finished",tags:["tech/product"],comment:"",notes:"Levels of organisational culture, how to push the group to a next level, how to inspire and engage people."},{year:2010,title:"The Innovator's Prescription",author:"Clayton M. Christensen",rating:4,status:"finished",tags:["tech/product", "science/health"],comment:"A bit too dry but amazing think-different approach.",notes:""},{year:2010,title:"Rework",author:"Jason Fried",rating:3,status:"finished",tags:["tech/product"],comment:"",notes:"Extremely successful small tech founders share their productivity hacks."},{year:2010,title:"Delivering Happiness",author:"Tony Hsieh",rating:3,status:"finished",tags:["tech/product"],comment:"",notes:"Unconventional leadership \u2014 focus on purpose, making customers and employees happy."},{year:2010,title:"Peak: How Great Companies Get Their Mojo from Maslow",author:"Chip Conley",rating:3,status:"finished",tags:["tech/product"],comment:"",notes:"Practical guide on customers, employees and stakeholders based on Maslow's hierarchy of needs."},{year:2010,title:"Spiral Dynamics",author:"Don Edward Beck",rating:3,status:"reading",tags:["psychology"],comment:"Interesting but overcomplicated. Maybe later.",notes:""},{year:2009,title:"Games People Play",author:"Eric Berne",rating:5,status:"finished",tags:["psychology"],comment:"A classic on understanding the games we play in everyday life repeatedly and unconsciously.",notes:""},{year:2009,title:"Age of Propaganda",author:"Elliot Aronson",rating:5,status:"finished",tags:["psychology"],comment:"A classic book on the psychology of marketing.",notes:""},{year:2009,title:"1984",author:"George Orwell",rating:3,status:"finished",tags:["fiction/other"],comment:"Classic.",notes:""},{year:2009,title:"What Do You Say After You Say Hello?",author:"Eric Berne",rating:2,status:"gave up",tags:["psychology"],comment:"Too long and dry.",notes:""},{year:2008,title:"The Selfish Gene",author:"Richard Dawkins",rating:5,status:"finished",tags:["science/health"],comment:"",notes:"A classic from an evolutionary biologist on genetics, society, survival strategies, memes."},{year:2008,title:"Unweaving the Rainbow",author:"Richard Dawkins",rating:5,status:"finished",tags:["science/health"],comment:"Beauty of art with a scientist's eyes.",notes:""},{year:2008,title:"A Brief History of Time",author:"Stephen Hawking",rating:4,status:"finished",tags:["science/health"],comment:"The larger picture of everything.",notes:""},{year:2008,title:"The Lord of the Rings",author:"J.R.R. Tolkien",rating:4,status:"finished",tags:["fiction/other"],comment:"",notes:""},{year:2008,title:"The Social Animal",author:"Elliot Aronson",rating:4,status:"finished",tags:["psychology"],comment:"",notes:""},{year:2008,title:"Surely You're Joking, Mr. Feynman",author:"Richard Feynman",rating:3,status:"finished",tags:["science/health"],comment:"Funny stories from a curious genius. Good for the beach.",notes:""},{year:2008,title:"The Unbearable Lightness of Being",author:"Milan Kundera",rating:3,status:"finished",tags:["fiction/other"],comment:"",notes:""},{year:2008,title:"Freedom in Exile",author:"Dalai Lama",rating:3,status:"finished",tags:["mindfulness", "fiction/other"],comment:"",notes:""},{year:2008,title:"Eichmann in My Hands",author:"Peter Z. Malkin",rating:3,status:"finished",tags:["history/society"],comment:"",notes:""},{year:2008,title:"The Alchemist",author:"Paulo Coelho",rating:2,status:"finished",tags:["fiction/other"],comment:"Little Prince reinvented.",notes:"Fairy tale."},{year:2008,title:"American Psycho",author:"Bret Easton Ellis",rating:2,status:"finished",tags:["fiction/other"],comment:"",notes:""},{year:2008,title:"The Metamorphosis",author:"Franz Kafka",rating:2,status:"finished",tags:["fiction/other"],comment:"",notes:""},{year:2008,title:"The God Delusion",author:"Richard Dawkins",rating:3,status:"gave up",tags:["history/society"],comment:"Interesting but too dry, too many facts.",notes:""},
+];
 
+// ── filters state ─────────────────────
+const F = {s:'', r:'0', t:'', y:'0'};
+
+function pick(el) {
+  const f = el.dataset.f;
+  document.querySelectorAll(`.fb[data-f="${f}"]`).forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  F[f] = el.dataset.v;
+  render();
+}
+
+function starsHtml(n) {
+  let s='';
+  for(let i=1;i<=5;i++) s+=`<span class="${i<=n?'':'cdim'}">&#9733;</span>`;
+  return s;
+}
+
+function statusClass(st) {
+  if(!st) return '';
+  return st.replace(' ','-');
+}
+
+function render() {
+  const q = document.getElementById('srch').value.toLowerCase();
+  const minR = parseInt(F.r)||0;
+
+  const shown = BOOKS.filter(bk => {
+    if(F.s && bk.status !== F.s) return false;
+    if(minR && bk.rating < minR) return false;
+    if(F.t && !bk.tags.includes(F.t)) return false;
+    if(F.y && F.y!=='0') {
+      const yr = parseInt(F.y);
+      if(yr===2014 ? bk.year>2014 : bk.year!==yr) return false;
+    }
+    if(q) {
+      const hay = (bk.title+' '+bk.author+' '+bk.notes+' '+bk.comment).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // stats (always on full set)
+  const fin = BOOKS.filter(b=>b.status==='finished');
+  const rated = fin.filter(b=>b.rating>0);
+  const avg = rated.length ? (rated.reduce((a,b)=>a+b.rating,0)/rated.length).toFixed(1) : '—';
+  document.getElementById('st0').textContent = BOOKS.length;
+  document.getElementById('st1').textContent = fin.length;
+  document.getElementById('st2').textContent = BOOKS.filter(b=>b.status==='reading').length;
+  document.getElementById('st3').textContent = avg;
+
+  document.getElementById('cl').textContent = shown.length===BOOKS.length
+    ? `// ${BOOKS.length} books`
+    : `// showing ${shown.length} of ${BOOKS.length} books`;
+
+  const grid = document.getElementById('grid');
+  if(!shown.length) { grid.innerHTML='<div class="nores">// no results</div>'; return; }
+
+  grid.innerHTML = shown.map((bk,idx) => {
+    const id = 'n'+idx;
+    const sc = statusClass(bk.status);
+    const hasnotes = bk.notes && bk.notes.length > 5;
+    return `<div class="card">
+      <div class="ctop">
+        <div class="card-title-wrap">
+          <div class="ctitle">${bk.title}</div>
+          ${bk.author?`<div class="cauthor">${bk.author}</div>`:''}
+        </div>
+        <div class="cstars">${starsHtml(bk.rating)}</div>
+      </div>
+      <div class="meta">
+        <span class="byear">${bk.year}</span>
+        ${sc?`<span class="bst ${sc}">${bk.status}</span>`:''}
+        ${bk.tags.map(t=>`<span class="tag">${t}</span>`).join('')}
+      </div>
+      ${bk.comment?`<div class="comment">${bk.comment}</div>`:''}
+      ${hasnotes?`<button class="ntog" onclick="tog('${id}')">&#9654; notes</button><div class="nbody" id="${id}">${bk.notes}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function tog(id) {
+  const el = document.getElementById(id);
+  const btn = el.previousElementSibling;
+  el.classList.toggle('open');
+  btn.textContent = el.classList.contains('open') ? '▾ notes' : '▶ notes';
+}
+
+render();
+</script>
 </body>
 </html>
