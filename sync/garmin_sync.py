@@ -177,9 +177,17 @@ if api is None:
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+SYNC_DEBUG = os.environ.get("SYNC_DEBUG", "").lower() in ("1", "true", "yes")
+
+
 def safe(fn, *args, **kwargs):
     try:
-        return fn(*args, **kwargs)
+        result = fn(*args, **kwargs)
+        if SYNC_DEBUG:
+            import json as _json
+            preview = _json.dumps(result, default=str)[:400]
+            print(f"  [debug] {fn.__name__}: {preview}")
+        return result
     except Exception as e:
         print(f"  warning: {fn.__name__} failed — {e}")
         return None
@@ -207,6 +215,11 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     avg_stress      = summary.get("averageStressLevel")
     resting_hr      = summary.get("restingHeartRate")
     avg_hr          = summary.get("averageHeartRate")
+    distance_km     = round(summary["totalDistanceMeters"] / 1000, 2) if summary.get("totalDistanceMeters") else None
+    mod_min         = summary.get("moderateIntensityMinutes") or 0
+    vig_min         = summary.get("vigorousIntensityMinutes") or 0
+    intensity_min   = (mod_min + vig_min * 2) or None  # WHO formula: vigorous counts double
+    sedentary_hrs   = round(summary["sedentarySeconds"] / 3600, 2) if summary.get("sedentarySeconds") else None
 
     hr_data = safe(api.get_heart_rates, ds) or {}
     max_hr  = hr_data.get("maxHeartRate")
@@ -236,7 +249,7 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     hrv = {
         "lastNight": hrv_sum.get("lastNight"),
         "weeklyAvg": hrv_sum.get("weeklyAvg"),
-        "status":    hrv_sum.get("hrvStatus"),
+        "status":    hrv_sum.get("status") or hrv_sum.get("hrvStatus"),
     } if hrv_sum else None
 
     spo2_raw = safe(api.get_spo2_data, ds) or {}
@@ -244,25 +257,65 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     spo2_min = spo2_raw.get("lowestSpO2")
     spo2 = {"avg": spo2_avg, "min": spo2_min} if spo2_avg else None
 
+    resp_raw  = safe(api.get_respiration_data, ds) or {}
+    resp_avg  = resp_raw.get("avgWakingRespirationValue") or resp_raw.get("avgRespirationValue")
+    resp_sleep = resp_raw.get("avgSleepRespirationValue")
+    respiration = {"avg": resp_avg, "sleep": resp_sleep} if (resp_avg or resp_sleep) else None
+
+    mm_raw    = safe(api.get_max_metrics, ds) or {}
+    vo2max    = None
+    for entry in (mm_raw if isinstance(mm_raw, list) else []):
+        v = entry.get("generic", {}).get("vo2MaxPreciseValue") or entry.get("generic", {}).get("vo2MaxValue")
+        if v:
+            vo2max = round(float(v), 1)
+            break
+
+    tr_raw   = safe(api.get_training_readiness, ds) or []
+    tr_score = None
+    tr_list  = tr_raw if isinstance(tr_raw, list) else ([tr_raw] if tr_raw else [])
+    for entry in tr_list:
+        if not isinstance(entry, dict):
+            continue
+        s = entry.get("score") or entry.get("trainingReadinessScore")
+        if s is not None:
+            tr_score = int(s)
+            break
+
+    body_raw  = safe(api.get_body_composition, ds) or {}
+    weight_kg = None
+    bmi       = None
+    if isinstance(body_raw, dict):
+        wt = body_raw.get("weight") or body_raw.get("startWeight")
+        if wt:
+            weight_kg = round(wt / 1000, 1) if wt > 500 else round(float(wt), 1)
+        bmi = body_raw.get("bmi")
+
     doc = {
-        "date":           ds,
-        "steps":          steps,
-        "calories":       calories,
-        "activeCalories": active_calories,
-        "floors":         floors,
-        "avgStress":      avg_stress,
-        "restingHR":      resting_hr,
-        "avgHR":          avg_hr,
-        "maxHR":          max_hr,
-        "bodyBattery":    body_battery,
-        "sleep":          sleep,
-        "hrv":            hrv,
-        "spo2":           spo2,
-        "syncedAt":       firestore.SERVER_TIMESTAMP,
+        "date":             ds,
+        "steps":            steps,
+        "calories":         calories,
+        "activeCalories":   active_calories,
+        "floors":           floors,
+        "distanceKm":       distance_km,
+        "intensityMinutes": intensity_min,
+        "sedentaryHours":   sedentary_hrs,
+        "avgStress":        avg_stress,
+        "restingHR":        resting_hr,
+        "avgHR":            avg_hr,
+        "maxHR":            max_hr,
+        "bodyBattery":      body_battery,
+        "sleep":            sleep,
+        "hrv":              hrv,
+        "spo2":             spo2,
+        "respiration":      respiration,
+        "vo2max":           vo2max,
+        "trainingReadiness": tr_score,
+        "weight":           {"kg": weight_kg, "bmi": bmi} if weight_kg else None,
+        "syncedAt":         firestore.SERVER_TIMESTAMP,
     }
     doc = {k: v for k, v in doc.items() if v is not None}
 
     col.document(ds).set(doc, merge=True)
-    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}")
+    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}, resp={resp_avg}, vo2={vo2max}, readiness={tr_score}, spo2={spo2 and spo2.get('avg')}")
 
 print(f"\nSync complete — {SYNC_DAYS} days written to Firestore `health_daily`.")
