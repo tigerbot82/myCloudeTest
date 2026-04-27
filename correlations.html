@@ -104,10 +104,16 @@
     .corr-bar-col{display:flex;align-items:center;gap:4px}
     .corr-bar-bg{flex:1;background:rgba(14,184,255,.1);border-radius:2px;height:5px;overflow:hidden}
     .corr-bar{height:100%;border-radius:2px}
-    #correlList{max-height:420px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(14,184,255,.3) transparent}
+    #correlList{max-height:340px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(14,184,255,.3) transparent}
     #correlList::-webkit-scrollbar{width:4px}
     #correlList::-webkit-scrollbar-track{background:transparent}
     #correlList::-webkit-scrollbar-thumb{background:rgba(14,184,255,.3);border-radius:2px}
+    .corr-slider-row{display:flex;align-items:center;gap:10px;padding:5px 0 8px;flex-wrap:wrap}
+    .corr-slider-label{font-size:.84em;letter-spacing:.05em;color:rgba(14,184,255,.88);white-space:nowrap;min-width:90px}
+    .corr-slider-sub{font-size:.78em;color:rgba(14,184,255,.45);white-space:nowrap}
+    .corr-mini-range{flex:1;min-width:100px;max-width:280px;-webkit-appearance:none;appearance:none;height:4px;border-radius:3px;outline:none;cursor:pointer;background:rgba(14,184,255,.18);}
+    .corr-mini-range::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#0eb8ff;cursor:pointer;box-shadow:0 0 8px rgba(14,184,255,.6);}
+    .corr-mini-range::-moz-range-thumb{width:14px;height:14px;border-radius:50%;border:none;background:#0eb8ff;cursor:pointer;}
 
     /* ── Detail chart ── */
     .detail-panel{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
@@ -391,72 +397,6 @@ function buildHW(data) {
   return { dates, H, WX, AQ };
 }
 
-// ── Controls panel (rendered once, sliders mutate state) ─────────
-function renderCorrelControls() {
-  const total = corrAllData.length;
-  const maxH  = Math.max(30, total);
-  const curH  = (corrHistory > 0 && corrHistory < total) ? corrHistory : total;
-
-  const bioCov = [
-    ['HRV',           corrAllData.filter(d => d.hrv?.lastNight        != null).length],
-    ['Sleep',         corrAllData.filter(d => d.sleep?.durationHours  != null).length],
-    ['Stress',        corrAllData.filter(d => d.avgStress             != null).length],
-    ['Body Battery',  corrAllData.filter(d => d.bodyBattery?.end      != null).length],
-    ['Steps',         corrAllData.filter(d => d.steps                 != null).length],
-    ['Resting HR',    corrAllData.filter(d => d.restingHR             != null).length],
-    ['Training Ready',corrAllData.filter(d => d.trainingReadiness     != null).length],
-    ['Endurance',     corrAllData.filter(d => d.enduranceScore        != null).length],
-    ['Fitness Age',   corrAllData.filter(d => d.fitnessAge            != null).length],
-  ];
-  const wxN = corrAllData.filter(d => wxData?.[d.date] != null).length;
-  const aqN = corrAllData.filter(d => aqData?.[d.date] != null).length;
-
-  const covBar = (n, col) => {
-    const pct = total > 0 ? Math.round(n/total*100) : 0;
-    return `<div class="cov-bar-bg"><div class="cov-bar" style="width:${pct}%;background:${col}"></div></div>
-            <span class="cov-pct" style="color:${col}">${pct}% (${n}d)</span>`;
-  };
-
-  document.getElementById('correlControls').innerHTML = `
-    <div class="correl-controls">
-      <div class="ctrl-group">
-        <div class="ctrl-label">rolling window &nbsp;·&nbsp; <span class="ctrl-val" id="winVal">${corrWindow}</span> days</div>
-        <input type="range" class="correl-range" id="winSlider" min="6" max="180" step="1" value="${corrWindow}">
-        <div class="ctrl-sublabel">6 days &nbsp;→&nbsp; 6 months</div>
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">history &nbsp;·&nbsp; <span class="ctrl-val" id="histVal">${curH}</span> days</div>
-        <input type="range" class="correl-range" id="histSlider" min="30" max="${maxH}" step="1" value="${curH}">
-        <div class="ctrl-sublabel">30 days &nbsp;→&nbsp; all (${total})${total < 60
-          ? ' &nbsp;<span class="warn-hint">↑ run workflow sync_days=365</span>' : ''}</div>
-      </div>
-      <div class="ctrl-group ctrl-coverage">
-        <div class="ctrl-label">biometric coverage</div>
-        ${bioCov.map(([k, n]) => {
-          const pct = total > 0 ? Math.round(n/total*100) : 0;
-          const col = pct < 20 ? 'rgba(255,80,80,.9)' : pct < 60 ? 'rgba(255,200,80,.9)' : 'rgba(14,184,255,.9)';
-          return `<div class="cov-item"><span class="cov-name">${k}</span>${covBar(n, col)}</div>`;
-        }).join('')}
-      </div>
-      <div class="ctrl-group ctrl-coverage">
-        <div class="ctrl-label">environment coverage</div>
-        <div class="cov-item"><span class="cov-name" style="color:rgba(14,184,255,.85)">🌤 Weather</span>${covBar(wxN, 'rgba(14,184,255,.9)')}</div>
-        <div class="cov-item"><span class="cov-name" style="color:rgba(255,160,40,.9)">🏭 Air Quality</span>${covBar(aqN, 'rgba(255,160,40,.9)')}</div>
-      </div>
-    </div>`;
-
-  document.getElementById('winSlider').addEventListener('input', function() {
-    corrWindow = parseInt(this.value);
-    document.getElementById('winVal').textContent = corrWindow;
-    refreshCorrelCharts();
-  });
-  document.getElementById('histSlider').addEventListener('input', function() {
-    const v = parseInt(this.value);
-    corrHistory = v >= maxH ? 0 : v;
-    document.getElementById('histVal').textContent = corrHistory > 0 ? corrHistory : total;
-    refreshCorrelCharts();
-  });
-}
 
 // ── Ranked list + detail chart ────────────────────────────────────
 let allPairs      = [];    // [{h, w, r, absR, isAQ}] sorted by absR desc
@@ -547,12 +487,21 @@ function renderDetailChart(hk, wk) {
 
   panel.innerHTML = `
     <div class="chart-title" style="color:${col}">
-      // ${corrWindow}d rolling r · ${hk.toLowerCase()} vs
+      // rolling r · ${hk.toLowerCase()} vs
       <span style="color:${envCol}">${wk.toLowerCase()}</span>
       &nbsp;<span style="opacity:.6;color:#ddeeff">overall r = ${overallR != null ? (overallR>=0?'+':'')+overallR.toFixed(3) : 'n/a'}</span> //
     </div>
+    <div class="corr-slider-row">
+      <span class="corr-slider-label">window: <strong id="winVal">${corrWindow}</strong>d</span>
+      <input type="range" class="corr-mini-range" id="winSlider" min="6" max="180" step="1" value="${corrWindow}">
+    </div>
     <div class="detail-wrap"><canvas id="detailCanvas"></canvas></div>`;
 
+  document.getElementById('winSlider').addEventListener('input', function() {
+    corrWindow = parseInt(this.value);
+    document.getElementById('winVal').textContent = corrWindow;
+    renderDetailChart(hk, wk);
+  });
   if (detailChart) { detailChart.destroy(); detailChart = null; }
   const ctx = document.getElementById('detailCanvas').getContext('2d');
   detailChart = new Chart(ctx, {
@@ -627,12 +576,21 @@ async function loadAndRenderCorrelations(rawDocs) {
        onclick="activeCatFilter='${c}';renderCorrelList()">${c}</button>`
   ).join('');
 
+  const total = corrAllData.length;
+  const maxH  = Math.max(30, total);
+  const curH  = (corrHistory > 0 && corrHistory < total) ? corrHistory : total;
+
   document.getElementById('correlGrid').innerHTML = `
     <div class="chart-panel" id="correlListPanel">
       <div class="chart-title">// correlation ranking · all biometrics vs environment //</div>
       <div class="corr-filters">
         ${filterBtns}
         <span class="corr-count" id="corrCount"></span>
+      </div>
+      <div class="corr-slider-row">
+        <span class="corr-slider-label">history: <strong id="histVal">${curH}</strong>d</span>
+        <input type="range" class="corr-mini-range" id="histSlider" min="30" max="${maxH}" step="1" value="${curH}">
+        <span class="corr-slider-sub">${total} days available${total < 60 ? ' · ⚠ run sync_days=365' : ''}</span>
       </div>
       <div class="corr-list-hdr">
         <span>#</span><span>biometric</span><span>environment</span><span style="text-align:right">r</span><span>strength</span>
@@ -642,8 +600,13 @@ async function loadAndRenderCorrelations(rawDocs) {
 
     <div class="detail-panel" id="detailPanel"></div>`;
 
-  renderCorrelControls();
   renderCorrelList();
+  document.getElementById('histSlider').addEventListener('input', function() {
+    const v = parseInt(this.value);
+    corrHistory = v >= maxH ? 0 : v;
+    document.getElementById('histVal').textContent = corrHistory > 0 ? corrHistory : total;
+    refreshCorrelCharts();
+  });
 
   const wxN = Object.keys(wxData).filter(d => d >= startDate).length;
   const aqN = Object.keys(aqData).filter(d => d >= startDate).length;
