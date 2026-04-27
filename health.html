@@ -56,7 +56,13 @@
     .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
     .stat-card{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
       border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
-      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:5px;}
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:5px;
+      cursor:pointer;transition:border-color .15s,background .15s}
+    .stat-card:hover{border-color:rgba(14,184,255,.35);background:rgba(8,12,40,0.97)}
+    .stat-card.selected{border-color:rgba(14,184,255,.65);border-top-color:#0eb8ff;background:rgba(14,184,255,.08)}
+    .chart-controls{padding:16px 0 12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .chart-slider-label{font-size:.9em;letter-spacing:.06em;color:rgba(14,184,255,.88);white-space:nowrap;min-width:130px}
+    .chart-slider{flex:1;min-width:200px;max-width:500px;accent-color:#0eb8ff;cursor:pointer}
     .stat-icon{font-size:1.3em;line-height:1;opacity:.95}
     .stat-label{font-size:.9em;letter-spacing:.08em;color:#ddeeff;text-transform:uppercase;margin-top:2px}
     .stat-value{font-size:2.2em;color:#0eb8ff;letter-spacing:.02em}
@@ -169,16 +175,11 @@
     <div class="hdr-sub">garmin data · updated daily</div>
   </div>
 
-  <div class="range-row" id="rangeRow">
-    <button class="range-btn active" data-days="7">7 days</button>
-    <button class="range-btn" data-days="14">14 days</button>
-    <button class="range-btn" data-days="30">30 days</button>
-  </div>
-
   <div id="status">loading data...</div>
   <div class="stat-tabs" id="statTabs"></div>
   <div class="stat-grid" id="statGrid"></div>
-  <div class="chart-grid" id="chartGrid"></div>
+  <div id="chartControls"></div>
+  <div id="chartPanel"></div>
 
   <!-- ── Lifestyle Log ── -->
   <div class="log-panel">
@@ -217,11 +218,12 @@ const col = db.collection("health_daily");
 </script>
 
 <script>
-let activeDays = 7;
-let allDocs    = [];
-let charts     = {};
-let wxData     = null;
-let aqData     = null;
+let allDocs        = [];
+let charts         = {};
+let wxData         = null;
+let aqData         = null;
+let selectedMetric = null;
+let chartDays      = 30;
 
 const GRID_COLOR = 'rgba(14,184,255,0.1)';
 const TICK_COLOR = 'rgba(220,240,255,0.95)';
@@ -291,15 +293,6 @@ async function fetchAirQualityArchive(startDate) {
   return byDate;
 }
 
-document.getElementById('rangeRow').addEventListener('click', e => {
-  const btn = e.target.closest('.range-btn');
-  if (!btn) return;
-  document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  activeDays = parseInt(btn.dataset.days);
-  render(allDocs);
-});
-
 function dateStr(daysAgo) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
@@ -308,38 +301,21 @@ function dateStr(daysAgo) {
 
 col.orderBy('date', 'asc').onSnapshot(snap => {
   allDocs = snap.docs.map(d => d.data());
-  render(allDocs);
-  // Kick off env fetch in background; re-render stat cards when ready
+  renderStats();
+  if (selectedMetric) drawChart();
   const startDate = allDocs.find(d => d.date)?.date;
   if (startDate && wxData === null) {
     Promise.all([fetchWeatherArchive(startDate), fetchAirQualityArchive(startDate)])
       .then(([wx, aq]) => {
         wxData = wx; aqData = aq;
-        if (activeCat === 'weather' || activeCat === 'airquality') render(allDocs);
+        if (activeCat === 'weather' || activeCat === 'airquality') renderStats();
+        if (selectedMetric) drawChart();
       }).catch(() => {});
   }
 }, err => {
   document.getElementById('status').textContent = 'error loading data — ' + err.message;
 });
 
-function render(docs) {
-  const cutoff = dateStr(activeDays - 1);
-  const data   = docs.filter(d => d.date >= cutoff).sort((a,b) => a.date.localeCompare(b.date));
-  if (!data.length) {
-    document.getElementById('statGrid').innerHTML = '';
-    document.getElementById('chartGrid').innerHTML = `
-      <div class="no-data" style="grid-column:1/-1">no health data yet.<br><br>
-        run the <a href="https://github.com/tigerbot82/myCloudeTest/actions" target="_blank">garmin sync workflow</a>
-        to pull your data from garmin connect.</div>`;
-    document.getElementById('status').textContent = 'no data in selected range';
-    return;
-  }
-  document.getElementById('status').textContent =
-    `${data.length} days · last sync: ${data[data.length-1]?.syncedAt?.toDate?.()?.toLocaleString?.() ?? 'unknown'}`;
-  window._healthData = data;
-  renderStats(data);
-  renderCharts(data);
-}
 
 const STAT_CATEGORIES = {
   all:      null, // null = show all with data
@@ -354,8 +330,16 @@ const STAT_CATEGORIES = {
 };
 let activeCat = 'all';
 
-function renderStats(data) {
-  const today = data[data.length - 1];
+function renderStats() {
+  if (!allDocs.length) {
+    document.getElementById('statGrid').innerHTML = `<div class="no-data" style="grid-column:1/-1">no health data yet.<br><br>run the <a href="https://github.com/tigerbot82/myCloudeTest/actions" target="_blank">garmin sync workflow</a> to pull your data from garmin connect.</div>`;
+    document.getElementById('status').textContent = 'no data';
+    return;
+  }
+  const today = allDocs[allDocs.length - 1];
+  document.getElementById('status').textContent =
+    `last sync: ${today.syncedAt?.toDate?.()?.toLocaleString?.() ?? 'unknown'}`;
+  window._healthData = allDocs;
   const ALL_CARDS = [
     // activity
     { cat:'activity', icon:'👣', label:'steps',          value: fmt(today.steps),                           unit:'steps'      },
@@ -436,13 +420,13 @@ function renderStats(data) {
   // Render category tabs
   const tabs = Object.keys(STAT_CATEGORIES);
   document.getElementById('statTabs').innerHTML = tabs.map(t =>
-    `<button class="stat-tab${t===activeCat?' active':''}" onclick="activeCat='${t}';renderStats(window._healthData)">${t}</button>`
+    `<button class="stat-tab${t===activeCat?' active':''}" onclick="activeCat='${t}';renderStats()">${t}</button>`
   ).join('');
 
   const isEnvTab = activeCat === 'weather' || activeCat === 'airquality';
   const displayDate = isEnvTab ? (envDate ?? today.date) : today.date;
   document.getElementById('statGrid').innerHTML = cards.map(c => `
-    <div class="stat-card">
+    <div class="stat-card${selectedMetric===c.label?' selected':''}" data-label="${c.label}" onclick="selectMetric('${c.label}')">
       <div class="stat-icon">${c.icon}</div>
       <div class="stat-label">${c.label}</div>
       <div class="stat-value">${c.value}</div>
@@ -451,77 +435,106 @@ function renderStats(data) {
     </div>`).join('');
 }
 
-const chartDefs = [
-  { id:'steps',    title:'// steps //',              key: d => d.steps,                  color:'rgba(14,184,255,0.85)' },
-  { id:'hrv',      title:'// hrv (last night) //',   key: d => d.hrv?.lastNight,         color:'rgba(160,80,255,0.85)' },
-  { id:'rhr',      title:'// resting heart rate //', key: d => d.restingHR,              color:'rgba(255,80,140,0.85)' },
-  { id:'stress',   title:'// avg stress //',         key: d => d.avgStress,              color:'rgba(255,200,80,0.85)' },
-  { id:'battery',  title:'// body battery (end) //', key: d => d.bodyBattery?.end,       color:'rgba(80,220,160,0.85)' },
-  { id:'sleep',    title:'// sleep duration //',     key: d => d.sleep?.durationHours,   color:'rgba(80,160,255,0.85)' },
-  { id:'spo2',     title:'// spo2 avg //',           key: d => d.spo2?.avg,              color:'rgba(80,220,255,0.85)' },
-  { id:'calories', title:'// active calories //',    key: d => d.activeCalories,         color:'rgba(255,140,60,0.85)'  },
-];
+const CHART_METRICS = {
+  'steps':           { key: d => d.steps,                   color:'rgba(14,184,255,0.85)', label:'steps' },
+  'calories':        { key: d => d.calories,                 color:'rgba(255,140,60,0.85)',  label:'calories (total)' },
+  'active cal':      { key: d => d.activeCalories,           color:'rgba(255,140,60,0.85)',  label:'active calories' },
+  'distance':        { key: d => d.distanceKm,               color:'rgba(14,184,255,0.85)', label:'distance (km)' },
+  'intensity':       { key: d => d.intensityMinutes,         color:'rgba(80,220,160,0.85)', label:'intensity minutes' },
+  'floors':          { key: d => d.floors,                   color:'rgba(14,184,255,0.75)', label:'floors' },
+  'sedentary hrs':   { key: d => d.sedentaryHours,           color:'rgba(255,200,80,0.85)', label:'sedentary hours' },
+  'hydration':       { key: d => d.hydration?.intakeMl,      color:'rgba(80,160,255,0.85)', label:'hydration (ml)' },
+  'sleep':           { key: d => d.sleep?.durationHours,     color:'rgba(80,160,255,0.85)', label:'sleep duration (h)' },
+  'deep sleep':      { key: d => d.sleep?.deepSleepHours,    color:'rgba(12,123,192,0.85)', label:'deep sleep (h)' },
+  'rem sleep':       { key: d => d.sleep?.remSleepHours,     color:'rgba(160,80,255,0.85)', label:'rem sleep (h)' },
+  'light sleep':     { key: d => d.sleep?.lightSleepHours,   color:'rgba(80,160,255,0.60)', label:'light sleep (h)' },
+  'sleep score':     { key: d => d.sleep?.score,             color:'rgba(80,220,160,0.85)', label:'sleep score' },
+  'sleep body':      { key: d => d.sleep?.bodyScore,         color:'rgba(14,184,255,0.85)', label:'sleep body score' },
+  'sleep mind':      { key: d => d.sleep?.mindScore,         color:'rgba(160,80,255,0.85)', label:'sleep mind score' },
+  'restlessness':    { key: d => d.sleep?.restlessness,      color:'rgba(255,200,80,0.85)', label:'restlessness' },
+  'hrv':             { key: d => d.hrv?.lastNight,           color:'rgba(160,80,255,0.85)', label:'hrv (last night)' },
+  'hrv weekly':      { key: d => d.hrv?.weeklyAvg,           color:'rgba(140,60,255,0.85)', label:'hrv weekly avg' },
+  'body battery':    { key: d => d.bodyBattery?.end,         color:'rgba(80,220,160,0.85)', label:'body battery (end)' },
+  'battery charged': { key: d => d.bodyBattery?.charged,     color:'rgba(80,220,160,0.70)', label:'body battery charged' },
+  'avg stress':      { key: d => d.avgStress,                color:'rgba(255,200,80,0.85)', label:'avg stress' },
+  'readiness':       { key: d => d.trainingReadiness,        color:'rgba(14,184,255,0.85)', label:'training readiness' },
+  'endurance':       { key: d => d.enduranceScore,           color:'rgba(80,220,160,0.85)', label:'endurance score' },
+  'fitness age':     { key: d => d.fitnessAge,               color:'rgba(255,140,60,0.85)', label:'fitness age' },
+  'resting hr':      { key: d => d.restingHR,                color:'rgba(255,80,140,0.85)', label:'resting heart rate' },
+  'breathing':       { key: d => d.respiration?.avg,         color:'rgba(80,220,255,0.85)', label:'breathing (br/min)' },
+  'spo2':            { key: d => d.spo2?.avg,                color:'rgba(80,220,255,0.85)', label:'spo2 avg (%)' },
+  'spo2 min':        { key: d => d.spo2?.min,                color:'rgba(80,180,255,0.85)', label:'spo2 min (%)' },
+  'blood pressure':  { key: d => d.bloodPressure?.systolic,  color:'rgba(255,80,80,0.85)',  label:'blood pressure (systolic)' },
+  'vo2max':          { key: d => d.vo2max,                   color:'rgba(80,220,160,0.85)', label:'vo2max' },
+  'hill score':      { key: d => d.hillScore,                color:'rgba(14,184,255,0.85)', label:'hill score' },
+  'weight':          { key: d => d.weight?.kg,               color:'rgba(14,184,255,0.85)', label:'weight (kg)' },
+  'body fat %':      { key: d => d.weight?.bodyFatPct,       color:'rgba(255,140,60,0.85)', label:'body fat %' },
+  'muscle mass':     { key: d => d.weight?.muscleMassKg,     color:'rgba(80,220,160,0.85)', label:'muscle mass (kg)' },
+  'body water':      { key: d => d.weight?.bodyWaterPct,     color:'rgba(80,160,255,0.85)', label:'body water %' },
+  'temp °c':         { key: d => wxData?.[d.date]?.tempMean, color:'rgba(255,140,60,0.85)', label:'temperature (°C)' },
+  'sunshine h':      { key: d => wxData?.[d.date]?.sunshine, color:'rgba(255,220,80,0.85)', label:'sunshine (h)' },
+  'daylight h':      { key: d => wxData?.[d.date]?.daylight, color:'rgba(255,200,60,0.85)', label:'daylight (h)' },
+  'precip mm':       { key: d => wxData?.[d.date]?.precip,   color:'rgba(80,160,255,0.85)', label:'precipitation (mm)' },
+  'pm2.5':           { key: d => aqData?.[d.date]?.pm2_5,   color:'rgba(255,80,80,0.85)',  label:'pm2.5 (µg/m³)' },
+  'pm10':            { key: d => aqData?.[d.date]?.pm10,    color:'rgba(255,140,60,0.85)', label:'pm10 (µg/m³)' },
+  'no₂':             { key: d => aqData?.[d.date]?.no2,     color:'rgba(160,80,255,0.85)', label:'no₂ (µg/m³)' },
+  'o₃':              { key: d => aqData?.[d.date]?.o3,      color:'rgba(80,220,160,0.85)', label:'o₃ (µg/m³)' },
+  'aqi':             { key: d => aqData?.[d.date]?.aqi,     color:'rgba(255,200,80,0.85)', label:'aqi (EU)' },
+  'uv index':        { key: d => aqData?.[d.date]?.uv,      color:'rgba(255,240,80,0.85)', label:'uv index' },
+};
 
-function renderCharts(data) {
-  const labels = data.map(d => d.date.slice(5));
+function selectMetric(label) {
+  selectedMetric = label;
+  document.querySelectorAll('.stat-card').forEach(el => {
+    el.classList.toggle('selected', el.dataset.label === label);
+  });
+  const ctrl = document.getElementById('chartControls');
+  ctrl.innerHTML = `<div class="chart-controls">
+    <span class="chart-slider-label">range: <strong id="sliderVal">${chartDays}</strong> days</span>
+    <input type="range" id="chartSlider" class="chart-slider" min="7" max="730" step="1" value="${chartDays}"
+           oninput="chartDays=+this.value;document.getElementById('sliderVal').textContent=chartDays;drawChart()">
+  </div>`;
+  drawChart();
+}
+
+function drawChart() {
+  const metric = CHART_METRICS[selectedMetric];
+  if (!metric) return;
+  const cutoff = dateStr(chartDays - 1);
+  const data = allDocs.filter(d => d.date >= cutoff).sort((a,b) => a.date.localeCompare(b.date));
   Object.values(charts).forEach(c => c.destroy());
   charts = {};
-  document.getElementById('chartGrid').innerHTML = chartDefs.map(def => `
-    <div class="chart-panel">
-      <div class="chart-title">${def.title}</div>
-      <div class="chart-wrap"><canvas id="chart-${def.id}"></canvas></div>
-    </div>`).join('') + `
-    <div class="chart-panel">
-      <div class="chart-title">// sleep stages //</div>
-      <div class="chart-wrap"><canvas id="chart-sleepstages"></canvas></div>
-    </div>`;
-  chartDefs.forEach(def => {
-    const values = data.map(def.key);
-    if (values.every(v => v == null)) return;
-    charts[def.id] = makeLineChart(`chart-${def.id}`, labels, values, def.color);
-  });
-  buildSleepStagesChart(data, labels);
+  const panel = document.getElementById('chartPanel');
+  if (!data.length) { panel.innerHTML = `<div class="no-data">no data in selected range</div>`; return; }
+  const labels = data.map(d => d.date.slice(5));
+  const values = data.map(d => metric.key(d));
+  if (values.every(v => v == null)) {
+    panel.innerHTML = `<div class="no-data">no ${metric.label} data in this range</div>`;
+    return;
+  }
+  panel.innerHTML = `<div class="chart-panel">
+    <div class="chart-title">// ${metric.label} //</div>
+    <div class="chart-wrap" style="height:240px"><canvas id="mainChart"></canvas></div>
+  </div>`;
+  charts['main'] = makeLineChart('mainChart', labels, values, metric.color);
 }
 
 function makeLineChart(canvasId, labels, values, color) {
+  const nPts = values.filter(v => v != null).length;
   return new Chart(document.getElementById(canvasId).getContext('2d'), {
     type: 'line',
     data: { labels, datasets: [{
-      data: values, borderColor: color, backgroundColor: color.replace('0.85','0.10'),
-      borderWidth: 1.5, pointRadius: 3, pointBackgroundColor: color,
+      data: values, borderColor: color,
+      backgroundColor: color.replace(/[\d.]+\)$/, '0.10)'),
+      borderWidth: 1.5, pointRadius: nPts > 60 ? 1 : 3, pointBackgroundColor: color,
       fill: true, tension: 0.35, spanGaps: true,
     }]},
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { ...tooltipStyle() } },
       scales: {
-        x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}} },
+        x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12},maxTicksLimit:14} },
         y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}}, beginAtZero:false },
-      }
-    }
-  });
-}
-
-function buildSleepStagesChart(data, labels) {
-  const deep  = data.map(d => d.sleep?.deepSleepHours  ?? null);
-  const rem   = data.map(d => d.sleep?.remSleepHours   ?? null);
-  const light = data.map(d => d.sleep?.lightSleepHours ?? null);
-  const awake = data.map(d => d.sleep?.awakeHours      ?? null);
-  if ([...deep,...rem,...light].every(v => v == null)) return;
-  charts['sleepstages'] = new Chart(document.getElementById('chart-sleepstages').getContext('2d'), {
-    type: 'bar',
-    data: { labels, datasets: [
-      { label:'deep',  data:deep,  backgroundColor:'rgba(12,123,192,0.85)', stack:'s' },
-      { label:'rem',   data:rem,   backgroundColor:'rgba(160,80,255,0.8)',  stack:'s' },
-      { label:'light', data:light, backgroundColor:'rgba(80,160,255,0.6)',  stack:'s' },
-      { label:'awake', data:awake, backgroundColor:'rgba(255,80,80,0.5)',   stack:'s' },
-    ]},
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display:true, labels:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12},boxWidth:10} }, tooltip:{...tooltipStyle()} },
-      scales: {
-        x: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}} },
-        y: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12}} },
       }
     }
   });
