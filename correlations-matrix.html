@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health · Correlation Matrix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Share Tech Mono','Courier New',monospace;min-height:100vh;color:#ddeeff;font-size:16px;overflow-x:hidden;
+      background:#06091a;
+      background-image:radial-gradient(ellipse 90% 60% at 8% 8%,rgba(12,100,192,0.13) 0%,transparent 60%),
+        radial-gradient(ellipse 70% 50% at 92% 92%,rgba(14,184,255,0.07) 0%,transparent 60%);
+      background-attachment:fixed;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:radial-gradient(circle,rgba(14,184,255,0.05) 1px,transparent 1px);
+      background-size:30px 30px;}
+    .top-nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:16px;
+      padding:14px 28px;background:rgba(4,6,18,0.97);
+      border-bottom:1px solid rgba(14,184,255,0.14);box-shadow:0 1px 24px rgba(0,0,0,0.7);}
+    .nav-back{font-size:1em;letter-spacing:.06em;color:rgba(14,184,255,.9);text-decoration:none;transition:color .15s}
+    .nav-back:hover{color:#0eb8ff}
+    .nav-crumb{font-size:.94em;letter-spacing:.1em;color:#ddeeff;}
+    .page-nav{position:fixed;top:53px;left:0;right:0;z-index:9;display:flex;padding:0 24px;
+      background:rgba(4,6,18,0.95);border-bottom:1px solid rgba(14,184,255,.08);}
+    .page-tab{font-size:.9em;letter-spacing:.1em;text-decoration:none;
+      padding:9px 18px;color:rgba(14,184,255,.88);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+    .page-tab:hover{color:rgba(14,184,255,.82);}
+    .page-tab.active{color:#0eb8ff;border-bottom-color:#0eb8ff;}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;
+      padding:108px 24px 60px;display:flex;flex-direction:column;gap:28px;}
+    .hdr{text-align:center;padding:8px 0}
+    .hdr-pre{font-size:.92em;letter-spacing:.12em;color:rgba(14,184,255,.98);margin-bottom:10px;text-transform:uppercase}
+    .hdr h1{font-size:2.2em;letter-spacing:.1em;text-transform:uppercase;color:#0eb8ff;text-shadow:0 0 24px rgba(14,184,255,.4);}
+    .hdr-sub{font-size:.92em;letter-spacing:.1em;color:rgba(14,184,255,.95);margin-top:8px}
+    .no-data{text-align:center;padding:60px 20px;font-size:1em;letter-spacing:.08em;
+      color:#c8e2f5;border:1px dashed rgba(14,184,255,.18);border-radius:4px;background:rgba(8,12,32,.8);}
+    .pg-status{font-size:.92em;letter-spacing:.06em;color:#c8e2f5;text-align:center;margin-top:-12px}
+    #correlStatus{font-size:.92em;letter-spacing:.06em;color:#c8e2f5;text-align:center}
+    .chart-panel{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.2);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
+    .chart-title{font-size:1em;letter-spacing:.1em;text-transform:uppercase;
+      color:rgba(14,184,255,1);padding-bottom:10px;margin-bottom:12px;
+      border-bottom:1px solid rgba(14,184,255,.14);}
+
+    /* ── Controls ── */
+    .correl-controls{display:flex;flex-wrap:wrap;gap:24px;padding:20px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
+      border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.55);}
+    .ctrl-group{display:flex;flex-direction:column;gap:10px;flex:1;min-width:200px}
+    .ctrl-label{font-size:.94em;letter-spacing:.06em;color:#ddeeff;}
+    .ctrl-val{color:#0eb8ff;font-size:1em}
+    .ctrl-sublabel{font-size:.82em;letter-spacing:.05em;color:#ddeeff;}
+    .warn-hint{color:rgba(255,200,80,.9)}
+    input[type=range].correl-range{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;background:rgba(14,184,255,.18);}
+    input[type=range].correl-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#0eb8ff;cursor:pointer;box-shadow:0 0 10px rgba(14,184,255,.7);}
+    input[type=range].correl-range::-moz-range-thumb{width:18px;height:18px;border-radius:50%;border:none;background:#0eb8ff;cursor:pointer;box-shadow:0 0 10px rgba(14,184,255,.7);}
+    .ctrl-coverage{gap:6px}
+    .cov-item{display:flex;align-items:center;gap:8px}
+    .cov-name{font-size:.88em;color:rgba(14,184,255,.88);min-width:90px}
+    .cov-bar-bg{flex:1;height:5px;background:rgba(14,184,255,.12);border-radius:3px;overflow:hidden}
+    .cov-bar{height:100%;border-radius:3px;transition:width .3s}
+    .cov-pct{font-size:.82em;min-width:72px;text-align:right}
+
+    /* ── Matrix ── */
+    .correl-matrix{display:grid;gap:3px;overflow-x:auto;min-width:max-content}
+    .correl-group-cell{text-align:center;font-size:.82em;letter-spacing:.08em;padding:5px 8px;border-radius:2px}
+    .correl-group-wx{color:rgba(14,184,255,.85);border-bottom:2px solid rgba(14,184,255,.4)}
+    .correl-group-aq{color:rgba(255,160,40,.92);border-bottom:2px solid rgba(255,160,40,.55);border-left:3px solid rgba(255,160,40,.4)}
+    .correl-hdr-cell{min-width:88px;padding:6px;font-size:.88em;letter-spacing:.05em;text-align:center;color:#0eb8ff;text-transform:uppercase}
+    .correl-hdr-aq{color:rgba(255,160,40,.88);border-left:3px solid rgba(255,160,40,.35)}
+    .correl-row-label{min-width:112px;padding:10px 10px 10px 0;font-size:.9em;letter-spacing:.05em;text-align:right;color:#ddeeff;display:flex;align-items:center;justify-content:flex-end}
+    .correl-cell{min-width:88px;padding:10px 6px;font-size:.94em;letter-spacing:.03em;text-align:center;border-radius:3px;border:1px solid rgba(14,184,255,.1);border-left-width:3px;background:rgba(6,9,24,0.99);cursor:default;transition:border-color .15s}
+    .correl-cell-aq{background:rgba(10,6,22,0.99);border-left:3px solid rgba(255,160,40,.25) !important}
+    .correl-cell:hover{border-color:rgba(14,184,255,.55)}
+    .correl-cell-aq:hover{border-color:rgba(255,160,40,.6) !important}
+    .correl-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.9em;letter-spacing:.05em;color:#ddeeff;margin-top:8px}
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a href="index.html" class="nav-back">← home</a>
+  <span class="nav-crumb">// composite biomarker explorer //</span>
+</nav>
+<nav class="page-nav">
+  <a href="health.html"              class="page-tab">overview</a>
+  <a href="correlations.html"        class="page-tab">correlations</a>
+  <a href="correlations-matrix.html" class="page-tab active">matrix</a>
+  <a href="viz.html"                 class="page-tab">visualizations</a>
+  <a href="gym.html"                 class="page-tab">gym</a>
+</nav>
+
+<div class="page">
+  <div class="hdr">
+    <div class="hdr-pre">// natural environment //</div>
+    <h1>correlation matrix</h1>
+    <div class="hdr-sub">full pearson r · biometrics vs weather &amp; air quality · vienna 48.24°N</div>
+  </div>
+  <div class="pg-status" id="pgStatus">loading data...</div>
+  <div id="correlStatus"></div>
+  <div id="correlControls"></div>
+  <div class="chart-panel" id="correlMatrix"></div>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey:            "AIzaSyAnRbmN4bVSbegq4IDvQfCsMmlcc1nX3bs",
+  authDomain:        "time-tracker-df33b.firebaseapp.com",
+  projectId:         "time-tracker-df33b",
+  storageBucket:     "time-tracker-df33b.firebasestorage.app",
+  messagingSenderId: "1065069705605",
+  appId:             "1:1065069705605:web:2ea80cfcd7813dc3f26cec",
+});
+const db  = firebase.firestore();
+const col = db.collection("health_daily");
+</script>
+
+<script>
+let corrHistory   = 0;
+let wxData        = null;
+let aqData        = null;
+let corrAllData   = [];
+let customVarDefs = [];
+
+async function fetchWeatherArchive(startDate) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const cKey = `health_wx_arch_${startDate}`;
+  try { const c = JSON.parse(localStorage.getItem(cKey) || 'null');
+    if (c && Date.now() - c.t < 12 * 3600 * 1000) return c.d; } catch(e) {}
+  const url = 'https://archive-api.open-meteo.com/v1/archive'
+    + '?latitude=48.2416&longitude=16.4442'
+    + '&daily=temperature_2m_mean,sunshine_duration,precipitation_sum,daylight_duration'
+    + `&start_date=${startDate}&end_date=${endDate}&timezone=Europe%2FVienna`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('weather ' + resp.status);
+  const j = await resp.json();
+  const byDate = {};
+  (j.daily?.time || []).forEach((d, i) => {
+    byDate[d] = { tempMean: j.daily.temperature_2m_mean[i],
+      sunshine: (j.daily.sunshine_duration[i] ?? 0) / 3600,
+      daylight: (j.daily.daylight_duration[i] ?? 0) / 3600,
+      precip:   j.daily.precipitation_sum[i] ?? 0 };
+  });
+  try { localStorage.setItem(cKey, JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
+  return byDate;
+}
+
+async function fetchAirQualityArchive(startDate) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const cKey = `health_aq_arch_${startDate}`;
+  try { const c = JSON.parse(localStorage.getItem(cKey) || 'null');
+    if (c && Date.now() - c.t < 12 * 3600 * 1000) return c.d; } catch(e) {}
+  const url = 'https://air-quality-api.open-meteo.com/v1/air-quality'
+    + '?latitude=48.2416&longitude=16.4442'
+    + '&hourly=pm2_5,pm10,nitrogen_dioxide,ozone,european_aqi,uv_index'
+    + `&start_date=${startDate}&end_date=${endDate}&timezone=Europe%2FVienna`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('air quality ' + resp.status);
+  const j = await resp.json();
+  const acc = {};
+  (j.hourly?.time || []).forEach((ts, i) => {
+    const date = ts.slice(0, 10);
+    if (!acc[date]) acc[date] = { pm2_5:[], pm10:[], no2:[], o3:[], aqi:[], uv:[] };
+    const a = acc[date];
+    if (j.hourly.pm2_5?.[i]            != null) a.pm2_5.push(j.hourly.pm2_5[i]);
+    if (j.hourly.pm10?.[i]             != null) a.pm10.push(j.hourly.pm10[i]);
+    if (j.hourly.nitrogen_dioxide?.[i] != null) a.no2.push(j.hourly.nitrogen_dioxide[i]);
+    if (j.hourly.ozone?.[i]            != null) a.o3.push(j.hourly.ozone[i]);
+    if (j.hourly.european_aqi?.[i]     != null) a.aqi.push(j.hourly.european_aqi[i]);
+    if (j.hourly.uv_index?.[i]         != null) a.uv.push(j.hourly.uv_index[i]);
+  });
+  const mean = arr => arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : null;
+  const max  = arr => arr.length ? Math.max(...arr) : null;
+  const byDate = {};
+  for (const [date, a] of Object.entries(acc)) {
+    byDate[date] = { pm2_5:mean(a.pm2_5), pm10:mean(a.pm10), no2:mean(a.no2),
+      o3:mean(a.o3), aqi:mean(a.aqi), uv:max(a.uv) };
+  }
+  try { localStorage.setItem(cKey, JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
+  return byDate;
+}
+
+function pearson(xs, ys) {
+  const pairs = xs.map((x,i) => [x, ys[i]]).filter(([x,y]) => x != null && y != null && !isNaN(x) && !isNaN(y));
+  if (pairs.length < 3) return null;
+  const n = pairs.length;
+  const mx = pairs.reduce((s,[x]) => s+x, 0) / n;
+  const my = pairs.reduce((s,[,y]) => s+y, 0) / n;
+  let num=0, dx2=0, dy2=0;
+  for (const [x,y] of pairs) { const a=x-mx, b=y-my; num+=a*b; dx2+=a*a; dy2+=b*b; }
+  const denom = Math.sqrt(dx2*dy2);
+  return denom < 1e-10 ? 0 : parseFloat((num/denom).toFixed(3));
+}
+
+function corrStyle(r) {
+  if (r == null) return 'color:rgba(14,184,255,0.45);border-left-color:rgba(14,184,255,0.2)';
+  const a = (0.55 + Math.abs(r) * 0.45).toFixed(2);
+  return r >= 0
+    ? `color:rgba(14,184,255,${a});border-left-color:rgba(14,184,255,${a})`
+    : `color:rgba(255,80,80,${a});border-left-color:rgba(255,80,80,${a})`;
+}
+
+function getCorrelSlice() {
+  if (!corrAllData.length) return [];
+  const lim = (corrHistory > 0 && corrHistory < corrAllData.length)
+    ? corrHistory : corrAllData.length;
+  return corrAllData.slice(-lim);
+}
+
+function buildHW(data) {
+  const dates = data.map(d => d.date);
+  const H = {
+    'HRV':            data.map(d => d.hrv?.lastNight          ?? null),
+    'HRV Weekly Avg': data.map(d => d.hrv?.weeklyAvg          ?? null),
+    'Sleep Duration': data.map(d => d.sleep?.durationHours    ?? null),
+    'Sleep Score':    data.map(d => d.sleep?.score            ?? null),
+    'Sleep Body':     data.map(d => d.sleep?.bodyScore        ?? null),
+    'Sleep Mind':     data.map(d => d.sleep?.mindScore        ?? null),
+    'Deep Sleep':     data.map(d => d.sleep?.deepSleepHours   ?? null),
+    'REM Sleep':      data.map(d => d.sleep?.remSleepHours    ?? null),
+    'Stress':         data.map(d => d.avgStress               ?? null),
+    'Resting HR':     data.map(d => d.restingHR               ?? null),
+    'Body Battery':   data.map(d => d.bodyBattery?.end        ?? null),
+    'SpO2':           data.map(d => d.spo2?.avg               ?? null),
+    'Breathing':      data.map(d => d.respiration?.avg        ?? null),
+    'Steps':          data.map(d => d.steps                   ?? null),
+    'Distance km':    data.map(d => d.distanceKm              ?? null),
+    'Intensity Min':  data.map(d => d.intensityMinutes        ?? null),
+    'Active Cal':     data.map(d => d.activeCalories          ?? null),
+    'Training Ready': data.map(d => d.trainingReadiness       ?? null),
+    'Endurance':      data.map(d => d.enduranceScore          ?? null),
+    'Fitness Age':    data.map(d => d.fitnessAge              ?? null),
+    'VO2max':         data.map(d => d.vo2max                  ?? null),
+    'Hill Score':     data.map(d => d.hillScore               ?? null),
+    'Weight kg':      data.map(d => d.weight?.kg              ?? null),
+    'Body Fat %':     data.map(d => d.weight?.bodyFatPct      ?? null),
+    'Blood Pressure': data.map(d => d.bloodPressure?.systolic ?? null),
+  };
+  customVarDefs.forEach(v => { H[v.name] = data.map(d => d.custom?.[v.name] ?? null); });
+  const WX = {
+    'Temp °C':    dates.map(d => wxData?.[d]?.tempMean ?? null),
+    'Sunshine h': dates.map(d => wxData?.[d]?.sunshine ?? null),
+    'Daylight h': dates.map(d => wxData?.[d]?.daylight ?? null),
+    'Precip mm':  dates.map(d => wxData?.[d]?.precip   ?? null),
+  };
+  const AQ = {
+    'PM2.5':  dates.map(d => aqData?.[d]?.pm2_5 ?? null),
+    'PM10':   dates.map(d => aqData?.[d]?.pm10  ?? null),
+    'NO₂':    dates.map(d => aqData?.[d]?.no2   ?? null),
+    'O₃':     dates.map(d => aqData?.[d]?.o3    ?? null),
+    'AQI':    dates.map(d => aqData?.[d]?.aqi   ?? null),
+    'UV idx': dates.map(d => aqData?.[d]?.uv    ?? null),
+  };
+  return { dates, H, WX, AQ };
+}
+
+function renderCorrelControls() {
+  const total = corrAllData.length;
+  const maxH  = Math.max(30, total);
+  const curH  = (corrHistory > 0 && corrHistory < total) ? corrHistory : total;
+
+  const bioCov = [
+    ['HRV',           corrAllData.filter(d => d.hrv?.lastNight        != null).length],
+    ['Sleep',         corrAllData.filter(d => d.sleep?.durationHours  != null).length],
+    ['Stress',        corrAllData.filter(d => d.avgStress             != null).length],
+    ['Body Battery',  corrAllData.filter(d => d.bodyBattery?.end      != null).length],
+    ['Steps',         corrAllData.filter(d => d.steps                 != null).length],
+    ['Resting HR',    corrAllData.filter(d => d.restingHR             != null).length],
+    ['Training Ready',corrAllData.filter(d => d.trainingReadiness     != null).length],
+  ];
+  const wxN = corrAllData.filter(d => wxData?.[d.date] != null).length;
+  const aqN = corrAllData.filter(d => aqData?.[d.date] != null).length;
+
+  const covBar = (n, col) => {
+    const pct = total > 0 ? Math.round(n/total*100) : 0;
+    return `<div class="cov-bar-bg"><div class="cov-bar" style="width:${pct}%;background:${col}"></div></div>
+            <span class="cov-pct" style="color:${col}">${pct}% (${n}d)</span>`;
+  };
+
+  document.getElementById('correlControls').innerHTML = `
+    <div class="correl-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">history &nbsp;·&nbsp; <span class="ctrl-val" id="histVal">${curH}</span> days</div>
+        <input type="range" class="correl-range" id="histSlider" min="30" max="${maxH}" step="1" value="${curH}">
+        <div class="ctrl-sublabel">30 days &nbsp;→&nbsp; all (${total})${total < 60
+          ? ' &nbsp;<span class="warn-hint">↑ run workflow sync_days=365</span>' : ''}</div>
+      </div>
+      <div class="ctrl-group ctrl-coverage">
+        <div class="ctrl-label">biometric coverage</div>
+        ${bioCov.map(([k, n]) => {
+          const pct = total > 0 ? Math.round(n/total*100) : 0;
+          const col = pct < 20 ? 'rgba(255,80,80,.9)' : pct < 60 ? 'rgba(255,200,80,.9)' : 'rgba(14,184,255,.9)';
+          return `<div class="cov-item"><span class="cov-name">${k}</span>${covBar(n, col)}</div>`;
+        }).join('')}
+      </div>
+      <div class="ctrl-group ctrl-coverage">
+        <div class="ctrl-label">environment coverage</div>
+        <div class="cov-item"><span class="cov-name" style="color:rgba(14,184,255,.85)">🌤 Weather</span>${covBar(wxN, 'rgba(14,184,255,.9)')}</div>
+        <div class="cov-item"><span class="cov-name" style="color:rgba(255,160,40,.9)">🏭 Air Quality</span>${covBar(aqN, 'rgba(255,160,40,.9)')}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('histSlider').addEventListener('input', function() {
+    const v = parseInt(this.value);
+    corrHistory = v >= maxH ? 0 : v;
+    document.getElementById('histVal').textContent = corrHistory > 0 ? corrHistory : total;
+    renderCorrelMatrix();
+  });
+}
+
+function renderCorrelMatrix() {
+  const el = document.getElementById('correlMatrix');
+  if (!el) return;
+  const data = getCorrelSlice();
+  if (!data.length) { el.innerHTML = '<div class="no-data">no garmin data yet</div>'; return; }
+  const { dates, H, WX, AQ } = buildHW(data);
+  const hKeys  = Object.keys(H);
+  const wxKeys = Object.keys(WX);
+  const aqKeys = Object.keys(AQ);
+  const totalEnvCols = wxKeys.length + aqKeys.length;
+
+  const mat = {};
+  hKeys.forEach(hk => {
+    mat[hk] = {};
+    wxKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], WX[wk]); });
+    aqKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], AQ[wk]); });
+  });
+
+  const gtc = `112px repeat(${totalEnvCols}, minmax(82px, 1fr))`;
+  el.innerHTML = `
+    <div class="chart-title">// pearson r · biometrics vs environment · ${dates.length} days //</div>
+    <div class="correl-matrix" style="grid-template-columns:${gtc}">
+      <div></div>
+      <div class="correl-group-cell correl-group-wx" style="grid-column:span ${wxKeys.length}">🌤 weather</div>
+      <div class="correl-group-cell correl-group-aq" style="grid-column:span ${aqKeys.length}">🏭 air quality</div>
+      <div></div>
+      ${wxKeys.map(wk => `<div class="correl-hdr-cell">${wk}</div>`).join('')}
+      ${aqKeys.map(wk => `<div class="correl-hdr-cell correl-hdr-aq">${wk}</div>`).join('')}
+      ${hKeys.map(hk => `
+        <div class="correl-row-label">${hk}</div>
+        ${wxKeys.map(wk => {
+          const r = mat[hk][wk];
+          return `<div class="correl-cell" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r??'n/a'}">${r!=null?r:'n/a'}</div>`;
+        }).join('')}
+        ${aqKeys.map(wk => {
+          const r = mat[hk][wk];
+          return `<div class="correl-cell correl-cell-aq" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r??'n/a'}">${r!=null?r:'n/a'}</div>`;
+        }).join('')}`).join('')}
+    </div>
+    <div class="correl-legend">
+      <span style="color:rgba(255,80,80,.95)">■ negative</span>
+      <span style="color:rgba(14,184,255,.5)">■ near zero</span>
+      <span style="color:rgba(14,184,255,.98)">■ positive</span>
+      <span>&nbsp;· |r| = intensity · open-meteo · vienna 48.24°N</span>
+    </div>`;
+}
+
+async function loadAndRender(rawDocs) {
+  corrAllData = rawDocs.filter(d => d.date).sort((a,b) => a.date.localeCompare(b.date));
+  const statusEl = document.getElementById('correlStatus');
+  if (!corrAllData.length) { statusEl.textContent = 'no garmin data yet'; return; }
+
+  const startDate = corrAllData[0].date;
+  statusEl.textContent = `fetching environment data for ${corrAllData.length} days...`;
+
+  try {
+    [wxData, aqData] = await Promise.all([
+      fetchWeatherArchive(startDate),
+      fetchAirQualityArchive(startDate),
+    ]);
+  } catch(e) {
+    statusEl.textContent = 'environment data unavailable — ' + e.message;
+    return;
+  }
+
+  renderCorrelControls();
+  renderCorrelMatrix();
+
+  const wxN = Object.keys(wxData).filter(d => d >= startDate).length;
+  const aqN = Object.keys(aqData).filter(d => d >= startDate).length;
+  statusEl.textContent = `open-meteo · ${corrAllData.length} garmin · ${wxN} weather · ${aqN} AQ days · vienna 48.24°N`;
+}
+
+db.collection('_config').doc('custom_vars').get().then(snap => {
+  customVarDefs = (snap.exists && snap.data().vars) ? snap.data().vars : [];
+}).catch(() => {}).finally(() => {
+  col.orderBy('date', 'asc').onSnapshot(snap => {
+    const docs = snap.docs.map(d => d.data());
+    document.getElementById('pgStatus').textContent = docs.length + ' days of garmin data loaded';
+    loadAndRender(docs);
+  }, err => {
+    document.getElementById('pgStatus').textContent = 'error: ' + err.message;
+  });
+});
+</script>
+</body>
+</html>

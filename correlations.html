@@ -135,6 +135,7 @@
 <nav class="page-nav">
   <a href="health.html"       class="page-tab">overview</a>
   <a href="correlations.html" class="page-tab active">correlations</a>
+  <a href="correlations-matrix.html" class="page-tab">matrix</a>
   <a href="viz.html"          class="page-tab">visualizations</a>
   <a href="gym.html"          class="page-tab">gym</a>
 </nav>
@@ -457,59 +458,6 @@ function renderCorrelControls() {
   });
 }
 
-// ── Matrix: 6 biometrics × (4 weather + 6 AQ) ────────────────────
-function renderCorrelMatrix() {
-  const el = document.getElementById('correlMatrix');
-  if (!el) return;
-  const data = getCorrelSlice();
-  const { dates, H, WX, AQ } = buildHW(data);
-  const hKeys  = Object.keys(H);
-  const wxKeys = Object.keys(WX);
-  const aqKeys = Object.keys(AQ);
-  const totalEnvCols = wxKeys.length + aqKeys.length;
-
-  // Compute all r values
-  const mat = {};
-  hKeys.forEach(hk => {
-    mat[hk] = {};
-    wxKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], WX[wk]); });
-    aqKeys.forEach(wk => { mat[hk][wk] = pearson(H[hk], AQ[wk]); });
-  });
-
-  // Grid template: label col + env cols
-  const gtc = `112px repeat(${totalEnvCols}, minmax(82px, 1fr))`;
-
-  el.innerHTML = `
-    <div class="chart-title">// pearson r · biometrics vs environment · ${dates.length} days //</div>
-    <div class="correl-matrix" style="grid-template-columns:${gtc}">
-      <!-- Group header row -->
-      <div></div>
-      <div class="correl-group-cell correl-group-wx" style="grid-column:span ${wxKeys.length}">🌤 weather</div>
-      <div class="correl-group-cell correl-group-aq" style="grid-column:span ${aqKeys.length}">🏭 air quality</div>
-      <!-- Column headers -->
-      <div></div>
-      ${wxKeys.map(wk => `<div class="correl-hdr-cell">${wk}</div>`).join('')}
-      ${aqKeys.map(wk => `<div class="correl-hdr-cell correl-hdr-aq">${wk}</div>`).join('')}
-      <!-- Data rows -->
-      ${hKeys.map(hk => `
-        <div class="correl-row-label">${hk}</div>
-        ${wxKeys.map(wk => {
-          const r = mat[hk][wk];
-          return `<div class="correl-cell" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r??'n/a'}">${r!=null?r:'n/a'}</div>`;
-        }).join('')}
-        ${aqKeys.map(wk => {
-          const r = mat[hk][wk];
-          return `<div class="correl-cell correl-cell-aq" style="${corrStyle(r)}" title="${hk} vs ${wk}: r=${r??'n/a'}">${r!=null?r:'n/a'}</div>`;
-        }).join('')}`).join('')}
-    </div>
-    <div class="correl-legend">
-      <span style="color:rgba(255,80,80,.95)">■ negative</span>
-      <span style="color:rgba(14,184,255,.5)">■ near zero</span>
-      <span style="color:rgba(14,184,255,.98)">■ positive</span>
-      <span>&nbsp;· |r| = intensity · open-meteo · vienna 48.24°N</span>
-    </div>`;
-}
-
 // ── Ranked list + detail chart ────────────────────────────────────
 let allPairs      = [];    // [{h, w, r, absR, isAQ}] sorted by absR desc
 let activeCatFilter = 'All';
@@ -643,7 +591,6 @@ function renderDetailChart(hk, wk) {
 function refreshCorrelCharts() {
   const data = getCorrelSlice();
   allPairs = buildPairs(data);
-  renderCorrelMatrix();
   renderCorrelList();
   if (selectedPairKey) {
     const [hk, wk] = selectedPairKey.split('||');
@@ -693,16 +640,7 @@ async function loadAndRenderCorrelations(rawDocs) {
       <div id="correlList"></div>
     </div>
 
-    <div class="detail-panel" id="detailPanel"></div>
-
-    <div class="chart-panel" id="correlMatrix" style="display:none"></div>
-
-    <button class="matrix-toggle" onclick="
-      const m=document.getElementById('correlMatrix');
-      const vis=m.style.display!=='none';
-      m.style.display=vis?'none':'block';
-      this.textContent=vis?'▶ show correlation matrix':'▼ hide matrix';
-      if(!vis) renderCorrelMatrix();">▶ show correlation matrix</button>`;
+    <div class="detail-panel" id="detailPanel"></div>`;
 
   renderCorrelControls();
   renderCorrelList();
