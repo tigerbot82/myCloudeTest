@@ -220,9 +220,76 @@ const col = db.collection("health_daily");
 let activeDays = 7;
 let allDocs    = [];
 let charts     = {};
+let wxData     = null;
+let aqData     = null;
 
 const GRID_COLOR = 'rgba(14,184,255,0.1)';
 const TICK_COLOR = 'rgba(220,240,255,0.95)';
+
+// ── Weather + AQ fetch (same cache as correlations page) ──────────
+async function fetchWeatherArchive(startDate) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const cKey = `health_wx_arch_${startDate}`;
+  try {
+    const c = JSON.parse(localStorage.getItem(cKey) || 'null');
+    if (c && Date.now() - c.t < 12 * 3600 * 1000) return c.d;
+  } catch(e) {}
+  const url = 'https://archive-api.open-meteo.com/v1/archive'
+    + '?latitude=48.2416&longitude=16.4442'
+    + '&daily=temperature_2m_mean,sunshine_duration,precipitation_sum,daylight_duration'
+    + `&start_date=${startDate}&end_date=${endDate}&timezone=Europe%2FVienna`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('weather ' + resp.status);
+  const j = await resp.json();
+  const byDate = {};
+  (j.daily?.time || []).forEach((d, i) => {
+    byDate[d] = {
+      tempMean: j.daily.temperature_2m_mean[i],
+      sunshine: (j.daily.sunshine_duration[i] ?? 0) / 3600,
+      daylight: (j.daily.daylight_duration[i] ?? 0) / 3600,
+      precip:   j.daily.precipitation_sum[i] ?? 0,
+    };
+  });
+  try { localStorage.setItem(cKey, JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
+  return byDate;
+}
+
+async function fetchAirQualityArchive(startDate) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const cKey = `health_aq_arch_${startDate}`;
+  try {
+    const c = JSON.parse(localStorage.getItem(cKey) || 'null');
+    if (c && Date.now() - c.t < 12 * 3600 * 1000) return c.d;
+  } catch(e) {}
+  const url = 'https://air-quality-api.open-meteo.com/v1/air-quality'
+    + '?latitude=48.2416&longitude=16.4442'
+    + '&hourly=pm2_5,pm10,nitrogen_dioxide,ozone,european_aqi,uv_index'
+    + `&start_date=${startDate}&end_date=${endDate}&timezone=Europe%2FVienna`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('air quality ' + resp.status);
+  const j = await resp.json();
+  const acc = {};
+  (j.hourly?.time || []).forEach((ts, i) => {
+    const date = ts.slice(0, 10);
+    if (!acc[date]) acc[date] = { pm2_5:[], pm10:[], no2:[], o3:[], aqi:[], uv:[] };
+    const a = acc[date];
+    if (j.hourly.pm2_5?.[i]            != null) a.pm2_5.push(j.hourly.pm2_5[i]);
+    if (j.hourly.pm10?.[i]             != null) a.pm10.push(j.hourly.pm10[i]);
+    if (j.hourly.nitrogen_dioxide?.[i] != null) a.no2.push(j.hourly.nitrogen_dioxide[i]);
+    if (j.hourly.ozone?.[i]            != null) a.o3.push(j.hourly.ozone[i]);
+    if (j.hourly.european_aqi?.[i]     != null) a.aqi.push(j.hourly.european_aqi[i]);
+    if (j.hourly.uv_index?.[i]         != null) a.uv.push(j.hourly.uv_index[i]);
+  });
+  const mean = arr => arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : null;
+  const max  = arr => arr.length ? Math.max(...arr) : null;
+  const byDate = {};
+  for (const [date, a] of Object.entries(acc)) {
+    byDate[date] = { pm2_5:mean(a.pm2_5), pm10:mean(a.pm10), no2:mean(a.no2),
+      o3:mean(a.o3), aqi:mean(a.aqi), uv:max(a.uv) };
+  }
+  try { localStorage.setItem(cKey, JSON.stringify({t: Date.now(), d: byDate})); } catch(e) {}
+  return byDate;
+}
 
 document.getElementById('rangeRow').addEventListener('click', e => {
   const btn = e.target.closest('.range-btn');
@@ -242,6 +309,15 @@ function dateStr(daysAgo) {
 col.orderBy('date', 'asc').onSnapshot(snap => {
   allDocs = snap.docs.map(d => d.data());
   render(allDocs);
+  // Kick off env fetch in background; re-render stat cards when ready
+  const startDate = allDocs.find(d => d.date)?.date;
+  if (startDate && wxData === null) {
+    Promise.all([fetchWeatherArchive(startDate), fetchAirQualityArchive(startDate)])
+      .then(([wx, aq]) => {
+        wxData = wx; aqData = aq;
+        if (activeCat === 'weather' || activeCat === 'airquality') render(allDocs);
+      }).catch(() => {});
+  }
 }, err => {
   document.getElementById('status').textContent = 'error loading data — ' + err.message;
 });
@@ -273,6 +349,8 @@ const STAT_CATEGORIES = {
   vitals:   ['resting hr','breathing','spo2','spo2 min','blood pressure'],
   fitness:  ['vo2max','hill score'],
   body:     ['weight','body fat %','muscle mass','body water'],
+  weather:  ['temp °c','sunshine h','daylight h','precip mm'],
+  airquality: ['pm2.5','pm10','no₂','o₃','aqi','uv index'],
 };
 let activeCat = 'all';
 
@@ -322,6 +400,28 @@ function renderStats(data) {
     { cat:'body',     icon:'💦', label:'body water',     value: today.weight?.bodyWaterPct ?? '—',          unit:'%'          },
   ];
 
+  // ── Weather + AQ cards (use latest available date) ────────────
+  const envDate = wxData
+    ? ([...Object.keys(wxData)].sort().reverse().find(d => d <= today.date) ?? today.date)
+    : today.date;
+  const wx = wxData?.[envDate];
+  const aq = aqData?.[envDate];
+  const r1 = v => v != null ? Math.round(v * 10) / 10 : '—';
+  const r0 = v => v != null ? Math.round(v) : '—';
+  const envCards = [
+    { cat:'weather',    icon:'🌡️', label:'temp °c',    value: wx ? r1(wx.tempMean)  : (wxData ? '—' : '…'), unit:'°C'      },
+    { cat:'weather',    icon:'☀️',  label:'sunshine h', value: wx ? r1(wx.sunshine)  : (wxData ? '—' : '…'), unit:'h'       },
+    { cat:'weather',    icon:'🌅',  label:'daylight h', value: wx ? r1(wx.daylight)  : (wxData ? '—' : '…'), unit:'h'       },
+    { cat:'weather',    icon:'🌧️', label:'precip mm',  value: wx ? r1(wx.precip)    : (wxData ? '—' : '…'), unit:'mm'      },
+    { cat:'airquality', icon:'🔬',  label:'pm2.5',      value: aq ? r1(aq.pm2_5)    : (aqData ? '—' : '…'), unit:'µg/m³'   },
+    { cat:'airquality', icon:'💨',  label:'pm10',       value: aq ? r1(aq.pm10)     : (aqData ? '—' : '…'), unit:'µg/m³'   },
+    { cat:'airquality', icon:'🟤',  label:'no₂',        value: aq ? r1(aq.no2)      : (aqData ? '—' : '…'), unit:'µg/m³'   },
+    { cat:'airquality', icon:'🟣',  label:'o₃',         value: aq ? r1(aq.o3)       : (aqData ? '—' : '…'), unit:'µg/m³'   },
+    { cat:'airquality', icon:'📊',  label:'aqi',        value: aq ? r0(aq.aqi)      : (aqData ? '—' : '…'), unit:'EU AQI'  },
+    { cat:'airquality', icon:'🌞',  label:'uv index',   value: aq ? r1(aq.uv)       : (aqData ? '—' : '…'), unit:''        },
+  ];
+  ALL_CARDS.push(...envCards);
+
   const defaultVisible = ['steps','calories','resting hr','body battery','avg stress','hrv','sleep','spo2','distance','intensity','breathing','vo2max','readiness','weight'];
   const catKeys = STAT_CATEGORIES[activeCat];
   const cards = ALL_CARDS.filter(c => {
@@ -339,13 +439,15 @@ function renderStats(data) {
     `<button class="stat-tab${t===activeCat?' active':''}" onclick="activeCat='${t}';renderStats(window._healthData)">${t}</button>`
   ).join('');
 
+  const isEnvTab = activeCat === 'weather' || activeCat === 'airquality';
+  const displayDate = isEnvTab ? (envDate ?? today.date) : today.date;
   document.getElementById('statGrid').innerHTML = cards.map(c => `
     <div class="stat-card">
       <div class="stat-icon">${c.icon}</div>
       <div class="stat-label">${c.label}</div>
       <div class="stat-value">${c.value}</div>
       <div class="stat-unit">${c.unit}</div>
-      <div class="stat-date">latest: ${today.date}</div>
+      <div class="stat-date">latest: ${displayDate}</div>
     </div>`).join('');
 }
 
