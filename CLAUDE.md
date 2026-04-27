@@ -1,4 +1,4 @@
-# Project: Composite Biometric Explorer
+# Project: Composite Biomarker Explorer
 
 Personal dashboard hosted on GitHub Pages. One repo, one Firebase project, multiple single-page apps.
 
