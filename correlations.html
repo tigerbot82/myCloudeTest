@@ -104,6 +104,10 @@
     .corr-bar-col{display:flex;align-items:center;gap:4px}
     .corr-bar-bg{flex:1;background:rgba(14,184,255,.1);border-radius:2px;height:5px;overflow:hidden}
     .corr-bar{height:100%;border-radius:2px}
+    #correlList{max-height:420px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(14,184,255,.3) transparent}
+    #correlList::-webkit-scrollbar{width:4px}
+    #correlList::-webkit-scrollbar-track{background:transparent}
+    #correlList::-webkit-scrollbar-thumb{background:rgba(14,184,255,.3);border-radius:2px}
 
     /* ── Detail chart ── */
     .detail-panel{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
