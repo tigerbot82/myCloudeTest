@@ -79,6 +79,47 @@
     .cov-bar-bg{flex:1;height:5px;background:rgba(14,184,255,.12);border-radius:3px;overflow:hidden}
     .cov-bar{height:100%;border-radius:3px;transition:width .3s}
     .cov-pct{font-size:.82em;min-width:72px;text-align:right}
+
+    /* ── Ranked list ── */
+    .corr-filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 0 10px}
+    .corr-filter-btn{font-family:inherit;font-size:.8em;letter-spacing:.07em;padding:4px 13px;
+      border-radius:2px;cursor:pointer;border:1px solid rgba(14,184,255,.22);
+      background:rgba(8,12,32,.97);color:rgba(14,184,255,.75);transition:all .12s}
+    .corr-filter-btn.on{background:rgba(14,184,255,.14);border-color:rgba(14,184,255,.55);color:#0eb8ff}
+    .corr-count{font-size:.82em;color:rgba(14,184,255,.45);margin-left:auto}
+    .corr-list-hdr{display:grid;grid-template-columns:28px 1fr 1fr 56px 80px;gap:8px;
+      padding:4px 10px;font-size:.78em;letter-spacing:.09em;text-transform:uppercase;
+      color:rgba(14,184,255,.5);border-bottom:1px solid rgba(14,184,255,.12);margin-bottom:3px}
+    .corr-row{display:grid;grid-template-columns:28px 1fr 1fr 56px 80px;gap:8px;align-items:center;
+      padding:7px 10px;border-radius:3px;cursor:pointer;
+      border:1px solid rgba(14,184,255,.07);background:rgba(6,9,24,.99);
+      transition:border-color .12s,background .12s}
+    .corr-row:hover{border-color:rgba(14,184,255,.38);background:rgba(14,184,255,.05)}
+    .corr-row.selected{border-color:rgba(14,184,255,.65);background:rgba(14,184,255,.08)}
+    .corr-rank{color:rgba(14,184,255,.4);font-size:.8em;text-align:right}
+    .corr-bio{font-size:.88em;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .corr-env{font-size:.85em;color:rgba(14,184,255,.78);white-space:nowrap}
+    .corr-env.aq{color:rgba(255,160,40,.85)}
+    .corr-r-val{text-align:right;font-size:.92em;letter-spacing:.02em}
+    .corr-bar-col{display:flex;align-items:center;gap:4px}
+    .corr-bar-bg{flex:1;background:rgba(14,184,255,.1);border-radius:2px;height:5px;overflow:hidden}
+    .corr-bar{height:100%;border-radius:2px}
+
+    /* ── Detail chart ── */
+    .detail-panel{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
+      border:1px solid rgba(14,184,255,.22);border-top:2px solid rgba(14,184,255,.5);
+      border-radius:4px;box-shadow:0 4px 28px rgba(0,0,0,.6);display:none}
+    .detail-panel.visible{display:block}
+    .detail-wrap{position:relative;height:230px}
+    .detail-scatter-wrap{position:relative;height:200px}
+
+    /* ── Matrix toggle ── */
+    .matrix-toggle{font-family:inherit;font-size:.85em;letter-spacing:.08em;padding:6px 16px;
+      border-radius:2px;cursor:pointer;border:1px solid rgba(14,184,255,.22);
+      background:rgba(8,12,32,.97);color:rgba(14,184,255,.75);transition:all .12s;align-self:flex-start}
+    .matrix-toggle:hover{border-color:rgba(14,184,255,.5);color:#0eb8ff}
+    .matrix-section{display:none}
+    .matrix-section.visible{display:block}
   </style>
 </head>
 <body>
@@ -103,7 +144,7 @@
   <div class="pg-status" id="pgStatus">loading data...</div>
   <div id="correlStatus"></div>
   <div id="correlControls"></div>
-  <div class="chart-grid" id="correlGrid"></div>
+  <div id="correlGrid"></div>
 </div>
 
 <script>
@@ -140,12 +181,38 @@ let customVarDefs = [];  // [{name, unit}] from _config/custom_vars
 
 // Colour per biometric (used in rolling charts)
 const H_COLORS = {
-  'HRV':          'rgba(160,80,255,0.85)',
-  'Sleep':        'rgba(80,160,255,0.85)',
-  'Stress':       'rgba(255,200,80,0.85)',
-  'Body Battery': 'rgba(80,220,160,0.85)',
-  'Steps':        'rgba(14,184,255,0.85)',
-  'Resting HR':   'rgba(255,80,140,0.85)',
+  'HRV':              'rgba(160,80,255,0.85)',
+  'HRV Weekly Avg':   'rgba(180,100,255,0.85)',
+  'Sleep Duration':   'rgba(80,160,255,0.85)',
+  'Sleep Score':      'rgba(60,140,255,0.85)',
+  'Sleep Body':       'rgba(100,180,255,0.85)',
+  'Sleep Mind':       'rgba(120,200,255,0.85)',
+  'Deep Sleep':       'rgba(40,80,200,0.85)',
+  'REM Sleep':        'rgba(100,100,220,0.85)',
+  'Stress':           'rgba(255,200,80,0.85)',
+  'Resting HR':       'rgba(255,80,140,0.85)',
+  'Body Battery':     'rgba(80,220,160,0.85)',
+  'SpO2':             'rgba(80,220,255,0.85)',
+  'Breathing':        'rgba(140,220,200,0.85)',
+  'Steps':            'rgba(14,184,255,0.85)',
+  'Distance km':      'rgba(14,200,255,0.85)',
+  'Intensity Min':    'rgba(255,140,60,0.85)',
+  'Active Cal':       'rgba(255,120,40,0.85)',
+  'Training Ready':   'rgba(80,255,160,0.85)',
+  'Endurance':        'rgba(60,220,140,0.85)',
+  'Fitness Age':      'rgba(200,255,100,0.85)',
+  'VO2max':           'rgba(100,255,180,0.85)',
+  'Hill Score':       'rgba(140,255,120,0.85)',
+  'Weight kg':        'rgba(255,160,100,0.85)',
+  'Body Fat %':       'rgba(255,140,80,0.85)',
+  'Blood Pressure':   'rgba(255,100,100,0.85)',
+};
+const BIO_CATEGORIES = {
+  'Sleep':    ['HRV','HRV Weekly Avg','Sleep Duration','Sleep Score','Sleep Body','Sleep Mind','Deep Sleep','REM Sleep'],
+  'Activity': ['Steps','Distance km','Intensity Min','Active Cal','Body Battery'],
+  'Vitals':   ['Stress','Resting HR','SpO2','Breathing','Blood Pressure'],
+  'Fitness':  ['Training Ready','Endurance','Fitness Age','VO2max','Hill Score'],
+  'Body':     ['Weight kg','Body Fat %'],
 };
 
 // ── Weather archive (Open-Meteo, daily) ──────────────────────────
@@ -273,17 +340,32 @@ function getCorrelSlice() {
 function buildHW(data) {
   const dates = data.map(d => d.date);
   const H = {
-    'HRV':          data.map(d => d.hrv?.lastNight        ?? null),
-    'Sleep':        data.map(d => d.sleep?.durationHours  ?? null),
-    'Stress':       data.map(d => d.avgStress             ?? null),
-    'Body Battery': data.map(d => d.bodyBattery?.end      ?? null),
-    'Steps':        data.map(d => d.steps                 ?? null),
-    'Resting HR':   data.map(d => d.restingHR             ?? null),
-    'Intensity':    data.map(d => d.intensityMinutes      ?? null),
-    'Breathing':    data.map(d => d.respiration?.avg      ?? null),
-    'VO2max':       data.map(d => d.vo2max                ?? null),
+    'HRV':            data.map(d => d.hrv?.lastNight          ?? null),
+    'HRV Weekly Avg': data.map(d => d.hrv?.weeklyAvg          ?? null),
+    'Sleep Duration': data.map(d => d.sleep?.durationHours    ?? null),
+    'Sleep Score':    data.map(d => d.sleep?.score            ?? null),
+    'Sleep Body':     data.map(d => d.sleep?.bodyScore        ?? null),
+    'Sleep Mind':     data.map(d => d.sleep?.mindScore        ?? null),
+    'Deep Sleep':     data.map(d => d.sleep?.deepSleepHours   ?? null),
+    'REM Sleep':      data.map(d => d.sleep?.remSleepHours    ?? null),
+    'Stress':         data.map(d => d.avgStress               ?? null),
+    'Resting HR':     data.map(d => d.restingHR               ?? null),
+    'Body Battery':   data.map(d => d.bodyBattery?.end        ?? null),
+    'SpO2':           data.map(d => d.spo2?.avg               ?? null),
+    'Breathing':      data.map(d => d.respiration?.avg        ?? null),
+    'Steps':          data.map(d => d.steps                   ?? null),
+    'Distance km':    data.map(d => d.distanceKm              ?? null),
+    'Intensity Min':  data.map(d => d.intensityMinutes        ?? null),
+    'Active Cal':     data.map(d => d.activeCalories          ?? null),
+    'Training Ready': data.map(d => d.trainingReadiness       ?? null),
+    'Endurance':      data.map(d => d.enduranceScore          ?? null),
+    'Fitness Age':    data.map(d => d.fitnessAge              ?? null),
+    'VO2max':         data.map(d => d.vo2max                  ?? null),
+    'Hill Score':     data.map(d => d.hillScore               ?? null),
+    'Weight kg':      data.map(d => d.weight?.kg              ?? null),
+    'Body Fat %':     data.map(d => d.weight?.bodyFatPct      ?? null),
+    'Blood Pressure': data.map(d => d.bloodPressure?.systolic ?? null),
   };
-  // Add custom lifestyle variables
   customVarDefs.forEach(v => {
     H[v.name] = data.map(d => d.custom?.[v.name] ?? null);
   });
@@ -311,12 +393,15 @@ function renderCorrelControls() {
   const curH  = (corrHistory > 0 && corrHistory < total) ? corrHistory : total;
 
   const bioCov = [
-    ['HRV',          corrAllData.filter(d => (d.hrv?.lastNight        ?? null) != null).length],
-    ['Sleep',        corrAllData.filter(d => (d.sleep?.durationHours  ?? null) != null).length],
-    ['Stress',       corrAllData.filter(d => (d.avgStress             ?? null) != null).length],
-    ['Body Battery', corrAllData.filter(d => (d.bodyBattery?.end      ?? null) != null).length],
-    ['Steps',        corrAllData.filter(d => (d.steps                 ?? null) != null).length],
-    ['Resting HR',   corrAllData.filter(d => (d.restingHR             ?? null) != null).length],
+    ['HRV',           corrAllData.filter(d => d.hrv?.lastNight        != null).length],
+    ['Sleep',         corrAllData.filter(d => d.sleep?.durationHours  != null).length],
+    ['Stress',        corrAllData.filter(d => d.avgStress             != null).length],
+    ['Body Battery',  corrAllData.filter(d => d.bodyBattery?.end      != null).length],
+    ['Steps',         corrAllData.filter(d => d.steps                 != null).length],
+    ['Resting HR',    corrAllData.filter(d => d.restingHR             != null).length],
+    ['Training Ready',corrAllData.filter(d => d.trainingReadiness     != null).length],
+    ['Endurance',     corrAllData.filter(d => d.enduranceScore        != null).length],
+    ['Fitness Age',   corrAllData.filter(d => d.fitnessAge            != null).length],
   ];
   const wxN = corrAllData.filter(d => wxData?.[d.date] != null).length;
   const aqN = corrAllData.filter(d => aqData?.[d.date] != null).length;
@@ -421,25 +506,21 @@ function renderCorrelMatrix() {
     </div>`;
 }
 
-// ── Rolling charts — every non-null pair, sorted by |r| ──────────
-function renderCorrelRolling() {
-  Object.values(correlCharts).forEach(c => c.destroy());
-  correlCharts = {};
+// ── Ranked list + detail chart ────────────────────────────────────
+let allPairs      = [];    // [{h, w, r, absR, isAQ}] sorted by absR desc
+let activeCatFilter = 'All';
+let detailChart   = null;
+let selectedPairKey = null;
 
-  const data = getCorrelSlice();
-  const grid = document.getElementById('correlRollingGrid');
-  if (!grid) return;
+function rColor(r) {
+  if (r == null) return 'rgba(14,184,255,0.35)';
+  const a = (0.55 + Math.abs(r) * 0.45).toFixed(2);
+  return r >= 0 ? `rgba(14,184,255,${a})` : `rgba(255,80,80,${a})`;
+}
 
-  if (data.length < corrWindow + 1) {
-    grid.innerHTML = `<div class="no-data" style="grid-column:1/-1">
-      need at least ${corrWindow + 1} days to render a ${corrWindow}-day rolling window</div>`;
-    return;
-  }
-
-  const { dates, H, WX, AQ } = buildHW(data);
+function buildPairs(data) {
+  const { H, WX, AQ } = buildHW(data);
   const allEnv = { ...WX, ...AQ };
-
-  // Build all pairs with valid r values, sort by |r| desc
   const pairs = [];
   for (const hk of Object.keys(H)) {
     for (const wk of Object.keys(allEnv)) {
@@ -448,56 +529,122 @@ function renderCorrelRolling() {
     }
   }
   pairs.sort((a,b) => b.absR - a.absR);
+  return pairs;
+}
 
-  if (!pairs.length) {
-    grid.innerHTML = `<div class="no-data" style="grid-column:1/-1">
-      no overlapping data — run Garmin workflow with sync_days=365</div>`;
+function renderCorrelList() {
+  const listEl = document.getElementById('correlList');
+  if (!listEl) return;
+
+  // Determine which biometrics to show
+  const catBios = activeCatFilter === 'All' ? null : BIO_CATEGORIES[activeCatFilter];
+  const visible = allPairs.filter(p => !catBios || catBios.includes(p.h));
+
+  // Update filter button active state
+  document.querySelectorAll('.corr-filter-btn').forEach(btn => {
+    btn.classList.toggle('on', btn.dataset.cat === activeCatFilter);
+  });
+  document.getElementById('corrCount').textContent = `${visible.length} pairs`;
+
+  if (!visible.length) {
+    listEl.innerHTML = `<div class="no-data">no data yet — run sync with sync_days=365</div>`;
     return;
   }
 
-  grid.innerHTML = pairs.map((p, i) => `
-    <div class="chart-panel">
-      <div class="chart-title" style="color:${p.isAQ ? 'rgba(255,160,40,.88)' : 'rgba(14,184,255,.88)'}">
-        // ${corrWindow}d r · ${p.h.toLowerCase()} vs ${p.w.toLowerCase()} &nbsp;<span style="opacity:.65">(r=${p.r})</span> //
-      </div>
-      <div class="chart-wrap"><canvas id="cc-${i}"></canvas></div>
-    </div>`).join('');
+  listEl.innerHTML = visible.map((p, i) => {
+    const col    = H_COLORS[p.h] || 'rgba(14,184,255,0.85)';
+    const rc     = rColor(p.r);
+    const barW   = Math.round(p.absR * 100);
+    const barCol = p.r >= 0 ? 'rgba(14,184,255,0.7)' : 'rgba(255,80,80,0.7)';
+    const key    = `${p.h}||${p.w}`;
+    const sel    = key === selectedPairKey ? ' selected' : '';
+    return `<div class="corr-row${sel}" data-key="${key}" onclick="selectPair('${p.h.replace(/'/g,"\\'")}','${p.w.replace(/'/g,"\\'")}')">
+      <span class="corr-rank">${i+1}</span>
+      <span class="corr-bio" style="color:${col}">${p.h}</span>
+      <span class="corr-env${p.isAQ?' aq':''}">${p.w}</span>
+      <span class="corr-r-val" style="color:${rc}">${p.r >= 0 ? '+' : ''}${p.r.toFixed(3)}</span>
+      <div class="corr-bar-col"><div class="corr-bar-bg"><div class="corr-bar" style="width:${barW}%;background:${barCol}"></div></div></div>
+    </div>`;
+  }).join('');
+}
 
-  pairs.forEach((p, i) => {
-    const el = document.getElementById(`cc-${i}`);
-    if (!el) return;
-    const roll = rollingCorr(dates, H[p.h], allEnv[p.w], corrWindow);
-    correlCharts[i] = new Chart(el.getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: roll.map(r => r.date.slice(5)),
-        datasets: [{
-          data: roll.map(r => r.r),
-          borderColor: H_COLORS[p.h],
-          backgroundColor: H_COLORS[p.h].replace('0.85','0.08'),
-          borderWidth: 1.5, pointRadius: 1.5, pointBackgroundColor: H_COLORS[p.h],
-          fill: true, tension: 0.35, spanGaps: true,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{...tooltipStyle()} },
-        scales: {
-          x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12},maxTicksLimit:8} },
-          y: {
-            grid:{color:GRID_COLOR}, min:-1, max:1,
-            afterBuildTicks: ax => { ax.ticks=[-1,-0.5,0,0.5,1].map(v=>({value:v})); },
-            ticks: { color:TICK_COLOR, font:{family:'Share Tech Mono',size:12}, callback:v=>v.toFixed(1) },
-          },
+function selectPair(hk, wk) {
+  selectedPairKey = `${hk}||${wk}`;
+  renderCorrelList();
+  renderDetailChart(hk, wk);
+}
+
+function renderDetailChart(hk, wk) {
+  const panel = document.getElementById('detailPanel');
+  if (!panel) return;
+  panel.classList.add('visible');
+
+  const data = getCorrelSlice();
+  if (data.length < corrWindow + 1) {
+    panel.innerHTML = `<div class="no-data">need ${corrWindow+1} days for a ${corrWindow}-day rolling window</div>`;
+    return;
+  }
+
+  const { dates, H, WX, AQ } = buildHW(data);
+  const allEnv = { ...WX, ...AQ };
+  const xs = H[hk], ys = allEnv[wk];
+  const roll = rollingCorr(dates, xs, ys, corrWindow);
+  const overallR = pearson(xs, ys);
+  const col = H_COLORS[hk] || 'rgba(14,184,255,0.85)';
+  const envCol = (wk in AQ) ? 'rgba(255,160,40,.88)' : 'rgba(14,184,255,.88)';
+
+  panel.innerHTML = `
+    <div class="chart-title" style="color:${col}">
+      // ${corrWindow}d rolling r · ${hk.toLowerCase()} vs
+      <span style="color:${envCol}">${wk.toLowerCase()}</span>
+      &nbsp;<span style="opacity:.6;color:#ddeeff">overall r = ${overallR != null ? (overallR>=0?'+':'')+overallR.toFixed(3) : 'n/a'}</span> //
+    </div>
+    <div class="detail-wrap"><canvas id="detailCanvas"></canvas></div>`;
+
+  if (detailChart) { detailChart.destroy(); detailChart = null; }
+  const ctx = document.getElementById('detailCanvas').getContext('2d');
+  detailChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: roll.map(r => r.date.slice(5)),
+      datasets: [{
+        data: roll.map(r => r.r),
+        borderColor: col,
+        backgroundColor: col.replace('0.85','0.08'),
+        borderWidth: 1.5, pointRadius: 1.5, pointBackgroundColor: col,
+        fill: true, tension: 0.35, spanGaps: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...tooltipStyle(),
+          callbacks: { label: ctx => ` r = ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(3) : 'n/a'}` }
         }
+      },
+      scales: {
+        x: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:{family:'Share Tech Mono',size:12},maxTicksLimit:10} },
+        y: {
+          grid:{color:GRID_COLOR}, min:-1, max:1,
+          afterBuildTicks: ax => { ax.ticks=[-1,-0.5,0,0.5,1].map(v=>({value:v})); },
+          ticks:{ color:TICK_COLOR, font:{family:'Share Tech Mono',size:12}, callback:v=>v.toFixed(1) },
+        },
       }
-    });
+    }
   });
 }
 
 function refreshCorrelCharts() {
+  const data = getCorrelSlice();
+  allPairs = buildPairs(data);
   renderCorrelMatrix();
-  renderCorrelRolling();
+  renderCorrelList();
+  if (selectedPairKey) {
+    const [hk, wk] = selectedPairKey.split('||');
+    renderDetailChart(hk, wk);
+  }
 }
 
 // ── Entry point ───────────────────────────────────────────────────
@@ -519,19 +666,46 @@ async function loadAndRenderCorrelations(rawDocs) {
     return;
   }
 
-  // Static outer structure — correlRollingGrid rebuilt on each slider change
+  // Build initial pairs
+  allPairs = buildPairs(getCorrelSlice());
+
+  // Build category filter buttons
+  const cats = ['All', ...Object.keys(BIO_CATEGORIES)];
+  const filterBtns = cats.map(c =>
+    `<button class="corr-filter-btn${c==='All'?' on':''}" data-cat="${c}"
+       onclick="activeCatFilter='${c}';renderCorrelList()">${c}</button>`
+  ).join('');
+
   document.getElementById('correlGrid').innerHTML = `
-    <div class="chart-panel" style="grid-column:1/-1" id="correlMatrix"></div>
-    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px"
-         id="correlRollingGrid"></div>`;
+    <div class="chart-panel" id="correlListPanel">
+      <div class="chart-title">// correlation ranking · all biometrics vs environment //</div>
+      <div class="corr-filters">
+        ${filterBtns}
+        <span class="corr-count" id="corrCount"></span>
+      </div>
+      <div class="corr-list-hdr">
+        <span>#</span><span>biometric</span><span>environment</span><span style="text-align:right">r</span><span>strength</span>
+      </div>
+      <div id="correlList"></div>
+    </div>
+
+    <div class="detail-panel" id="detailPanel"></div>
+
+    <div class="chart-panel" id="correlMatrix" style="display:none"></div>
+
+    <button class="matrix-toggle" onclick="
+      const m=document.getElementById('correlMatrix');
+      const vis=m.style.display!=='none';
+      m.style.display=vis?'none':'block';
+      this.textContent=vis?'▶ show correlation matrix':'▼ hide matrix';
+      if(!vis) renderCorrelMatrix();">▶ show correlation matrix</button>`;
 
   renderCorrelControls();
-  renderCorrelMatrix();
-  renderCorrelRolling();
+  renderCorrelList();
 
   const wxN = Object.keys(wxData).filter(d => d >= startDate).length;
   const aqN = Object.keys(aqData).filter(d => d >= startDate).length;
-  statusEl.textContent = `open-meteo · ${corrAllData.length} garmin · ${wxN} weather · ${aqN} AQ days · vienna 48.24°N`;
+  statusEl.textContent = `open-meteo · ${corrAllData.length} garmin · ${wxN} weather · ${aqN} AQ days · vienna 48.24°N · click any row to see rolling chart`;
 }
 
 

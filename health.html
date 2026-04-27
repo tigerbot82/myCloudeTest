@@ -47,6 +47,12 @@
       border:1px solid rgba(14,184,255,.3);background:transparent;color:#ddeeff;transition:all .15s;}
     .range-btn:hover{background:rgba(14,184,255,.07);color:rgba(14,184,255,.95)}
     .range-btn.active{background:rgba(14,184,255,.12);color:#0eb8ff;border-color:rgba(14,184,255,.65)}
+    .stat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+    .stat-tab{font-family:inherit;font-size:.8em;letter-spacing:.08em;text-transform:uppercase;
+      padding:5px 14px;border-radius:2px;cursor:pointer;border:1px solid rgba(14,184,255,.22);
+      background:rgba(8,12,32,.97);color:rgba(14,184,255,.72);transition:all .12s}
+    .stat-tab:hover{border-color:rgba(14,184,255,.5);color:#0eb8ff}
+    .stat-tab.active{background:rgba(14,184,255,.14);border-color:rgba(14,184,255,.55);color:#0eb8ff}
     .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
     .stat-card{padding:18px 16px 14px;background:rgba(8,12,32,0.97);
       border:1px solid rgba(14,184,255,.12);border-top:2px solid rgba(14,184,255,.28);
@@ -170,6 +176,7 @@
   </div>
 
   <div id="status">loading data...</div>
+  <div class="stat-tabs" id="statTabs"></div>
   <div class="stat-grid" id="statGrid"></div>
   <div class="chart-grid" id="chartGrid"></div>
 
@@ -253,28 +260,85 @@ function render(docs) {
   }
   document.getElementById('status').textContent =
     `${data.length} days · last sync: ${data[data.length-1]?.syncedAt?.toDate?.()?.toLocaleString?.() ?? 'unknown'}`;
+  window._healthData = data;
   renderStats(data);
   renderCharts(data);
 }
 
+const STAT_CATEGORIES = {
+  all:      null, // null = show all with data
+  activity: ['steps','calories','active cal','distance','intensity','floors','sedentary hrs','hydration'],
+  sleep:    ['sleep','deep sleep','rem sleep','light sleep','sleep score','sleep body','sleep mind','restlessness'],
+  recovery: ['hrv','hrv weekly','body battery','battery charged','avg stress','readiness','endurance','fitness age'],
+  vitals:   ['resting hr','breathing','spo2','spo2 min','blood pressure'],
+  fitness:  ['vo2max','hill score'],
+  body:     ['weight','body fat %','muscle mass','body water'],
+};
+let activeCat = 'all';
+
 function renderStats(data) {
   const today = data[data.length - 1];
-  const cards = [
-    { icon:'👣', label:'steps',         value: fmt(today.steps),                    unit:'steps' },
-    { icon:'🔥', label:'calories',      value: fmt(today.calories),                 unit:'kcal'  },
-    { icon:'💓', label:'resting hr',    value: today.restingHR ?? '—',              unit:'bpm'   },
-    { icon:'⚡', label:'body battery',  value: today.bodyBattery?.end ?? '—',       unit:'/ 100' },
-    { icon:'😰', label:'avg stress',    value: today.avgStress ?? '—',              unit:'/ 100' },
-    { icon:'🌊', label:'hrv',           value: today.hrv?.lastNight ?? '—',         unit:'ms'    },
-    { icon:'😴', label:'sleep',         value: today.sleep?.durationHours ?? '—',   unit:'hrs'   },
-    { icon:'🩸', label:'spo2',          value: today.spo2?.avg ?? '—',              unit:'%'     },
-    { icon:'🏃', label:'distance',      value: today.distanceKm ?? '—',             unit:'km'    },
-    { icon:'⏱', label:'intensity',     value: today.intensityMinutes ?? '—',        unit:'min'   },
-    { icon:'🫁', label:'breathing',     value: today.respiration?.avg ?? '—',       unit:'br/min'},
-    { icon:'❤️', label:'vo2max',        value: today.vo2max ?? '—',                 unit:'ml/kg/min'},
-    { icon:'🏋️', label:'readiness',    value: today.trainingReadiness ?? '—',      unit:'/ 100' },
-    { icon:'⚖️', label:'weight',        value: today.weight?.kg ?? '—',             unit:'kg'    },
-  ].filter(c => c.value !== '—' || ['steps','sleep','resting hr','hrv','body battery','avg stress'].includes(c.label));
+  const ALL_CARDS = [
+    // activity
+    { cat:'activity', icon:'👣', label:'steps',          value: fmt(today.steps),                           unit:'steps'      },
+    { cat:'activity', icon:'🔥', label:'calories',       value: fmt(today.calories),                        unit:'kcal'       },
+    { cat:'activity', icon:'⚡️', label:'active cal',     value: fmt(today.activeCalories),                  unit:'kcal'       },
+    { cat:'activity', icon:'🏃', label:'distance',       value: today.distanceKm ?? '—',                    unit:'km'         },
+    { cat:'activity', icon:'⏱', label:'intensity',      value: today.intensityMinutes ?? '—',               unit:'min'        },
+    { cat:'activity', icon:'🏢', label:'floors',         value: today.floors ?? '—',                        unit:'floors'     },
+    { cat:'activity', icon:'🪑', label:'sedentary hrs',  value: today.sedentaryHours ?? '—',                unit:'hrs'        },
+    { cat:'activity', icon:'💧', label:'hydration',      value: today.hydration?.intakeMl ? Math.round(today.hydration.intakeMl)+'ml' : '—', unit: today.hydration?.goalMl ? `/ ${Math.round(today.hydration.goalMl)}ml` : '' },
+    // sleep
+    { cat:'sleep',    icon:'😴', label:'sleep',          value: today.sleep?.durationHours ?? '—',          unit:'hrs'        },
+    { cat:'sleep',    icon:'🌑', label:'deep sleep',     value: today.sleep?.deepSleepHours ?? '—',         unit:'hrs'        },
+    { cat:'sleep',    icon:'💜', label:'rem sleep',      value: today.sleep?.remSleepHours ?? '—',          unit:'hrs'        },
+    { cat:'sleep',    icon:'🌤', label:'light sleep',    value: today.sleep?.lightSleepHours ?? '—',        unit:'hrs'        },
+    { cat:'sleep',    icon:'⭐', label:'sleep score',    value: today.sleep?.score ?? '—',                  unit:'/ 100'      },
+    { cat:'sleep',    icon:'🫀', label:'sleep body',     value: today.sleep?.bodyScore ?? '—',              unit:'/ 100'      },
+    { cat:'sleep',    icon:'🧠', label:'sleep mind',     value: today.sleep?.mindScore ?? '—',              unit:'/ 100'      },
+    { cat:'sleep',    icon:'🌀', label:'restlessness',   value: today.sleep?.restlessness ?? '—',           unit:'/ 100'      },
+    // recovery
+    { cat:'recovery', icon:'🌊', label:'hrv',            value: today.hrv?.lastNight ?? '—',                unit:'ms'         },
+    { cat:'recovery', icon:'📊', label:'hrv weekly',     value: today.hrv?.weeklyAvg ?? '—',                unit:'ms avg'     },
+    { cat:'recovery', icon:'⚡', label:'body battery',   value: today.bodyBattery?.end ?? '—',              unit:'/ 100'      },
+    { cat:'recovery', icon:'🔋', label:'battery charged',value: today.bodyBattery?.charged ?? '—',          unit:'pts'        },
+    { cat:'recovery', icon:'😰', label:'avg stress',     value: today.avgStress ?? '—',                     unit:'/ 100'      },
+    { cat:'recovery', icon:'🏋️', label:'readiness',     value: today.trainingReadiness ?? '—',             unit:'/ 100'      },
+    { cat:'recovery', icon:'🏅', label:'endurance',      value: today.enduranceScore ?? '—',                unit:'score'      },
+    { cat:'recovery', icon:'🧬', label:'fitness age',    value: today.fitnessAge ?? '—',                    unit:'yrs'        },
+    // vitals
+    { cat:'vitals',   icon:'💓', label:'resting hr',     value: today.restingHR ?? '—',                     unit:'bpm'        },
+    { cat:'vitals',   icon:'🫁', label:'breathing',      value: today.respiration?.avg ?? '—',              unit:'br/min'     },
+    { cat:'vitals',   icon:'🩸', label:'spo2',           value: today.spo2?.avg ?? '—',                     unit:'%'          },
+    { cat:'vitals',   icon:'📉', label:'spo2 min',       value: today.spo2?.min ?? '—',                     unit:'% min'      },
+    { cat:'vitals',   icon:'🩺', label:'blood pressure', value: today.bloodPressure ? `${today.bloodPressure.systolic}/${today.bloodPressure.diastolic}` : '—', unit:'mmHg' },
+    // fitness
+    { cat:'fitness',  icon:'❤️', label:'vo2max',         value: today.vo2max ?? '—',                        unit:'ml/kg/min'  },
+    { cat:'fitness',  icon:'⛰️', label:'hill score',     value: today.hillScore ?? '—',                     unit:'score'      },
+    // body
+    { cat:'body',     icon:'⚖️', label:'weight',         value: today.weight?.kg ?? '—',                    unit:'kg'         },
+    { cat:'body',     icon:'📐', label:'body fat %',     value: today.weight?.bodyFatPct ?? '—',            unit:'%'          },
+    { cat:'body',     icon:'💪', label:'muscle mass',    value: today.weight?.muscleMassKg ?? '—',          unit:'kg'         },
+    { cat:'body',     icon:'💦', label:'body water',     value: today.weight?.bodyWaterPct ?? '—',          unit:'%'          },
+  ];
+
+  const defaultVisible = ['steps','calories','resting hr','body battery','avg stress','hrv','sleep','spo2','distance','intensity','breathing','vo2max','readiness','weight'];
+  const catKeys = STAT_CATEGORIES[activeCat];
+  const cards = ALL_CARDS.filter(c => {
+    if (c.value === '—') {
+      if (activeCat === 'all') return defaultVisible.includes(c.label);
+      return catKeys?.includes(c.label);
+    }
+    if (activeCat === 'all') return true;
+    return catKeys?.includes(c.label);
+  });
+
+  // Render category tabs
+  const tabs = Object.keys(STAT_CATEGORIES);
+  document.getElementById('statTabs').innerHTML = tabs.map(t =>
+    `<button class="stat-tab${t===activeCat?' active':''}" onclick="activeCat='${t}';renderStats(window._healthData)">${t}</button>`
+  ).join('');
+
   document.getElementById('statGrid').innerHTML = cards.map(c => `
     <div class="stat-card">
       <div class="stat-icon">${c.icon}</div>

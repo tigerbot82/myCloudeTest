@@ -231,12 +231,33 @@ let heatCells      = [];   // {x,y,w,h,date,val} for hit-testing
 let plotlyReady    = false;
 
 const ADV_M = {
-  'HRV':          { fn:d=>d.hrv?.lastNight??null,       lb:false, color:'rgba(160,80,255,0.85)',  unit:'ms'  },
-  'Sleep':        { fn:d=>d.sleep?.durationHours??null,  lb:false, color:'rgba(80,160,255,0.85)',  unit:'h'   },
-  'Steps':        { fn:d=>d.steps??null,                 lb:false, color:'rgba(14,184,255,0.85)',  unit:''    },
-  'Resting HR':   { fn:d=>d.restingHR??null,             lb:true,  color:'rgba(255,80,140,0.85)',  unit:'bpm' },
-  'Stress':       { fn:d=>d.avgStress??null,             lb:true,  color:'rgba(255,200,80,0.85)',  unit:''    },
-  'Body Battery': { fn:d=>d.bodyBattery?.end??null,      lb:false, color:'rgba(80,220,160,0.85)',  unit:''    },
+  // recovery
+  'HRV':            { fn:d=>d.hrv?.lastNight??null,          lb:false, color:'rgba(160,80,255,0.85)',  unit:'ms'       },
+  'HRV Weekly':     { fn:d=>d.hrv?.weeklyAvg??null,          lb:false, color:'rgba(180,100,255,0.85)', unit:'ms'       },
+  'Body Battery':   { fn:d=>d.bodyBattery?.end??null,        lb:false, color:'rgba(80,220,160,0.85)',  unit:''         },
+  'Stress':         { fn:d=>d.avgStress??null,               lb:true,  color:'rgba(255,200,80,0.85)',  unit:''         },
+  'Readiness':      { fn:d=>d.trainingReadiness??null,       lb:false, color:'rgba(80,255,160,0.85)',  unit:'/100'     },
+  'Endurance':      { fn:d=>d.enduranceScore??null,          lb:false, color:'rgba(60,220,140,0.85)',  unit:''         },
+  'Fitness Age':    { fn:d=>d.fitnessAge??null,              lb:true,  color:'rgba(200,255,100,0.85)', unit:'yrs'      },
+  // sleep
+  'Sleep':          { fn:d=>d.sleep?.durationHours??null,    lb:false, color:'rgba(80,160,255,0.85)',  unit:'h'        },
+  'Sleep Score':    { fn:d=>d.sleep?.score??null,            lb:false, color:'rgba(60,140,255,0.85)',  unit:'/100'     },
+  'Sleep Body':     { fn:d=>d.sleep?.bodyScore??null,        lb:false, color:'rgba(100,180,255,0.85)', unit:'/100'     },
+  'Deep Sleep':     { fn:d=>d.sleep?.deepSleepHours??null,   lb:false, color:'rgba(40,80,200,0.85)',   unit:'h'        },
+  'REM Sleep':      { fn:d=>d.sleep?.remSleepHours??null,    lb:false, color:'rgba(100,100,220,0.85)', unit:'h'        },
+  // activity
+  'Steps':          { fn:d=>d.steps??null,                   lb:false, color:'rgba(14,184,255,0.85)',  unit:''         },
+  'Distance km':    { fn:d=>d.distanceKm??null,              lb:false, color:'rgba(14,200,255,0.85)',  unit:'km'       },
+  'Intensity Min':  { fn:d=>d.intensityMinutes??null,        lb:false, color:'rgba(255,140,60,0.85)',  unit:'min'      },
+  'Active Cal':     { fn:d=>d.activeCalories??null,          lb:false, color:'rgba(255,120,40,0.85)',  unit:'kcal'     },
+  // vitals
+  'Resting HR':     { fn:d=>d.restingHR??null,               lb:true,  color:'rgba(255,80,140,0.85)',  unit:'bpm'      },
+  'SpO2':           { fn:d=>d.spo2?.avg??null,               lb:false, color:'rgba(80,220,255,0.85)',  unit:'%'        },
+  'Breathing':      { fn:d=>d.respiration?.avg??null,        lb:false, color:'rgba(140,220,200,0.85)', unit:'br/min'   },
+  // body
+  'Weight kg':      { fn:d=>d.weight?.kg??null,              lb:true,  color:'rgba(255,160,100,0.85)', unit:'kg'       },
+  'Body Fat %':     { fn:d=>d.weight?.bodyFatPct??null,      lb:true,  color:'rgba(255,140,80,0.85)',  unit:'%'        },
+  'VO2max':         { fn:d=>d.vo2max??null,                  lb:false, color:'rgba(100,255,180,0.85)', unit:'ml/kg/m'  },
 };
 
 function getEnvVal(date, key) {
