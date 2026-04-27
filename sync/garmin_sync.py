@@ -316,6 +316,7 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     doc = {k: v for k, v in doc.items() if v is not None}
 
     col.document(ds).set(doc, merge=True)
-    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}, resp={resp_avg}, vo2={vo2max}, readiness={tr_score}, spo2={spo2 and spo2.get('avg')}")
+    bb_end = body_battery.get('end') if body_battery else None
+    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}, battery={bb_end}, resp={resp_avg}, vo2={vo2max}, readiness={tr_score}, spo2={spo2 and spo2.get('avg')}")
 
 print(f"\nSync complete — {SYNC_DAYS} days written to Firestore `health_daily`.")
