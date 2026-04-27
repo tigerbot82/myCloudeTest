@@ -199,6 +199,22 @@ def minutes_to_hours(m):
 
 # ── fetch + write ─────────────────────────────────────────────────────────────
 
+def first(d, *keys, default=None):
+    """Return the first non-None value found among keys in dict d."""
+    for k in keys:
+        v = d.get(k)
+        if v is not None:
+            return v
+    return default
+
+
+def score_val(d):
+    """Extract a numeric score from {value: X} or plain X."""
+    if isinstance(d, dict):
+        return d.get("value")
+    return d
+
+
 today = date.today()
 
 for i in range(SYNC_DAYS - 1, -1, -1):
@@ -207,6 +223,7 @@ for i in range(SYNC_DAYS - 1, -1, -1):
 
     print(f"\nSyncing {ds}...")
 
+    # ── activity summary (single API call covers most daily metrics) ──────────
     summary         = safe(api.get_stats, ds) or {}
     steps           = summary.get("totalSteps")
     calories        = summary.get("totalKilocalories")
@@ -224,6 +241,7 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     hr_data = safe(api.get_heart_rates, ds) or {}
     max_hr  = hr_data.get("maxHeartRate")
 
+    # ── body battery ──────────────────────────────────────────────────────────
     bb_list = safe(api.get_body_battery, ds, ds) or []
     bb      = bb_list[0] if bb_list else {}
     if bb:
@@ -237,17 +255,29 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     else:
         body_battery = None
 
+    # ── sleep (+ sub-scores) ──────────────────────────────────────────────────
     sleep_raw = safe(api.get_sleep_data, ds) or {}
     sd        = sleep_raw.get("dailySleepDTO") or {}
-    sleep = {
-        "durationHours":   minutes_to_hours(sd.get("sleepTimeSeconds")  and sd["sleepTimeSeconds"]  // 60),
-        "deepSleepHours":  minutes_to_hours(sd.get("deepSleepSeconds")  and sd["deepSleepSeconds"]  // 60),
-        "lightSleepHours": minutes_to_hours(sd.get("lightSleepSeconds") and sd["lightSleepSeconds"] // 60),
-        "remSleepHours":   minutes_to_hours(sd.get("remSleepSeconds")   and sd["remSleepSeconds"]   // 60),
-        "awakeHours":      minutes_to_hours(sd.get("awakeSleepSeconds") and sd["awakeSleepSeconds"] // 60),
-        "score":           sd.get("sleepScores", {}).get("overall", {}).get("value") if sd.get("sleepScores") else None,
-    } if sd else None
+    if sd:
+        sc = sd.get("sleepScores") or {}
+        sleep = {
+            "durationHours":   minutes_to_hours(sd.get("sleepTimeSeconds")  and sd["sleepTimeSeconds"]  // 60),
+            "napHours":        minutes_to_hours(sd.get("napTimeSeconds")     and sd["napTimeSeconds"]     // 60),
+            "deepSleepHours":  minutes_to_hours(sd.get("deepSleepSeconds")  and sd["deepSleepSeconds"]  // 60),
+            "lightSleepHours": minutes_to_hours(sd.get("lightSleepSeconds") and sd["lightSleepSeconds"] // 60),
+            "remSleepHours":   minutes_to_hours(sd.get("remSleepSeconds")   and sd["remSleepSeconds"]   // 60),
+            "awakeHours":      minutes_to_hours(sd.get("awakeSleepSeconds") and sd["awakeSleepSeconds"] // 60),
+            "score":           score_val(sc.get("overall")),
+            "bodyScore":       score_val(sc.get("body")),
+            "mindScore":       score_val(sc.get("mind")),
+            "remScore":        score_val(sc.get("remPercentage")),
+            "deepScore":       score_val(sc.get("deepPercentage")),
+            "restlessness":    score_val(sc.get("restlessness")),
+        }
+    else:
+        sleep = None
 
+    # ── HRV ───────────────────────────────────────────────────────────────────
     hrv_raw = safe(api.get_hrv_data, ds) or {}
     hrv_sum = hrv_raw.get("hrvSummary") or {}
     hrv = {
@@ -256,28 +286,30 @@ for i in range(SYNC_DAYS - 1, -1, -1):
         "status":    hrv_sum.get("status") or hrv_sum.get("hrvStatus"),
     } if hrv_sum else None
 
-    spo2_raw = safe(api.get_spo2_data, ds) or {}
-    spo2_avg = spo2_raw.get("averageSpO2")
-    spo2_min = spo2_raw.get("lowestSpO2")
-    spo2 = {"avg": spo2_avg, "min": spo2_min} if spo2_avg else None
+    # ── SpO2 + respiration ────────────────────────────────────────────────────
+    spo2_raw  = safe(api.get_spo2_data, ds) or {}
+    spo2_avg  = spo2_raw.get("averageSpO2")
+    spo2_min  = spo2_raw.get("lowestSpO2")
+    spo2      = {"avg": spo2_avg, "min": spo2_min} if spo2_avg else None
 
-    resp_raw  = safe(api.get_respiration_data, ds) or {}
-    resp_avg  = resp_raw.get("avgWakingRespirationValue") or resp_raw.get("avgRespirationValue")
+    resp_raw   = safe(api.get_respiration_data, ds) or {}
+    resp_avg   = resp_raw.get("avgWakingRespirationValue") or resp_raw.get("avgRespirationValue")
     resp_sleep = resp_raw.get("avgSleepRespirationValue")
     respiration = {"avg": resp_avg, "sleep": resp_sleep} if (resp_avg or resp_sleep) else None
 
-    mm_raw    = safe(api.get_max_metrics, ds) or {}
-    vo2max    = None
+    # ── VO2max ────────────────────────────────────────────────────────────────
+    mm_raw = safe(api.get_max_metrics, ds) or {}
+    vo2max = None
     for entry in (mm_raw if isinstance(mm_raw, list) else []):
         v = entry.get("generic", {}).get("vo2MaxPreciseValue") or entry.get("generic", {}).get("vo2MaxValue")
         if v:
             vo2max = round(float(v), 1)
             break
 
+    # ── training readiness ────────────────────────────────────────────────────
     tr_raw   = safe(api.get_training_readiness, ds) or []
     tr_score = None
-    tr_list  = tr_raw if isinstance(tr_raw, list) else ([tr_raw] if tr_raw else [])
-    for entry in tr_list:
+    for entry in (tr_raw if isinstance(tr_raw, list) else ([tr_raw] if tr_raw else [])):
         if not isinstance(entry, dict):
             continue
         s = entry.get("score") or entry.get("trainingReadinessScore")
@@ -285,42 +317,160 @@ for i in range(SYNC_DAYS - 1, -1, -1):
             tr_score = int(s)
             break
 
-    body_raw  = safe(api.get_body_composition, ds) or {}
-    weight_kg = None
-    bmi       = None
-    if isinstance(body_raw, dict):
-        wt = body_raw.get("weight") or body_raw.get("startWeight")
+    # ── weight / body composition ─────────────────────────────────────────────
+    wi_raw = safe(api.get_daily_weigh_ins, ds) or {}
+    weight = None
+    wi_list = wi_raw.get("dateWeightList") or wi_raw.get("allWeightMetrics") or []
+    if wi_list:
+        wi = wi_list[0]
+        wt = wi.get("weight") or wi.get("weightInGrams")
         if wt:
-            weight_kg = round(wt / 1000, 1) if wt > 500 else round(float(wt), 1)
-        bmi = body_raw.get("bmi")
+            wt_kg = round(wt / 1000, 1) if wt > 500 else round(float(wt), 1)
+            weight = {
+                "kg":        wt_kg,
+                "bmi":       wi.get("bmi"),
+                "bodyFatPct": wi.get("bodyFat") or wi.get("bodyFatPercentage"),
+                "muscleMassKg": round(wi["muscleMass"] / 1000, 1) if wi.get("muscleMass") and wi["muscleMass"] > 500 else wi.get("muscleMass"),
+                "bodyWaterPct": wi.get("bodyWater") or wi.get("bodyWaterPercentage"),
+            }
 
+    # ── stress (detailed) ─────────────────────────────────────────────────────
+    stress_raw = safe(api.get_stress_data, ds) or {}
+    stress_detail = None
+    if stress_raw:
+        stress_detail = {
+            "avg":             stress_raw.get("overallStressLevel") or avg_stress,
+            "restPct":         stress_raw.get("restStressPercentage"),
+            "activityPct":     stress_raw.get("activityStressPercentage"),
+            "lowPct":          stress_raw.get("lowStressPercentage"),
+            "mediumPct":       stress_raw.get("mediumStressPercentage"),
+            "highPct":         stress_raw.get("highStressPercentage"),
+        }
+        stress_detail = {k: v for k, v in stress_detail.items() if v is not None} or None
+
+    # ── hydration ─────────────────────────────────────────────────────────────
+    hyd_raw    = safe(api.get_hydration_data, ds) or {}
+    hydration  = None
+    hyd_intake = first(hyd_raw, "totalIntakeInML", "valueInML", "sweatLossInML")
+    hyd_goal   = first(hyd_raw, "goalInML", "dailyGoalInML")
+    if hyd_intake:
+        hydration = {"intakeMl": hyd_intake, "goalMl": hyd_goal}
+
+    # ── endurance score ───────────────────────────────────────────────────────
+    end_raw = safe(api.get_endurance_score, ds) or {}
+    endurance_score = None
+    if end_raw:
+        v = end_raw.get("overallScore") or end_raw.get("score")
+        if v is not None:
+            endurance_score = score_val(v) if isinstance(v, dict) else v
+
+    # ── hill score ────────────────────────────────────────────────────────────
+    hill_raw = safe(api.get_hill_score, ds) or {}
+    hill_score = None
+    if hill_raw:
+        v = hill_raw.get("overallScore") or hill_raw.get("score")
+        if v is not None:
+            hill_score = score_val(v) if isinstance(v, dict) else v
+
+    # ── fitness age ───────────────────────────────────────────────────────────
+    fa_raw     = safe(api.get_fitnessage_data, ds) or {}
+    fitness_age = first(fa_raw, "biologicalAge", "fitnessAge", "bilogicalAge")
+
+    # ── race predictions ──────────────────────────────────────────────────────
+    rp_raw = safe(api.get_race_predictions, ds, ds) or {}
+    race_predictions = None
+    rp = rp_raw if isinstance(rp_raw, dict) else (rp_raw[0] if isinstance(rp_raw, list) and rp_raw else {})
+    if rp:
+        def secs_to_min(s):
+            return round(s / 60, 1) if s else None
+        race_predictions = {
+            "5kMin":          secs_to_min(first(rp, "time5K", "fiveKTime")),
+            "10kMin":         secs_to_min(first(rp, "time10K", "tenKTime")),
+            "halfMarathonMin": secs_to_min(first(rp, "timeHalfMarathon", "halfMarathonTime")),
+            "marathonMin":    secs_to_min(first(rp, "timeMarathon", "marathonTime")),
+        }
+        race_predictions = {k: v for k, v in race_predictions.items() if v} or None
+
+    # ── blood pressure ────────────────────────────────────────────────────────
+    bp_raw = safe(api.get_blood_pressure, ds, ds) or {}
+    blood_pressure = None
+    bp_list = bp_raw.get("measurementSummaries") or bp_raw.get("bloodPressureSummaries") or []
+    if not bp_list and isinstance(bp_raw, list):
+        bp_list = bp_raw
+    if bp_list:
+        bp = bp_list[0]
+        sys = first(bp, "systolic", "systolicValue")
+        dia = first(bp, "diastolic", "diastolicValue")
+        if sys and dia:
+            blood_pressure = {"systolic": sys, "diastolic": dia, "pulse": bp.get("pulse")}
+
+    # ── lactate threshold ─────────────────────────────────────────────────────
+    lt_raw = safe(api.get_lactate_threshold, latest=False, start_date=ds, end_date=ds) or {}
+    lactate_threshold = None
+    lt = lt_raw if isinstance(lt_raw, dict) else (lt_raw[0] if isinstance(lt_raw, list) and lt_raw else {})
+    if lt:
+        lt_hr = first(lt, "heartRate", "heartRateBpm", "ltHeartRate")
+        if lt_hr:
+            lactate_threshold = {
+                "heartRate": lt_hr,
+                "speed":     lt.get("speed") or lt.get("ltSpeed"),
+                "pace":      lt.get("pace") or lt.get("ltPace"),
+            }
+
+    # ── running tolerance ─────────────────────────────────────────────────────
+    rt_raw = safe(api.get_running_tolerance, ds, ds, aggregation="daily") or []
+    running_tolerance = None
+    rt = rt_raw[0] if isinstance(rt_raw, list) and rt_raw else (rt_raw if isinstance(rt_raw, dict) else {})
+    if rt:
+        acute  = first(rt, "acuteLoad", "acuteTrainingLoad")
+        chronic = first(rt, "chronicLoad", "chronicTrainingLoad")
+        if acute or chronic:
+            running_tolerance = {
+                "acuteLoad":   acute,
+                "chronicLoad": chronic,
+                "loadRatio":   rt.get("loadRatio") or rt.get("acwr"),
+            }
+
+    # ── assemble document ─────────────────────────────────────────────────────
     doc = {
-        "date":             ds,
-        "steps":            steps,
-        "calories":         calories,
-        "activeCalories":   active_calories,
-        "floors":           floors,
-        "distanceKm":       distance_km,
-        "intensityMinutes": intensity_min,
-        "sedentaryHours":   sedentary_hrs,
-        "avgStress":        avg_stress,
-        "restingHR":        resting_hr,
-        "avgHR":            avg_hr,
-        "maxHR":            max_hr,
-        "bodyBattery":      body_battery,
-        "sleep":            sleep,
-        "hrv":              hrv,
-        "spo2":             spo2,
-        "respiration":      respiration,
-        "vo2max":           vo2max,
+        "date":              ds,
+        "steps":             steps,
+        "calories":          calories,
+        "activeCalories":    active_calories,
+        "floors":            floors,
+        "distanceKm":        distance_km,
+        "intensityMinutes":  intensity_min,
+        "sedentaryHours":    sedentary_hrs,
+        "avgStress":         avg_stress,
+        "stressDetail":      stress_detail,
+        "restingHR":         resting_hr,
+        "avgHR":             avg_hr,
+        "maxHR":             max_hr,
+        "bodyBattery":       body_battery,
+        "sleep":             sleep,
+        "hrv":               hrv,
+        "spo2":              spo2,
+        "respiration":       respiration,
+        "hydration":         hydration,
+        "vo2max":            vo2max,
         "trainingReadiness": tr_score,
-        "weight":           {"kg": weight_kg, "bmi": bmi} if weight_kg else None,
-        "syncedAt":         firestore.SERVER_TIMESTAMP,
+        "enduranceScore":    endurance_score,
+        "hillScore":         hill_score,
+        "fitnessAge":        fitness_age,
+        "racePredictions":   race_predictions,
+        "weight":            weight,
+        "bloodPressure":     blood_pressure,
+        "lactateThreshold":  lactate_threshold,
+        "runningTolerance":  running_tolerance,
+        "syncedAt":          firestore.SERVER_TIMESTAMP,
     }
     doc = {k: v for k, v in doc.items() if v is not None}
 
     col.document(ds).set(doc, merge=True)
-    bb_end = body_battery.get('end') if body_battery else None
-    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, hrv={hrv and hrv.get('lastNight')}, battery={bb_end}, resp={resp_avg}, vo2={vo2max}, readiness={tr_score}, spo2={spo2 and spo2.get('avg')}")
+    bb_end = body_battery.get("end") if body_battery else None
+    print(f"  ✓ {ds}: steps={steps}, sleep={sleep and sleep.get('durationHours')}h, "
+          f"hrv={hrv and hrv.get('lastNight')}, battery={bb_end}, "
+          f"resp={resp_avg}, readiness={tr_score}, "
+          f"endurance={endurance_score}, fitness_age={fitness_age}")
 
 print(f"\nSync complete — {SYNC_DAYS} days written to Firestore `health_daily`.")
