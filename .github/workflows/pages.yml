@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/hello-world-click-counter-8k1UP]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: claude/hello-world-click-counter-8k1UP
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:
