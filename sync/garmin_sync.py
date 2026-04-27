@@ -226,12 +226,16 @@ for i in range(SYNC_DAYS - 1, -1, -1):
 
     bb_list = safe(api.get_body_battery, ds, ds) or []
     bb      = bb_list[0] if bb_list else {}
-    body_battery = {
-        "start":   bb.get("startTimestampLocal") and bb.get("startValue"),
-        "end":     bb.get("endValue"),
-        "charged": bb.get("charged"),
-        "drained": bb.get("drained"),
-    } if bb else None
+    if bb:
+        vals = bb.get("bodyBatteryValuesArray") or []
+        body_battery = {
+            "start":   vals[0][1]  if vals else None,
+            "end":     vals[-1][1] if vals else None,
+            "charged": bb.get("charged"),
+            "drained": bb.get("drained"),
+        }
+    else:
+        body_battery = None
 
     sleep_raw = safe(api.get_sleep_data, ds) or {}
     sd        = sleep_raw.get("dailySleepDTO") or {}
@@ -247,7 +251,7 @@ for i in range(SYNC_DAYS - 1, -1, -1):
     hrv_raw = safe(api.get_hrv_data, ds) or {}
     hrv_sum = hrv_raw.get("hrvSummary") or {}
     hrv = {
-        "lastNight": hrv_sum.get("lastNight"),
+        "lastNight": hrv_sum.get("lastNightAvg") or hrv_sum.get("lastNight"),
         "weeklyAvg": hrv_sum.get("weeklyAvg"),
         "status":    hrv_sum.get("status") or hrv_sum.get("hrvStatus"),
     } if hrv_sum else None
