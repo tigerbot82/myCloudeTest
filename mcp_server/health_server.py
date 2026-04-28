@@ -1,9 +1,9 @@
 """
 MCP server exposing personal health + gym data from Firestore.
+Uses Firestore REST API (not gRPC) to work in proxied cloud environments.
 Run via Claude Code config — do not start manually.
 
-Credentials: set FIREBASE_CREDENTIALS_JSON (JSON string) or
-             GOOGLE_APPLICATION_CREDENTIALS (path to service account file).
+Credentials: set GOOGLE_APPLICATION_CREDENTIALS (path to service account JSON).
 """
 
 import json
@@ -11,31 +11,115 @@ import os
 import statistics
 from datetime import date, timedelta
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+import requests
+from google.oauth2 import service_account
+from google.auth.transport.requests import Request as GoogleAuthRequest
 from mcp.server.fastmcp import FastMCP
 
-# ── Firebase init ──────────────────────────────────────────────────────────────
+# ── Auth + REST client ─────────────────────────────────────────────────────────
 
-def _init_firebase():
-    if firebase_admin._apps:
-        return firestore.client()
-    raw = os.environ.get("FIREBASE_CREDENTIALS_JSON")
-    if raw:
-        cred = credentials.Certificate(json.loads(raw))
-    else:
-        path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-        if not path:
-            raise RuntimeError(
-                "Set FIREBASE_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS"
-            )
-        cred = credentials.Certificate(path)
-    firebase_admin.initialize_app(cred, {"projectId": "time-tracker-df33b"})
-    return firestore.client()
+PROJECT = "time-tracker-df33b"
+FIRESTORE_BASE = f"https://firestore.googleapis.com/v1/projects/{PROJECT}/databases/(default)/documents"
+SCOPES = ["https://www.googleapis.com/auth/datastore"]
+
+_creds = None
+
+def _get_token() -> str:
+    global _creds
+    key_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if not key_path:
+        raise RuntimeError("Set GOOGLE_APPLICATION_CREDENTIALS to the service account JSON path")
+    if _creds is None:
+        _creds = service_account.Credentials.from_service_account_file(key_path, scopes=SCOPES)
+    if not _creds.valid:
+        _creds.refresh(GoogleAuthRequest())
+    return _creds.token
 
 
-db = _init_firebase()
-mcp = FastMCP("health-data")
+def _headers() -> dict:
+    return {"Authorization": f"Bearer {_get_token()}"}
+
+
+def _fs_value(v: dict):
+    """Unwrap a Firestore REST value object to a Python scalar."""
+    if v is None:
+        return None
+    for t in ("integerValue", "doubleValue", "booleanValue", "stringValue",
+              "timestampValue", "nullValue"):
+        if t in v:
+            raw = v[t]
+            if t == "integerValue":
+                return int(raw)
+            if t == "doubleValue":
+                return float(raw)
+            if t == "nullValue":
+                return None
+            return raw
+    if "mapValue" in v:
+        return {k: _fs_value(fv) for k, fv in v["mapValue"].get("fields", {}).items()}
+    if "arrayValue" in v:
+        return [_fs_value(item) for item in v["arrayValue"].get("values", [])]
+    return None
+
+
+def _doc_to_dict(doc: dict) -> dict:
+    """Convert a Firestore REST document to a plain dict."""
+    name = doc.get("name", "")
+    doc_id = name.split("/")[-1]
+    fields = {k: _fs_value(v) for k, v in doc.get("fields", {}).items()}
+    fields["date"] = doc_id
+    return fields
+
+
+def _query_range(collection: str, start: str, end: str) -> list[dict]:
+    """Fetch documents from `collection` where doc ID is between start and end."""
+    url = f"{FIRESTORE_BASE}:runQuery"
+    body = {
+        "structuredQuery": {
+            "from": [{"collectionId": collection}],
+            "where": {
+                "compositeFilter": {
+                    "op": "AND",
+                    "filters": [
+                        {"fieldFilter": {"field": {"fieldPath": "__name__"},
+                                         "op": "GREATER_THAN_OR_EQUAL",
+                                         "value": {"referenceValue": f"projects/{PROJECT}/databases/(default)/documents/{collection}/{start}"}}},
+                        {"fieldFilter": {"field": {"fieldPath": "__name__"},
+                                         "op": "LESS_THAN_OR_EQUAL",
+                                         "value": {"referenceValue": f"projects/{PROJECT}/databases/(default)/documents/{collection}/{end}"}}}
+                    ]
+                }
+            },
+            "orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "ASCENDING"}]
+        }
+    }
+    resp = requests.post(url, json=body, headers=_headers(), timeout=30)
+    resp.raise_for_status()
+    results = []
+    for item in resp.json():
+        if "document" in item:
+            results.append(_doc_to_dict(item["document"]))
+    return results
+
+
+def _query_latest(collection: str, n: int) -> list[dict]:
+    """Fetch the latest n documents from a collection, ordered by doc ID desc."""
+    url = f"{FIRESTORE_BASE}:runQuery"
+    body = {
+        "structuredQuery": {
+            "from": [{"collectionId": collection}],
+            "orderBy": [{"field": {"fieldPath": "__name__"}, "direction": "DESCENDING"}],
+            "limit": n
+        }
+    }
+    resp = requests.post(url, json=body, headers=_headers(), timeout=30)
+    resp.raise_for_status()
+    results = []
+    for item in resp.json():
+        if "document" in item:
+            results.append(_doc_to_dict(item["document"]))
+    return sorted(results, key=lambda x: x["date"])
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -47,22 +131,10 @@ def _date_range(n: int) -> tuple[str, str]:
 
 def _fetch_health(n: int) -> list[dict]:
     start, end = _date_range(n)
-    docs = (
-        db.collection("health_daily")
-        .where("__name__", ">=", start)
-        .where("__name__", "<=", end)
-        .stream()
-    )
-    results = []
-    for doc in docs:
-        d = doc.to_dict() or {}
-        d["date"] = doc.id
-        results.append(d)
-    return sorted(results, key=lambda x: x["date"])
+    return _query_range("health_daily", start, end)
 
 
 def _safe(doc: dict, *keys):
-    """Drill into nested keys, return None if missing."""
     v = doc
     for k in keys:
         if not isinstance(v, dict):
@@ -71,14 +143,16 @@ def _safe(doc: dict, *keys):
     return v
 
 
-# ── Tools ──────────────────────────────────────────────────────────────────────
+# ── MCP server ─────────────────────────────────────────────────────────────────
+
+mcp = FastMCP("health-data")
+
 
 @mcp.tool()
 def get_health_days(days: int = 30) -> str:
     """
     Return raw daily health metrics for the last `days` days.
     Includes HRV, sleep, steps, stress, body battery, resting HR, weight, etc.
-    Each record is one Firestore health_daily document.
     """
     docs = _fetch_health(days)
     if not docs:
@@ -97,37 +171,30 @@ def get_health_summary(days: int = 30) -> str:
         return "No health data found."
 
     metrics = {
-        "hrv_lastNight":       lambda d: _safe(d, "hrv", "lastNight"),
-        "sleep_score":         lambda d: _safe(d, "sleep", "score"),
-        "sleep_hours":         lambda d: (
-            (_safe(d, "sleep", "duration") or 0) / 3600
-            if _safe(d, "sleep", "duration") else None
-        ),
-        "steps":               lambda d: d.get("steps"),
-        "resting_hr":          lambda d: d.get("restingHeartRate"),
-        "stress_avg":          lambda d: _safe(d, "stress", "avg"),
-        "body_battery_max":    lambda d: _safe(d, "bodyBattery", "max"),
-        "weight_kg":           lambda d: d.get("weight"),
-        "vo2max":              lambda d: d.get("vo2max"),
-        "training_readiness":  lambda d: d.get("trainingReadiness"),
-        "respiration_avg":     lambda d: _safe(d, "respiration", "avg"),
-        "intensity_minutes":   lambda d: d.get("intensityMinutes"),
+        "hrv_lastNight":      lambda d: _safe(d, "hrv", "lastNight"),
+        "sleep_score":        lambda d: _safe(d, "sleep", "score"),
+        "sleep_hours":        lambda d: _safe(d, "sleep", "durationHours"),
+        "steps":              lambda d: d.get("steps"),
+        "resting_hr":         lambda d: d.get("restingHR"),
+        "stress_avg":         lambda d: d.get("avgStress"),
+        "body_battery_end":   lambda d: _safe(d, "bodyBattery", "end"),
+        "weight_kg":          lambda d: d.get("weight"),
+        "vo2max":             lambda d: d.get("vo2max"),
+        "training_readiness": lambda d: d.get("trainingReadiness"),
+        "intensity_minutes":  lambda d: d.get("intensityMinutes"),
     }
 
     rows = []
     for name, fn in metrics.items():
-        vals = [v for d in docs if (v := fn(d)) is not None]
+        vals = [v for d in docs if (v := fn(d)) is not None and isinstance(v, (int, float))]
         if not vals:
             rows.append(f"{name:30s}  no data")
             continue
         mean = statistics.mean(vals)
         stdev = statistics.stdev(vals) if len(vals) > 1 else 0
-        rows.append(
-            f"{name:30s}  mean={mean:7.2f}  stdev={stdev:6.2f}  n={len(vals)}"
-        )
+        rows.append(f"{name:30s}  mean={mean:7.2f}  stdev={stdev:6.2f}  n={len(vals)}")
 
-    header = f"Health summary — last {days} days ({len(docs)} records)\n"
-    return header + "\n".join(rows)
+    return f"Health summary — last {days} days ({len(docs)} records)\n" + "\n".join(rows)
 
 
 @mcp.tool()
@@ -135,20 +202,10 @@ def get_gym_sessions(n: int = 20) -> str:
     """
     Return the last `n` gym sessions (workout A/B, exercises, sets/reps/weight, flags).
     """
-    docs = list(
-        db.collection("gym_sessions")
-        .order_by("__name__", direction=firestore.Query.DESCENDING)
-        .limit(n)
-        .stream()
-    )
+    docs = _query_latest("gym_sessions", n)
     if not docs:
         return "No gym sessions found."
-    results = []
-    for doc in docs:
-        d = doc.to_dict() or {}
-        d["date"] = doc.id
-        results.append(d)
-    return json.dumps(sorted(results, key=lambda x: x["date"]), default=str, indent=2)
+    return json.dumps(docs, default=str, indent=2)
 
 
 @mcp.tool()
@@ -158,19 +215,15 @@ def get_metric_trend(metric: str, days: int = 60) -> str:
     Supported metrics: hrv_lastNight, sleep_score, sleep_hours, steps,
     resting_hr, stress_avg, body_battery_max, weight_kg, vo2max,
     training_readiness, intensity_minutes.
-    Returns date + value pairs, skipping days with no data.
     """
     extractors = {
         "hrv_lastNight":      lambda d: _safe(d, "hrv", "lastNight"),
         "sleep_score":        lambda d: _safe(d, "sleep", "score"),
-        "sleep_hours":        lambda d: (
-            (_safe(d, "sleep", "duration") or 0) / 3600
-            if _safe(d, "sleep", "duration") else None
-        ),
+        "sleep_hours":        lambda d: _safe(d, "sleep", "durationHours"),
         "steps":              lambda d: d.get("steps"),
-        "resting_hr":         lambda d: d.get("restingHeartRate"),
-        "stress_avg":         lambda d: _safe(d, "stress", "avg"),
-        "body_battery_max":   lambda d: _safe(d, "bodyBattery", "max"),
+        "resting_hr":         lambda d: d.get("restingHR"),
+        "stress_avg":         lambda d: d.get("avgStress"),
+        "body_battery_end":   lambda d: _safe(d, "bodyBattery", "end"),
         "weight_kg":          lambda d: d.get("weight"),
         "vo2max":             lambda d: d.get("vo2max"),
         "training_readiness": lambda d: d.get("trainingReadiness"),
