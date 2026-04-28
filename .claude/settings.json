@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "health-data": {
+      "command": "python",
+      "args": ["/home/user/myCloudeTest/mcp_server/health_server.py"],
+      "env": {
+        "FIREBASE_CREDENTIALS_JSON": "__PASTE_YOUR_SERVICE_ACCOUNT_JSON_HERE__"
+      }
+    }
+  }
+}
