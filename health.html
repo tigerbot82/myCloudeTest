@@ -159,7 +159,7 @@
 <nav class="top-nav">
   <a href="index.html" class="nav-back">← home</a>
   <span class="nav-crumb">// composite biomarker explorer //</span>
-  <button class="nav-sync" onclick="triggerManualNote()">? sync</button>
+  <button class="nav-sync" id="syncBtn" onclick="triggerSync()">⟳ sync</button>
 </nav>
 <nav class="page-nav">
   <a href="health.html"       class="page-tab active">overview</a>
@@ -548,8 +548,46 @@ function tooltipStyle() {
 
 function fmt(n) { return n != null ? Number(n).toLocaleString() : '—'; }
 
-function triggerManualNote() {
-  alert('To sync data, go to GitHub Actions → "Garmin → Firestore Sync" → Run workflow.\n\nData auto-syncs daily at 07:00 UTC.');
+const SYNC_REPO    = 'tigerbot82/myCloudeTest';
+const SYNC_BRANCH  = 'claude/hello-world-click-counter-8k1UP';
+const SYNC_WF      = 'garmin_sync.yml';
+const PAT_KEY      = 'gh_sync_pat';
+
+async function triggerSync() {
+  const btn = document.getElementById('syncBtn');
+  let pat = localStorage.getItem(PAT_KEY);
+  if (!pat) {
+    pat = prompt('Enter your GitHub PAT (actions:write scope).\nIt will be saved in this browser only.');
+    if (!pat) return;
+    localStorage.setItem(PAT_KEY, pat.trim());
+    pat = pat.trim();
+  }
+  btn.textContent = '… syncing';
+  btn.disabled = true;
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${SYNC_REPO}/actions/workflows/${SYNC_WF}/dispatches`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${pat}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: SYNC_BRANCH, inputs: { sync_days: '7' } })
+      }
+    );
+    if (res.status === 204) {
+      btn.textContent = '✓ triggered';
+      setTimeout(() => { btn.textContent = '⟳ sync'; btn.disabled = false; }, 4000);
+    } else if (res.status === 401) {
+      localStorage.removeItem(PAT_KEY);
+      btn.textContent = '✗ bad token';
+      setTimeout(() => { btn.textContent = '⟳ sync'; btn.disabled = false; }, 3000);
+    } else {
+      btn.textContent = `✗ error ${res.status}`;
+      setTimeout(() => { btn.textContent = '⟳ sync'; btn.disabled = false; }, 3000);
+    }
+  } catch(e) {
+    btn.textContent = '✗ failed';
+    setTimeout(() => { btn.textContent = '⟳ sync'; btn.disabled = false; }, 3000);
+  }
 }
 
 // ── MFA relay ─────────────────────────────────────────────────────

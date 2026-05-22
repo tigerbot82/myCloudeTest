@@ -1,9 +1,6 @@
 name: Garmin → Firestore Sync
 
 on:
-  schedule:
-    # runs every day at 07:00 UTC
-    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       mfa_code:
